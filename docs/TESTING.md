@@ -30,7 +30,11 @@ The test suite currently covers:
   outside-the-codepage character on a simulated non-UTF-8 console;
 - the daemon's failure contract: non-finite numeric fields, an injected
   unanticipated handler exception, the preserved `invalid_request` code, and
-  `open` bounded by size as well as by line count.
+  `open` bounded by size as well as by line count;
+- retrieval correctness: `limit` filled when a rare term joins common ones,
+  every lexically matching unit reachable, an index self-reporting stale after a
+  write between parse and publish, and call edges omitted for foreign module
+  prefixes while local-module and receiver calls still resolve.
 
 Subprocess tests pin `PYTHONPATH` to `src/` through `cli_env()`, so they
 exercise the working tree rather than whatever copy pip has installed.

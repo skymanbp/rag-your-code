@@ -12,7 +12,7 @@ from .annotate import comment_for
 from .agentic import research
 from .embeddings import embedding_metadata
 from .graph import build_graph, graph_from_dict, graph_search
-from .indexer import StaleMonitor, build_units, fingerprint, read_index, write_index
+from .indexer import StaleMonitor, build_units, fingerprint, read_index, snapshot_repository, write_index
 from .search import build_search_index, context, search
 
 
@@ -34,9 +34,12 @@ def _refresh_index(root: Path, output: Path, full: bool = False, compact: bool |
     if compact is None:
         compact = bool(previous_payload.get("vector_store"))
     diagnostics: list[dict] = []
-    units = build_units(root, previous_units=previous_units, previous_files=previous_payload.get("files"), diagnostics=diagnostics)
+    # One snapshot for both halves: parsing from one walk and publishing hashes
+    # from another let a save landing between them poison incremental reuse.
+    snapshot = snapshot_repository(root)
+    units = build_units(root, previous_units=previous_units, previous_files=previous_payload.get("files"), diagnostics=diagnostics, snapshot=snapshot)
     graph = build_graph(units)
-    write_index(output, root, units, graph.to_dict(), compact=compact, diagnostics=diagnostics)
+    write_index(output, root, units, graph.to_dict(), compact=compact, diagnostics=diagnostics, snapshot=snapshot)
     return {"indexed_units": len(units), "graph_edges": len(graph.edges), "warnings": len(diagnostics), "incremental": bool(previous_units) and not full, "compact": bool(compact), "index": str(output), "root": str(root)}
 
 

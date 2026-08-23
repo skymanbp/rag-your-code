@@ -9,7 +9,7 @@ import struct
 import sys
 import time
 from array import array
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from .annotate import comment_for
@@ -62,24 +62,68 @@ def iter_source_files(root: Path, ignores: set[str] | None = None):
             yield path
 
 
-def file_fingerprints(root: Path) -> dict[str, str]:
-    result: dict[str, str] = {}
+@dataclass(frozen=True, slots=True)
+class RepositorySnapshot:
+    """One walk of the repository, shared by parsing and by publication.
+
+    Parsing from one walk while publishing hashes from a second is what let an
+    index record a file's NEW hash beside units parsed from its OLD content: a
+    save landing between the two walks was invisible, `fingerprint` then
+    reported the index fresh, and every later incremental run reused the stale
+    units forever. Taking the snapshot once removes the window rather than
+    narrowing it, and drops a run from four tree walks to two.
+    """
+
+    paths: tuple[Path, ...]
+    fingerprints: dict[str, str]
+    stats: dict[str, list[int]]
+
+    @property
+    def fingerprint(self) -> str:
+        return _fingerprint_files(self.fingerprints)
+
+
+def snapshot_repository(root: Path) -> RepositorySnapshot:
+    """Hash, stat and collect every source file in a single pass."""
+    paths: list[Path] = []
+    fingerprints: dict[str, str] = {}
+    stats: dict[str, list[int]] = {}
     for path in iter_source_files(root):
-        digest = hashlib.sha256()
         try:
-            digest.update(path.read_bytes())
+            stat = path.stat()
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
         except OSError:
+            # A file that vanished or became unreadable between the walk and the
+            # read simply is not in this snapshot. Recording a half-read entry
+            # would reintroduce exactly the parse/publish mismatch this type exists
+            # to prevent.
             continue
-        result[path.relative_to(root).as_posix()] = digest.hexdigest()
-    return result
+        relative = path.relative_to(root).as_posix()
+        paths.append(path)
+        fingerprints[relative] = digest
+        stats[relative] = [stat.st_size, stat.st_mtime_ns]
+    return RepositorySnapshot(tuple(paths), fingerprints, stats)
+
+
+def file_fingerprints(root: Path) -> dict[str, str]:
+    return snapshot_repository(root).fingerprints
 
 
 def file_stats(root: Path) -> dict[str, list[int]]:
+    """Size and mtime only -- deliberately NOT routed through the snapshot.
+
+    StaleMonitor asks "has anything changed?" many times per session and needs
+    no content consistency with a parse. Routing it through snapshot_repository
+    made every stale check SHA-256 the whole repository, which measured a 2.5x
+    regression (69 ms -> 172 ms at 10k units).
+    """
     result: dict[str, list[int]] = {}
     for path in iter_source_files(root):
         try:
             stat = path.stat()
         except OSError:
+            # A file that disappeared mid-walk is simply absent from this
+            # reading; the next check will see the directory as it then is.
             continue
         result[path.relative_to(root).as_posix()] = [stat.st_size, stat.st_mtime_ns]
     return result
@@ -111,14 +155,20 @@ def build_units(
     previous_units: list[CodeUnit] | None = None,
     previous_files: dict[str, str] | None = None,
     diagnostics: list[dict] | None = None,
+    snapshot: RepositorySnapshot | None = None,
 ) -> list[CodeUnit]:
-    """Build units, reusing unchanged files and stable serials when possible."""
-    current_files = file_fingerprints(root)
+    """Build units, reusing unchanged files and stable serials when possible.
+
+    Pass the same ``snapshot`` to ``write_index`` so the hashes published
+    describe exactly the bytes these units were parsed from.
+    """
+    snapshot = snapshot or snapshot_repository(root)
+    current_files = snapshot.fingerprints
     old_by_path = {}
     for unit in previous_units or []:
         old_by_path.setdefault(unit.path, []).append(unit)
     units: list[CodeUnit] = []
-    for path in iter_source_files(root):
+    for path in snapshot.paths:
         relative = path.relative_to(root).as_posix()
         if previous_files and previous_files.get(relative) == current_files.get(relative) and relative in old_by_path:
             units.extend(replace(unit) for unit in old_by_path[relative])
@@ -155,10 +205,12 @@ def write_index(
     graph: dict | None = None,
     compact: bool = False,
     diagnostics: list[dict] | None = None,
+    snapshot: RepositorySnapshot | None = None,
 ) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    files = file_fingerprints(root)
-    repository_fingerprint = _fingerprint_files(files)
+    snapshot = snapshot or snapshot_repository(root)
+    files = snapshot.fingerprints
+    repository_fingerprint = snapshot.fingerprint
     dimensions = len(units[0].vector) if units and units[0].vector else DEFAULT_DIMENSIONS
     serialized_units = [unit.to_dict(include_vector=not compact) for unit in units]
     vector_store = None
@@ -188,7 +240,7 @@ def write_index(
         "root": str(root.resolve()),
         "fingerprint": repository_fingerprint,
         "files": files,
-        "file_stats": file_stats(root),
+        "file_stats": snapshot.stats,
         "dimensions": dimensions,
         "embedding": embedding_metadata(dimensions),
         "units": serialized_units,

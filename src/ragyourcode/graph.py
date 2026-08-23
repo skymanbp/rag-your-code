@@ -82,10 +82,38 @@ def _name_indexes(units: Iterable[CodeUnit]):
     return by_name, by_module
 
 
+def _call_targets(call: str, by_name: dict[str, list[str]], local_modules: set[str], unit: CodeUnit, unit_by_id: dict[str, CodeUnit]) -> list[str]:
+    """Resolve a recorded call to local unit ids, guessing only where allowed.
+
+    An exact match on the text the parser recorded always wins. Falling back to
+    the last dotted segment is a guess, and an unrestricted guess is how
+    `os.path.join` acquired a `calls` edge to an unrelated local `join` -- while
+    this module's own docstring promises that unresolved calls are omitted
+    rather than guessed. The fallback now requires the head of the dotted path
+    to be attributable to this repository: `self`/`cls`, or a module some file
+    here actually defines. `os`, `json`, `requests` and every other foreign
+    prefix resolve to nothing, as documented.
+    """
+    exact = by_name.get(call)
+    if exact:
+        return list(exact)
+    if "." not in call:
+        return []
+    head = call.split(".", 1)[0]
+    leaf = call.rsplit(".", 1)[-1]
+    if head in {"self", "cls"}:
+        # A receiver call names a sibling defined alongside this unit.
+        return [target for target in by_name.get(leaf, []) if unit_by_id[target].path == unit.path]
+    if head in local_modules:
+        return list(by_name.get(leaf, []))
+    return []
+
+
 def build_graph(units: Iterable[CodeUnit], max_edges_per_unit: int = 64) -> CodeGraph:
     units = list(units)
     unit_by_id = {unit.id: unit for unit in units}
     by_name, by_module = _name_indexes(units)
+    local_modules = set(by_module)
     edges: set[CodeEdge] = set()
     for unit in units:
         budget = max(1, max_edges_per_unit)
@@ -99,8 +127,7 @@ def build_graph(units: Iterable[CodeUnit], max_edges_per_unit: int = 64) -> Code
         for call in unit.calls:
             if budget <= 0:
                 break
-            leaf = call.rsplit(".", 1)[-1]
-            targets = list(by_name.get(call) or by_name.get(leaf, []))
+            targets = _call_targets(call, by_name, local_modules, unit, unit_by_id)
             same_file = [target for target in targets if target != unit.id and unit_by_id[target].path == unit.path]
             resolved = same_file if len(same_file) == 1 else targets if len(targets) == 1 else []
             for target in resolved:

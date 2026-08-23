@@ -29,9 +29,29 @@ The feature-hash embedder is deterministic, offline, and dependency-free. That g
 
 Results combine lexical overlap (useful for exact symbols and error names) with cosine similarity (useful for concepts such as "retry failed HTTP requests"). The JSON response includes score, matched terms, location, description, and source. Agents should treat retrieval as navigation evidence, then open the cited source before editing.
 
+Two candidate sets, with distinct jobs. Every unit reached by any query term is
+scored, so recall is complete. A *selective* subset — the units reached by a term
+occurring in under a tenth of the corpus — additionally receives a cosine score,
+because a 384-dimension dot product for every unit a stopword-class term touches
+is pure cost. Letting the selective set decide who gets scored *at all* was a
+defect: units matching more query terms went unranked and `--limit 8` returned a
+single result on a 116-unit repository.
+
+Complete recall is not free. Measured at 10,000 units, mean query time went from
+1.63 ms to 3.82 ms — the earlier figure was cheap because it scored a subset and
+under-filled the result list. Scoring accumulates match counts straight from the
+posting lists, materialises only the `limit` results actually returned, and
+recovers each one's matched terms by binary search over the sorted postings;
+without those three the same recall measured 16.9 ms.
+
 ## Large repositories
 
-Index schema 2 stores per-file hashes. Re-indexing reuses parsed units and
+Index schema 2 stores per-file hashes. One `RepositorySnapshot` is taken per run
+and shared by parsing and publication: hashing in a second walk let a save
+landing between the two record a file's new hash beside units parsed from its
+old content, after which `fingerprint` reported the index fresh and every later
+incremental run reused the stale units permanently. Sharing the snapshot also
+took a run from four tree walks to one. Re-indexing reuses parsed units and
 vectors for unchanged files while preserving repository-global serials. Use
 `index --full` to discard that cache. Use `index --compact` to move 384-d
 vectors from verbose JSON numbers into a float32 sidecar; the metadata remains
@@ -53,7 +73,12 @@ not a larger JSON file.
 ## GRAG
 
 The current graph contains only conservative, inspectable relationships:
-`calls`, `imports`, and `contains`. `search --graph --hops 1` retrieves normal
+`calls`, `imports`, and `contains`. A call resolves on an exact match of the
+text the parser recorded. Falling back to the last dotted segment is a guess and
+is allowed only when the head of the path is attributable to this repository —
+`self`/`cls`, or a module some file here defines. Unrestricted, that fallback
+gave `os.path.join` a `calls` edge into an unrelated local `join`; foreign
+prefixes now resolve to nothing, as this section already promised. `search --graph --hops 1` retrieves normal
 semantic seeds and propagates a decayed score to bounded neighbors. Every
 expanded result carries the exact graph path as evidence. Unresolved or
 ambiguous symbols are omitted or capped rather than guessed.
@@ -84,12 +109,12 @@ query into a zero-result, exit-0 answer, and a response holding a character
 outside the codepage terminated the subprocess.
 
 One representative synthetic Windows run (500 files, 20 functions/file) took
-2.02 s for full parsing/embedding and 0.244 s for a one-file incremental refresh
-(8.27x). Compact storage was 35.6% of readable JSON. In an isolated agent
-process, 10,000 units loaded in 51.3 ms, built the inverted index in 102.7 ms,
-used 70.5 MiB current/76.7 MiB peak RSS, and selective hybrid queries averaged
-1.236 ms. A full stale stat walk cost 57.1 ms; the one-second monitor cache made
-repeated checks effectively free. These are directional local measurements,
+1.82 s for full parsing/embedding and 0.249 s for a one-file incremental refresh
+(7.30x). Compact storage was 35.6% of readable JSON. In an isolated agent
+process, 10,000 units loaded in 48.6 ms, built the inverted index in 89.5 ms,
+used 57.8 MiB current/64.1 MiB peak RSS, and full-recall hybrid queries averaged
+3.82 ms. A full stale stat walk cost 83.7 ms; the one-second monitor cache made
+repeated checks effectively free (0.0004 ms). These are directional local measurements,
 not universal service-level guarantees; see `large-benchmark-result.json`.
 
 ## Evolution plan

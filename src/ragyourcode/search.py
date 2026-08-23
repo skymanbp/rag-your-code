@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
+import heapq
+from bisect import bisect_left
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 
 from .embeddings import DEFAULT_DIMENSIONS, embed, tokenize
@@ -13,26 +15,29 @@ from .models import CodeUnit, SearchResult
 class SearchIndex:
     """In-memory inverted index reused across queries.
 
-    Building this once avoids re-tokenizing every code unit and allows vector
-    work to focus on candidates containing informative query terms. The same
-    structure can later be backed by SQLite/ANN storage.
+    Building this once avoids re-tokenizing every code unit. Matched terms are
+    read straight out of ``postings``; an earlier version also cached a
+    per-unit frozenset of every token, which cost the largest share of the
+    index's resident memory while holding nothing ``postings`` did not already
+    have. The same structure can later be backed by SQLite/ANN storage.
     """
 
     units: dict[str, CodeUnit]
-    terms_by_unit: dict[str, frozenset[str]]
     postings: dict[str, tuple[str, ...]]
 
 
 def build_search_index(units: list[CodeUnit]) -> SearchIndex:
     postings: dict[str, set[str]] = defaultdict(set)
-    terms_by_unit: dict[str, frozenset[str]] = {}
-    by_id = {unit.id: unit for unit in units}
     for unit in units:
-        terms = frozenset(tokenize(unit.searchable_text))
-        terms_by_unit[unit.id] = terms
-        for term in terms:
+        for term in set(tokenize(unit.searchable_text)):
             postings[term].add(unit.id)
-    return SearchIndex(by_id, terms_by_unit, {term: tuple(sorted(ids)) for term, ids in postings.items()})
+    return SearchIndex({unit.id: unit for unit in units}, {term: tuple(sorted(ids)) for term, ids in postings.items()})
+
+
+def _in_posting(posting: tuple[str, ...], unit_id: str) -> bool:
+    """Membership test over a posting list, which build_search_index keeps sorted."""
+    position = bisect_left(posting, unit_id)
+    return position < len(posting) and posting[position] == unit_id
 
 
 def search(
@@ -41,45 +46,69 @@ def search(
     limit: int = 8,
     search_index: SearchIndex | None = None,
 ) -> list[SearchResult]:
-    if limit <= 0 or not tokenize(query):
-        return []
     query_tokens = set(tokenize(query))
+    if limit <= 0 or not query_tokens:
+        return []
     query_vector = embed(query, len(units[0].vector) if units and units[0].vector else DEFAULT_DIMENSIONS)
     query_features = [(index, value) for index, value in enumerate(query_vector) if value]
     search_index = search_index or build_search_index(units)
-    posting_lists = [search_index.postings.get(token, ()) for token in query_tokens]
-    lexical_ids = set().union(*posting_lists)
-    # Common terms (for example ``function``) can occur in every unit and make
-    # exact cosine scanning dominate latency. Compute vectors only for units
-    # reached through at least one informative term. If nothing matches at all,
-    # retain full vector fallback for genuine paraphrases.
+    postings = [(token, search_index.postings.get(token, ())) for token in query_tokens]
+
+    # Matched terms come straight from the posting lists. Walking postings costs
+    # O(sum of posting lengths) of dict work, where scoring each candidate by
+    # intersecting a cached per-unit token set cost a frozenset operation per
+    # candidate -- and every lexically matching unit now gets a score.
+    matched_counts: Counter[str] = Counter()
+    for _, posting in postings:
+        matched_counts.update(posting)
+
+    # A term present in a tenth of the corpus (``function``, ``return``) is not
+    # evidence of relevance, and its posting list is effectively the whole index;
+    # computing a 384-dimension dot product for everything it reaches is what
+    # this threshold exists to avoid. It selects which candidates additionally
+    # receive a VECTOR score. It must not decide which candidates are scored at
+    # all -- doing that silently dropped units matching MORE query terms and
+    # under-filled ``limit`` (116 units, `--limit 8`, one result returned).
     selective_threshold = max(64, min(2048, len(units) // 10))
-    vector_ids = set().union(*(posting for posting in posting_lists if 0 < len(posting) <= selective_threshold))
-    if lexical_ids and not vector_ids and len(lexical_ids) <= selective_threshold:
-        vector_ids = set(lexical_ids)
-    candidate_ids = vector_ids or lexical_ids or set(search_index.units)
-    ranked: list[SearchResult] = []
+    vector_ids: set[str] = set()
+    for _, posting in postings:
+        if 0 < len(posting) <= selective_threshold:
+            vector_ids.update(posting)
+    if matched_counts and not vector_ids and len(matched_counts) <= selective_threshold:
+        vector_ids = set(matched_counts)
+
+    # With no lexical overlap anywhere, fall back to pure cosine so a genuine
+    # paraphrase still retrieves something.
+    candidate_ids = matched_counts.keys() if matched_counts else search_index.units.keys()
+    scored: list[tuple[float, str]] = []
     for unit_id in candidate_ids:
         unit = search_index.units[unit_id]
-        terms = search_index.terms_by_unit.get(unit.id, frozenset())
-        matched = sorted(query_tokens & terms)
-        lexical = len(matched) / max(1, len(query_tokens))
+        lexical = matched_counts.get(unit_id, 0) / len(query_tokens)
         vector_score = (
             sum(value * unit.vector[index] for index, value in query_features)
-            if (unit.id in vector_ids or not lexical_ids) and len(unit.vector) == len(query_vector)
+            if (unit_id in vector_ids or not matched_counts) and len(unit.vector) == len(query_vector)
             else 0.0
         )
         # Exact symbols and domain terms are high-confidence evidence. Keep
-        # lexical overlap dominant so a noisy feature-hash vector cannot push
-        # an exact match below an unrelated semantic neighbor; use the vector
-        # score to rank paraphrases and break lexical ties.
+        # lexical overlap dominant so a noisy feature-hash vector cannot push an
+        # exact match below an unrelated semantic neighbor; use the vector score
+        # to rank paraphrases and break lexical ties.
         score = lexical + 0.15 * max(0.0, vector_score)
-        if matched:
-            ranked.append(SearchResult(unit, score, matched))
-        elif score > 0:
-            ranked.append(SearchResult(unit, score, []))
-    ranked.sort(key=lambda result: (-result.score, result.unit.id))
-    return ranked[:limit]
+        if lexical or score > 0:
+            scored.append((score, unit_id))
+    # Materialise only the winners. Building a SearchResult for every lexical
+    # match and then sorting all of them cost more than the scoring itself once
+    # recall became complete: at 10k units that alone was most of a 10x query
+    # regression. nsmallest keeps the exact previous ordering -- highest score
+    # first, ties broken by ascending unit id -- at O(n log limit).
+    winners = heapq.nsmallest(limit, scored, key=lambda item: (-item[0], item[1]))
+    # Which terms matched is only needed for the handful actually returned, and
+    # postings are stored sorted, so a binary search beats carrying a per-unit
+    # term list through the scoring loop for every candidate in the corpus.
+    return [
+        SearchResult(search_index.units[unit_id], score, sorted(token for token, posting in postings if _in_posting(posting, unit_id)))
+        for score, unit_id in winners
+    ]
 
 
 def context(results: list[SearchResult], max_chars: int = 12000) -> str:
