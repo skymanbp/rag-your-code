@@ -207,7 +207,32 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _use_utf8_streams() -> None:
+    """Pin the process streams to UTF-8, which is what the protocol promises.
+
+    The index and the JSON-lines agent protocol are UTF-8 by contract, but
+    Python decodes stdio with the OS locale codepage. On a non-UTF-8 console
+    (cp936, cp1252) that costs correctness twice: printing a response whose
+    source or docstring holds a character outside the codepage raises
+    UnicodeEncodeError and kills a long-lived ``agent`` subprocess, and a
+    request line written as UTF-8 by the host is mis-decoded into mojibake
+    that matches nothing and returns an empty, exit-0 result.
+    """
+    for stream in (sys.stdin, sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:  # pytest capture and other wrappers are not TextIOWrapper
+            continue
+        try:
+            reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, OSError, ValueError):
+            # A stream that refuses reconfiguration (already detached, or a
+            # binary substitute) keeps its own encoding. Failing the whole
+            # command over stream setup would be worse than the mojibake.
+            continue
+
+
 def main(argv: list[str] | None = None) -> int:
+    _use_utf8_streams()
     args = build_parser().parse_args(argv)
     try:
         return args.func(args)

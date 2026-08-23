@@ -157,14 +157,6 @@ def write_index(
     diagnostics: list[dict] | None = None,
 ) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    old_vector_name = None
-    if path.exists():
-        try:
-            old_payload = json.loads(path.read_text(encoding="utf-8"))
-            if isinstance(old_payload, dict) and isinstance(old_payload.get("vector_store"), dict):
-                old_vector_name = str(old_payload["vector_store"].get("path", "")) or None
-        except (OSError, ValueError, TypeError):
-            pass
     files = file_fingerprints(root)
     repository_fingerprint = _fingerprint_files(files)
     dimensions = len(units[0].vector) if units and units[0].vector else DEFAULT_DIMENSIONS
@@ -209,14 +201,38 @@ def write_index(
     with index_temp.open("w", encoding="utf-8", newline="\n") as stream:
         json.dump(payload, stream, ensure_ascii=False, indent=2)
     index_temp.replace(path)
-    active_vector = vector_store["path"] if vector_store else None
-    if old_vector_name and old_vector_name != active_vector:
-        old_vector = path.parent / old_vector_name
+    _remove_superseded_vectors(path, vector_store["path"] if vector_store else None)
+
+
+def _remove_superseded_vectors(path: Path, active_name: str | None) -> None:
+    """Delete this index's own outdated vector sidecars.
+
+    The set of files to remove is derived from the naming scheme ``write_index``
+    itself uses (``<stem>.<fingerprint>.<digest>.vectors.bin``) and never from a
+    path read back out of the index being replaced. That index lives inside the
+    repository being scanned, so a repository can ship one; trusting its
+    ``vector_store.path`` turned publication into an arbitrary in-tree delete.
+    Enumerating instead of trusting also reclaims sidecars orphaned by an
+    earlier run whose index.json was unreadable or absent.
+    """
+    prefix, suffix = f"{path.stem}.", ".vectors.bin"
+    try:
+        candidates = list(path.parent.iterdir())
+    except OSError:
+        # The directory was just written to successfully, so an unreadable
+        # parent here means a concurrent removal. Cleanup is best-effort by
+        # design; the freshly published index is already valid without it.
+        return
+    for candidate in candidates:
+        if candidate.name == active_name or not candidate.name.startswith(prefix) or not candidate.name.endswith(suffix):
+            continue
         try:
-            old_vector.resolve().relative_to(path.parent.resolve())
-            old_vector.unlink(missing_ok=True)
-        except (OSError, ValueError):
-            pass
+            candidate.unlink()
+        except OSError:
+            # Sidecars are content-addressed, so one that cannot be unlinked
+            # (a concurrent reader holding it open on Windows) is inert: no
+            # index points at it. Leaking a file beats failing the publish.
+            continue
 
 
 def read_index(path: Path) -> tuple[dict, list[CodeUnit]]:

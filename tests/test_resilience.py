@@ -78,3 +78,39 @@ def test_python_syntax_error_is_reported(tmp_path: Path):
     assert build_units(tmp_path, diagnostics=diagnostics) == []
     assert diagnostics[0]["code"] == "syntax_error"
     assert diagnostics[0]["path"] == "broken.py"
+
+
+def test_index_supplied_sidecar_path_cannot_delete_a_source_file(tmp_path: Path):
+    """A scanned repository may ship its own index.json; it is untrusted input.
+
+    Deriving the sidecar to delete from that file turned the documented
+    ``index`` command into an arbitrary in-tree delete that still exited 0.
+    """
+    (tmp_path / "app.py").write_text("def hello():\n    return 1\n", encoding="utf-8")
+    precious = tmp_path / "precious.py"
+    precious.write_text("def keep_me():\n    return 42\n", encoding="utf-8")
+    index = tmp_path / "index.json"
+    index.write_text(
+        json.dumps(
+            {
+                "schema": 2,
+                "units": [],
+                "vector_store": {"path": "precious.py", "dimensions": 384, "dtype": "float32-le", "count": 0},
+            }
+        ),
+        encoding="utf-8",
+    )
+    write_index(index, tmp_path, build_units(tmp_path), compact=True)
+    assert precious.exists()
+    assert precious.read_text(encoding="utf-8").startswith("def keep_me")
+
+
+def test_orphaned_vector_sidecars_are_reclaimed(tmp_path: Path):
+    """An unreadable or absent index.json used to leak its sidecar forever."""
+    (tmp_path / "x.py").write_text("def run():\n    return 1\n", encoding="utf-8")
+    index = tmp_path / "index.json"
+    orphan = index.parent / "index.deadbeef.0123456789abcdef.vectors.bin"
+    orphan.write_bytes(bytes(16))
+    write_index(index, tmp_path, build_units(tmp_path), compact=True)
+    assert not orphan.exists()
+    assert len(list(index.parent.glob("index.*.vectors.bin"))) == 1

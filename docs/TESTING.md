@@ -23,7 +23,14 @@ The test suite currently covers:
   step/stop contracts;
 - malformed/non-object requests, numeric bounds, path traversal and missing
   index errors;
-- plugin-facing CLI help and source-preserving annotations.
+- plugin-facing CLI help and source-preserving annotations;
+- a crafted `vector_store.path` in a shipped index failing to delete a source
+  file, and orphaned sidecars being reclaimed;
+- the agent subprocess answering a UTF-8 CJK query and echoing an
+  outside-the-codepage character on a simulated non-UTF-8 console.
+
+Subprocess tests pin `PYTHONPATH` to `src/` through `cli_env()`, so they
+exercise the working tree rather than whatever copy pip has installed.
 
 Run:
 

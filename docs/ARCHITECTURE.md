@@ -68,6 +68,12 @@ root, and graph/research hop and step budgets are capped. This is the safe
 contract for a future LLM planner; an LLM may propose follow-up queries but
 must not bypass these budgets or evidence requirements.
 
+Request and response lines are UTF-8 in both directions regardless of the
+console codepage: `main()` pins the process streams rather than inheriting the
+OS locale. Without that pin a non-UTF-8 console silently mis-decoded a UTF-8
+query into a zero-result, exit-0 answer, and a response holding a character
+outside the codepage terminated the subprocess.
+
 One representative synthetic Windows run (500 files, 20 functions/file) took
 2.02 s for full parsing/embedding and 0.244 s for a one-file incremental refresh
 (8.27x). Compact storage was 35.6% of readable JSON. In an isolated agent
@@ -88,4 +94,14 @@ not universal service-level guarantees; see `large-benchmark-result.json`.
 
 ## Safety and privacy
 
-No source leaves the machine in the default mode. Generated artifacts are isolated under `.rag-your-code/` and ignored by Git. External embedding providers, when added, must be opt-in, clearly reported in the index metadata, and support path/content exclusion rules.
+No source leaves the machine in the default mode. Generated artifacts are isolated under `.rag-your-code/` and ignored by Git.
+
+A repository being scanned is untrusted input, and that includes any
+`.rag-your-code/index.json` it ships. Nothing read out of an index may name a
+filesystem path to act on: the vector sidecars a run supersedes are enumerated
+from the naming scheme `write_index` itself uses, never from the index being
+replaced. Enumerating also reclaims sidecars orphaned by an earlier run whose
+index was unreadable.
+
+External embedding providers, when added, must be opt-in, clearly reported in
+the index metadata, and support path/content exclusion rules.
