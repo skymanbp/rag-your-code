@@ -27,7 +27,10 @@ The test suite currently covers:
 - a crafted `vector_store.path` in a shipped index failing to delete a source
   file, and orphaned sidecars being reclaimed;
 - the agent subprocess answering a UTF-8 CJK query and echoing an
-  outside-the-codepage character on a simulated non-UTF-8 console.
+  outside-the-codepage character on a simulated non-UTF-8 console;
+- the daemon's failure contract: non-finite numeric fields, an injected
+  unanticipated handler exception, the preserved `invalid_request` code, and
+  `open` bounded by size as well as by line count.
 
 Subprocess tests pin `PYTHONPATH` to `src/` through `cli_env()`, so they
 exercise the working tree rather than whatever copy pip has installed.

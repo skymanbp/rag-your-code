@@ -64,7 +64,16 @@ The JSON-lines agent supports `search`, `research`, `neighbors`, `open`,
 `refresh`, and `stats`. `research` is a deterministic two-stage controller:
 semantic search, then at most one graph expansion when confidence is low. It
 returns each step and a stop reason. `open` rejects paths outside the repository
-root, and graph/research hop and step budgets are capped. This is the safe
+root, refuses files above the indexer's 5 MiB source cap, and truncates its
+reply at 100k characters with `truncated: true` — a line count is not a size,
+and a three-line file can hold megabytes on one line. Graph/research hop and
+step budgets are capped, and non-finite numeric fields saturate at their bound
+rather than raising.
+
+No single request may end a session. The loop reports a malformed field as
+`invalid_request` and anything unanticipated as `request_failed` with the
+exception type, then serves the next line. Enumerating expected exception types
+was the earlier design and the reason `limit: 1e400` terminated the daemon. This is the safe
 contract for a future LLM planner; an LLM may propose follow-up queries but
 must not bypass these budgets or evidence requirements.
 

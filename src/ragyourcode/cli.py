@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -85,8 +86,18 @@ def _cmd_annotate(args: argparse.Namespace) -> int:
     return 0
 
 
+MAX_OPEN_BYTES = 5 * 1024 * 1024
+MAX_OPEN_CHARS = 100_000
+
+
 def _open_source(root: Path, relative_path: str, start_line=None, end_line=None) -> dict:
-    """Open only files inside the indexed repository, with bounded output."""
+    """Open only files inside the indexed repository, with bounded output.
+
+    Two bounds, because a line count is not a size. The indexer skips sources
+    over MAX_SOURCE_BYTES, but `open` accepts any in-tree path, and a three-line
+    file holding one two-megabyte line satisfied the old 200-line bound while
+    returning two megabytes on a single JSON line.
+    """
     candidate = (root / relative_path).resolve()
     try:
         candidate.relative_to(root)
@@ -95,6 +106,8 @@ def _open_source(root: Path, relative_path: str, start_line=None, end_line=None)
     if not candidate.is_file():
         return {"error": "file_not_found", "path": relative_path}
     try:
+        if candidate.stat().st_size > MAX_OPEN_BYTES:
+            return {"error": "file_too_large", "path": relative_path, "limit_bytes": MAX_OPEN_BYTES}
         lines = candidate.read_text(encoding="utf-8").splitlines()
     except (OSError, UnicodeDecodeError):
         return {"error": "file_unreadable", "path": relative_path}
@@ -102,11 +115,33 @@ def _open_source(root: Path, relative_path: str, start_line=None, end_line=None)
     last = min(len(lines), int(end_line or min(len(lines), first + 200)))
     if first > last:
         return {"error": "invalid_line_range"}
-    return {"path": relative_path, "start_line": first, "end_line": last, "source": "\n".join(lines[first - 1:last])}
+    source = chr(10).join(lines[first - 1:last])
+    response = {"path": relative_path, "start_line": first, "end_line": last}
+    if len(source) > MAX_OPEN_CHARS:
+        source = source[:MAX_OPEN_CHARS]
+        response["truncated"] = True
+        response["truncated_at_chars"] = MAX_OPEN_CHARS
+    response["source"] = source
+    return response
 
 
 def _request_int(request: dict, key: str, default: int, minimum: int, maximum: int) -> int:
-    return min(maximum, max(minimum, int(request.get(key, default))))
+    """Clamp a numeric request field into [minimum, maximum].
+
+    The clamp must survive non-finite floats. A host sending `1e400` produces
+    `inf`, and `int(inf)` raises OverflowError, which is neither TypeError nor
+    ValueError; it escaped the request loop and killed the daemon. Saturating at
+    the bound is the reading the caller intended anyway.
+    """
+    raw = request.get(key, default)
+    if isinstance(raw, float):
+        if raw != raw:
+            return default
+        if raw == math.inf:
+            return maximum
+        if raw == -math.inf:
+            return minimum
+    return min(maximum, max(minimum, int(raw)))
 
 
 def _cmd_agent(args: argparse.Namespace) -> int:
@@ -170,6 +205,17 @@ def _cmd_agent(args: argparse.Namespace) -> int:
                 response = {"error": f"unsupported action: {action}"}
         except (TypeError, ValueError) as exc:
             response = {"error": "invalid_request", "message": str(exc)}
+        except Exception as exc:
+            # A daemon serving untrusted request lines must not be able to die
+            # because one of them was malformed. Enumerating the expected
+            # exception types WAS the defect: int(1e400) raises OverflowError,
+            # which is neither TypeError nor ValueError, so a single request
+            # terminated the process and every later request went unanswered.
+            # This reports the failure in-band rather than swallowing it -- the
+            # exception type is returned so a genuine defect stays diagnosable --
+            # and KeyboardInterrupt/SystemExit still stop the loop, being
+            # BaseException rather than Exception.
+            response = {"error": "request_failed", "type": type(exc).__name__, "message": str(exc)}
         if "degraded" not in response:
             response["degraded"] = payload.get("degraded")
         print(json.dumps(response, ensure_ascii=False), flush=True)
