@@ -1,0 +1,42 @@
+{
+  "name": "rag-your-code retrieval v1",
+  "description": "Stable natural-language queries over the small fixture repository.",
+  "k": 3,
+  "queries": [
+    {
+      "id": "auth-validation",
+      "query": "validate login session token credentials",
+      "relevant": [{"path": "auth.py", "name": "verify_session_token"}]
+    },
+    {
+      "id": "payment-retry",
+      "query": "retry failed card charge after gateway timeout",
+      "relevant": [{"path": "payments.py", "name": "retry_charge"}]
+    },
+    {
+      "id": "search-ranking",
+      "query": "rank search results by relevance",
+      "relevant": [{"path": "search.py", "name": "rank_documents"}]
+    },
+    {
+      "id": "webhook-delivery",
+      "query": "queue outbound webhook event for asynchronous delivery",
+      "relevant": [{"path": "notifications.py", "name": "enqueue_webhook"}]
+    },
+    {
+      "id": "payment-refund",
+      "query": "refund settled payment by transaction identifier",
+      "relevant": [{"path": "payments.py", "name": "refund_payment"}]
+    },
+    {
+      "id": "paraphrase-session",
+      "query": "check whether a credential is valid and has not expired",
+      "relevant": [{"path": "auth.py", "name": "verify_session_token"}]
+    },
+    {
+      "id": "paraphrase-ranking",
+      "query": "order text documents according to query relevance",
+      "relevant": [{"path": "search.py", "name": "rank_documents"}]
+    }
+  ]
+}

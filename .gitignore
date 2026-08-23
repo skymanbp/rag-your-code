@@ -1,0 +1,33 @@
+# --- generated index / annotations (this tool's own output) ---
+.rag-your-code/
+
+# --- Python bytecode & caches ---
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- build & packaging artifacts ---
+build/
+dist/
+dist-test/
+*.egg-info/
+*.tmp
+
+# --- virtualenvs ---
+.venv/
+venv/
+
+# --- benchmark output ---
+# `large-benchmark-result.json` is deliberately NOT ignored: docs/ARCHITECTURE.md
+# cites it as the evidence behind its published latency/size numbers, so a clone
+# must carry it. Everything below is per-run scratch with no doc reference.
+benchmark-run-*.json
+benchmark-result.json
+
+# --- agent / harness scratch that has landed here before ---
+agent-e2e-result.jsonl
+.io-probe/
+.runtime-tmp-*/
+memory/

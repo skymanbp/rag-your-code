@@ -1,0 +1,7 @@
+# Line endings are part of this project's behaviour, not a cosmetic choice:
+# indexer.write_index() writes the index with newline="\n", and the parser's
+# line model is asserted against "\n" semantics. Normalise to LF everywhere so
+# a Windows checkout cannot silently change what the parser sees.
+* text=auto eol=lf
+*.png binary
+*.bin binary
