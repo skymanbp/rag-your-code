@@ -50,6 +50,32 @@ python -m compileall -q src tests benchmarks
 this project has no runtime dependencies and its wheel builds with
 `python -m pip wheel . --no-deps`.
 
+## The multi-language ruler
+
+`tests/fixtures/languages/` holds 15 realistic fixture files across JavaScript,
+TypeScript, Go, Rust, Java, Kotlin, C#, Scala, C, C++, Ruby, PHP, Swift and
+shell, plus `expected.json`: 96 expected units (91 core, 5 stretch), 237
+negative cases, and 96 constructs the spec deliberately excludes with the rule
+that excludes each one.
+
+`SPEC.md` states the eligibility rule once — *a unit is a named declaration that
+owns a body span* — so "what counts as a unit" is not re-invented per language.
+It matches what the Python path already does: `parser.py` emits units only for
+`FunctionDef`, `AsyncFunctionDef` and `ClassDef`, never for a module constant or
+a class attribute. The one deliberate departure is a binding whose right-hand
+side is syntactically a function literal, because `const f = () => {}` is how
+JavaScript and TypeScript declare most functions.
+
+This ruler was written **before** the parser rewrite it grades. Written after,
+it would have encoded whatever the new parser happened to do. Measured against
+the parser as of P2, over the 91 core entries: 28 found (31%), 4 with the
+correct `start_line` (4%), 5 with a usable signature (5%), and 24 phantom units
+invented from control flow, string literals and commented-out code.
+
+`PENDING_PARSER_REWRITE` in `tests/test_language_fixtures.py` is the known-gap
+ledger — 57 of 75 parametrised cases. Its marks are `strict`, so a case that
+starts passing fails as XPASS: the ledger can only shrink, never be forgotten.
+
 ## Baseline versus hybrid
 
 Run:

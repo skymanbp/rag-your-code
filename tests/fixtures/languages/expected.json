@@ -1,0 +1,1516 @@
+{
+  "sample.js": {
+    "expected": [
+      {
+        "name": "computeBackoff",
+        "kind": "function",
+        "start_line": 8,
+        "signature_contains": "function computeBackoff(",
+        "tier": "core"
+      },
+      {
+        "name": "uploadWithRetry",
+        "kind": "function",
+        "start_line": 19,
+        "signature_contains": "export async function uploadWithRetry(",
+        "tier": "core"
+      },
+      {
+        "name": "normalizeName",
+        "kind": "function",
+        "start_line": 34,
+        "signature_contains": "const normalizeName = (raw) =>",
+        "tier": "core"
+      },
+      {
+        "name": "makeLimiter",
+        "kind": "function",
+        "start_line": 39,
+        "signature_contains": "function makeLimiter(max)",
+        "tier": "core"
+      },
+      {
+        "name": "acquire",
+        "kind": "function",
+        "start_line": 41,
+        "signature_contains": "return function acquire(task) {",
+        "tier": "core"
+      },
+      {
+        "name": "render",
+        "kind": "method",
+        "start_line": 48,
+        "signature_contains": "render(name) {",
+        "tier": "core"
+      }
+    ],
+    "negatives": [
+      "if",
+      "for",
+      "try",
+      "catch",
+      "legacyUpload",
+      "function",
+      "setTimeout",
+      "Promise",
+      "Error",
+      "replace",
+      "toLowerCase",
+      "stringify",
+      "send",
+      "done",
+      "raw"
+    ],
+    "spec_exclusions": [
+      {
+        "name": "DEFAULT_ATTEMPTS",
+        "line": 5,
+        "reason": "Not eligible: \"a binding whose right-hand side is a call or a scalar (`const MAX = 5`)\" — `const DEFAULT_ATTEMPTS = 5;` is a stored constant with no body span."
+      },
+      {
+        "name": "DEFAULT_BASE_MS",
+        "line": 6,
+        "reason": "Not eligible: same scalar-binding row (`const MAX = 5`) — `const DEFAULT_BASE_MS = 250;`."
+      },
+      {
+        "name": "delay",
+        "line": 12,
+        "reason": "Not eligible: scalar binding row — `let delay = baseMs;` is a local value, no body to retrieve."
+      },
+      {
+        "name": "active",
+        "line": 40,
+        "reason": "Not eligible: scalar binding row — `let active = 0;` is a local value, no body to retrieve."
+      },
+      {
+        "name": "templates",
+        "line": 46,
+        "reason": "Not eligible: \"object/array/map literals bound to a name | a value, not a declaration of a named construct. Methods *inside* one are still units\" — hence `render` (L48) is expected while `templates` is not."
+      },
+      {
+        "name": "banner",
+        "line": 47,
+        "reason": "Not eligible: \"fields, properties, stored constants, class attributes | no body to retrieve\" — an object-literal string property."
+      },
+      {
+        "name": "limiter",
+        "line": 53,
+        "reason": "Not eligible: \"a binding whose right-hand side is a call ... the body being named lives elsewhere; the binding is a reference\" — `const limiter = makeLimiter(4);`. The RHS is a call, not a *syntactic* function literal, so the function-literal-binding row (which admits `normalizeName`) does not apply."
+      }
+    ]
+  },
+  "sample.ts": {
+    "expected": [
+      {
+        "name": "CacheEntry",
+        "kind": "class",
+        "start_line": 3,
+        "signature_contains": "export interface CacheEntry<T>",
+        "tier": "core"
+      },
+      {
+        "name": "TtlCache",
+        "kind": "class",
+        "start_line": 11,
+        "signature_contains": "export class TtlCache<T>",
+        "tier": "core"
+      },
+      {
+        "name": "constructor",
+        "kind": "method",
+        "start_line": 15,
+        "signature_contains": "constructor(",
+        "tier": "core"
+      },
+      {
+        "name": "size",
+        "kind": "method",
+        "start_line": 20,
+        "signature_contains": "get size(): number",
+        "tier": "core"
+      },
+      {
+        "name": "fromSeconds",
+        "kind": "method",
+        "start_line": 24,
+        "signature_contains": "static fromSeconds(seconds: number, logger: Logger)",
+        "tier": "core"
+      },
+      {
+        "name": "set",
+        "kind": "method",
+        "start_line": 30,
+        "signature_contains": "set(key: string, value: T): void",
+        "tier": "core"
+      },
+      {
+        "name": "getOrLoad",
+        "kind": "method",
+        "start_line": 34,
+        "signature_contains": "async getOrLoad<K extends string>",
+        "tier": "core"
+      },
+      {
+        "name": "prune",
+        "kind": "method",
+        "start_line": 45,
+        "signature_contains": "prune(now = Date.now()): number",
+        "tier": "core"
+      },
+      {
+        "name": "cacheFor",
+        "kind": "function",
+        "start_line": 58,
+        "signature_contains": "export const cacheFor = <V,>",
+        "tier": "core"
+      }
+    ],
+    "negatives": [
+      "if",
+      "for",
+      "peek",
+      "function",
+      "Map",
+      "Date",
+      "debug",
+      "delete",
+      "load",
+      "Logger",
+      "get",
+      "static",
+      "async",
+      "new",
+      "now",
+      "K",
+      "V",
+      "return"
+    ],
+    "spec_exclusions": [
+      {
+        "name": "value",
+        "line": 4,
+        "reason": "SPEC.md \"Not eligible\" row: fields, properties, stored constants, class attributes — no body to retrieve. Interface member, one line, no span."
+      },
+      {
+        "name": "expiresAt",
+        "line": 5,
+        "reason": "SPEC.md \"Not eligible\" row: fields, properties, stored constants, class attributes — no body to retrieve. Interface member, one line, no span."
+      },
+      {
+        "name": "Loader",
+        "line": 8,
+        "reason": "SPEC.md \"Not eligible\" row: type aliases without a body — the row's own example is verbatim this construct (`type Loader<T> = (k: string) => Promise<T>;`), \"one line, no span\". Dropped from the prior expected list, where it was carried as stretch."
+      },
+      {
+        "name": "store",
+        "line": 12,
+        "reason": "SPEC.md \"Not eligible\" row: fields, properties, stored constants, class attributes. Also the \"binding whose right-hand side is a call\" row (`new Map<...>()`). It is a real TS PropertyDeclaration — the reviewer was right that it is a declaration, so it is documented here rather than being a negative trap."
+      },
+      {
+        "name": "hits",
+        "line": 13,
+        "reason": "SPEC.md \"Not eligible\" row: fields, properties, stored constants, class attributes (`private hits = 0;` is a scalar-initialised property). Real PropertyDeclaration, so documented here rather than listed as a naive-regex trap."
+      },
+      {
+        "name": "ttlMs",
+        "line": 16,
+        "reason": "SPEC.md \"Not eligible\" row: fields, properties, stored constants, class attributes. A TS parameter property declares a class field; no body span of its own."
+      },
+      {
+        "name": "logger",
+        "line": 17,
+        "reason": "SPEC.md \"Not eligible\" row: fields, properties, stored constants, class attributes. TS parameter property, same as ttlMs."
+      },
+      {
+        "name": "entry",
+        "line": 35,
+        "reason": "SPEC.md \"Not eligible\" row: a binding whose right-hand side is a call (`this.store.get(key)`) — the binding is a reference; the body being named lives elsewhere."
+      },
+      {
+        "name": "fresh",
+        "line": 40,
+        "reason": "SPEC.md \"Not eligible\" row: a binding whose right-hand side is a call (`await load(key)`) — call-bound const, not a function literal."
+      },
+      {
+        "name": "removed",
+        "line": 46,
+        "reason": "SPEC.md \"Not eligible\" row: a binding whose right-hand side is a scalar (`let removed = 0`, the `const MAX = 5` case)."
+      }
+    ]
+  },
+  "sample.go": {
+    "expected": [
+      {
+        "name": "Blob",
+        "kind": "class",
+        "start_line": 13,
+        "signature_contains": "type Blob struct",
+        "tier": "core"
+      },
+      {
+        "name": "Store",
+        "kind": "class",
+        "start_line": 18,
+        "signature_contains": "type Store interface",
+        "tier": "core"
+      },
+      {
+        "name": "MemStore",
+        "kind": "class",
+        "start_line": 23,
+        "signature_contains": "type MemStore struct",
+        "tier": "core"
+      },
+      {
+        "name": "Get",
+        "kind": "method",
+        "start_line": 29,
+        "signature_contains": "func (m *MemStore) Get(",
+        "tier": "core"
+      },
+      {
+        "name": "Filter",
+        "kind": "function",
+        "start_line": 39,
+        "signature_contains": "func Filter[T any](",
+        "tier": "core"
+      },
+      {
+        "name": "Describe",
+        "kind": "function",
+        "start_line": 49,
+        "signature_contains": "func Describe(b *Blob) string",
+        "tier": "core"
+      },
+      {
+        "name": "Validate",
+        "kind": "function",
+        "start_line": 60,
+        "signature_contains": "var Validate = func(",
+        "tier": "core"
+      }
+    ],
+    "negatives": [
+      "if",
+      "for",
+      "switch",
+      "case",
+      "main",
+      "Retired",
+      "Errorf",
+      "Sprintf",
+      "append",
+      "New",
+      "banner",
+      "RLock",
+      "RUnlock",
+      "ok",
+      "m",
+      "keep",
+      "T"
+    ],
+    "spec_exclusions": [
+      {
+        "name": "ErrMissing",
+        "line": 10,
+        "reason": "Not eligible: \"a binding whose right-hand side is a call or a scalar (... var ErrX = errors.New(...))\" — the SPEC names this exact Go form; the binding is a reference, the body lives in errors.New."
+      },
+      {
+        "name": "blobcache",
+        "line": 2,
+        "reason": "Not eligible: \"impl blocks, namespace, package — containers, not units; their members are the units.\" `package blobcache` is the package clause."
+      },
+      {
+        "name": "Key",
+        "line": 14,
+        "reason": "Not eligible: \"fields, properties, stored constants, class attributes — no body to retrieve.\" Struct field of Blob."
+      },
+      {
+        "name": "Size",
+        "line": 15,
+        "reason": "Not eligible: \"fields, properties, stored constants, class attributes — no body to retrieve.\" Struct field of Blob."
+      },
+      {
+        "name": "Get",
+        "line": 19,
+        "reason": "Not eligible: \"bare prototypes and forward declarations (void submit(Task);)\" — an interface method signature has no body span; the implementation at line 29 is the unit, and emitting both duplicates the symbol."
+      },
+      {
+        "name": "Put",
+        "line": 20,
+        "reason": "Not eligible: \"bare prototypes and forward declarations\" — signature only, no body span. (No implementation of Store.Put exists in this file, so nothing is emitted for it at all.)"
+      },
+      {
+        "name": "mu",
+        "line": 24,
+        "reason": "Not eligible: \"fields, properties, stored constants, class attributes — no body to retrieve.\" Struct field of MemStore."
+      },
+      {
+        "name": "items",
+        "line": 25,
+        "reason": "Not eligible: \"fields, properties, stored constants, class attributes — no body to retrieve.\" Struct field of MemStore."
+      }
+    ]
+  },
+  "sample.rs": {
+    "expected": [
+      {
+        "name": "Chunk",
+        "kind": "class",
+        "start_line": 5,
+        "signature_contains": "pub struct Chunk",
+        "tier": "core"
+      },
+      {
+        "name": "Chunker",
+        "kind": "class",
+        "start_line": 11,
+        "signature_contains": "pub trait Chunker",
+        "tier": "core"
+      },
+      {
+        "name": "LineChunker",
+        "kind": "class",
+        "start_line": 16,
+        "signature_contains": "pub struct LineChunker;",
+        "tier": "core"
+      },
+      {
+        "name": "language",
+        "kind": "method",
+        "start_line": 19,
+        "signature_contains": "fn language(&self) -> &'static str {",
+        "tier": "stretch",
+        "why_stretch": "Name and body brace are both on line 19, so findability is one-line. The claimed kind is not: line 19 is textually indistinguishable from a free `fn`, and `method` can only be derived by knowing line 18 opened `impl Chunker for LineChunker`. SPEC's stretch clause covers exactly this ('the kind cannot be told apart from a sibling construct without knowing the enclosing scope')."
+      },
+      {
+        "name": "split",
+        "kind": "method",
+        "start_line": 23,
+        "signature_contains": "fn split(&self, source: &str) -> Vec<Chunk> {",
+        "tier": "stretch",
+        "why_stretch": "Same as language@19: the name is on line 23, but kind=method requires the enclosing `impl` block on line 18 — undecidable one line at a time. Findability alone would be core."
+      },
+      {
+        "name": "load_index",
+        "kind": "function",
+        "start_line": 36,
+        "signature_contains": "pub async fn load_index(",
+        "tier": "core"
+      },
+      {
+        "name": "chunk_count",
+        "kind": "function",
+        "start_line": 49,
+        "signature_contains": "pub fn chunk_count(chunks: &[Chunk]) -> usize",
+        "tier": "core"
+      },
+      {
+        "name": "is_real",
+        "kind": "function",
+        "start_line": 50,
+        "signature_contains": "fn is_real(c: &Chunk) -> bool",
+        "tier": "core"
+      },
+      {
+        "name": "normalize",
+        "kind": "function",
+        "start_line": 57,
+        "signature_contains": "fn normalize(path: &str) -> String",
+        "tier": "core"
+      }
+    ],
+    "negatives": [
+      "if",
+      "for",
+      "match",
+      "continue",
+      "println",
+      "debug_assert",
+      "unimplemented",
+      "legacy_normalize",
+      "main",
+      "new",
+      "push",
+      "filter",
+      "count",
+      "_marker",
+      "is_empty",
+      "enumerate",
+      "replace"
+    ],
+    "spec_exclusions": [
+      {
+        "name": "path",
+        "line": 6,
+        "reason": "Not eligible — \"fields, properties, stored constants, class attributes | no body to retrieve\". Struct field of Chunk."
+      },
+      {
+        "name": "start",
+        "line": 7,
+        "reason": "Not eligible — \"fields, properties, stored constants, class attributes | no body to retrieve\". Struct field of Chunk."
+      },
+      {
+        "name": "body",
+        "line": 8,
+        "reason": "Not eligible — \"fields, properties, stored constants, class attributes | no body to retrieve\". Struct field of Chunk."
+      },
+      {
+        "name": "language",
+        "line": 12,
+        "reason": "Not eligible — \"bare prototypes and forward declarations (`void submit(Task);`) | the definition is the unit; emitting both duplicates the symbol\". Trait method signature terminated by `;` with no body; the definition is language@19."
+      },
+      {
+        "name": "split",
+        "line": 13,
+        "reason": "Not eligible — \"bare prototypes and forward declarations (`void submit(Task);`) | the definition is the unit; emitting both duplicates the symbol\". Trait method signature terminated by `;` with no body; the definition is split@23."
+      },
+      {
+        "name": "impl Chunker for LineChunker",
+        "line": 18,
+        "reason": "Not eligible — \"`impl` blocks, `namespace`, `package` | containers, not units — their members are the units\". Its two members (19, 23) are the units."
+      }
+    ]
+  },
+  "InventoryService.java": {
+    "expected": [
+      {
+        "name": "InventoryService",
+        "kind": "class",
+        "start_line": 11,
+        "signature_contains": "public class InventoryService",
+        "tier": "core"
+      },
+      {
+        "name": "InventoryService",
+        "kind": "method",
+        "start_line": 16,
+        "signature_contains": "public InventoryService(Map<String, Integer> levels)",
+        "tier": "core"
+      },
+      {
+        "name": "sortedCopy",
+        "kind": "method",
+        "start_line": 20,
+        "signature_contains": "sortedCopy(",
+        "tier": "core"
+      },
+      {
+        "name": "adjust",
+        "kind": "method",
+        "start_line": 28,
+        "signature_contains": "public int adjust(String sku, int delta)",
+        "tier": "core"
+      },
+      {
+        "name": "isTracked",
+        "kind": "method",
+        "start_line": 40,
+        "signature_contains": "private boolean isTracked(String sku)",
+        "tier": "core"
+      }
+    ],
+    "negatives": [
+      "if",
+      "for",
+      "while",
+      "try",
+      "catch",
+      "reconcile",
+      "sort",
+      "compareTo",
+      "keySet",
+      "equals",
+      "getOrDefault",
+      "merge",
+      "containsKey",
+      "isEmpty",
+      "clear",
+      "ArrayList",
+      "NullPointerException",
+      "sum"
+    ],
+    "spec_exclusions": [
+      {
+        "name": "levels",
+        "line": 13,
+        "reason": "SPEC.md \"Not eligible\" row: fields, properties, stored constants, class attributes — no body to retrieve. `private final Map<String, Integer> levels;` is a field."
+      },
+      {
+        "name": "AUDIT_TAG",
+        "line": 14,
+        "reason": "SPEC.md \"Not eligible\" row: fields, properties, stored constants, class attributes — no body to retrieve. It is a stored constant whose string value only looks like a method declaration."
+      },
+      {
+        "name": "com.example.inventory",
+        "line": 1,
+        "reason": "SPEC.md \"Not eligible\" row: `impl` blocks, `namespace`, `package` — containers, not units; their members are the units."
+      }
+    ]
+  },
+  "SyncEngine.kt": {
+    "expected": [
+      {
+        "name": "DocumentSnapshot",
+        "kind": "class",
+        "start_line": 6,
+        "signature_contains": "data class DocumentSnapshot(",
+        "tier": "core"
+      },
+      {
+        "name": "SyncEngine",
+        "kind": "class",
+        "start_line": 12,
+        "signature_contains": "class SyncEngine(private val endpoint: String)",
+        "tier": "core"
+      },
+      {
+        "name": "enqueue",
+        "kind": "method",
+        "start_line": 16,
+        "signature_contains": "fun enqueue(docId: String): Boolean",
+        "tier": "core"
+      },
+      {
+        "name": "flush",
+        "kind": "method",
+        "start_line": 29,
+        "signature_contains": "suspend fun flush(batchSize: Int = 25)",
+        "tier": "core"
+      },
+      {
+        "name": "toDocumentId",
+        "kind": "function",
+        "start_line": 41,
+        "signature_contains": "fun String.toDocumentId(",
+        "tier": "core"
+      }
+    ],
+    "negatives": [
+      "if",
+      "for",
+      "when",
+      "while",
+      "ghost",
+      "purge",
+      "delay",
+      "mutableListOf",
+      "isBlank",
+      "isNotEmpty",
+      "removeAt",
+      "trim",
+      "lowercase",
+      "replace",
+      "existing",
+      "String"
+    ],
+    "spec_exclusions": [
+      {
+        "name": "id",
+        "line": 7,
+        "reason": "\"fields, properties, stored constants, class attributes | no body to retrieve\" — data-class constructor property, no body span"
+      },
+      {
+        "name": "revision",
+        "line": 8,
+        "reason": "\"fields, properties, stored constants, class attributes | no body to retrieve\" — data-class constructor property, no body span"
+      },
+      {
+        "name": "payload",
+        "line": 9,
+        "reason": "\"fields, properties, stored constants, class attributes | no body to retrieve\" — data-class constructor property, no body span"
+      },
+      {
+        "name": "endpoint",
+        "line": 12,
+        "reason": "\"fields, properties, stored constants, class attributes | no body to retrieve\" — `private val endpoint: String` is a constructor property of SyncEngine"
+      },
+      {
+        "name": "pending",
+        "line": 14,
+        "reason": "\"fields, properties, stored constants, class attributes\" AND \"a binding whose right-hand side is a call ... the binding is a reference\" — `private val pending = mutableListOf<String>()`. Removed from the negative list (a reviewer correctly flagged that it is a real declaration) and recorded here instead, so its omission is a documented decision rather than a mislabelled decoy."
+      },
+      {
+        "name": "out",
+        "line": 30,
+        "reason": "\"a binding whose right-hand side is a call\" (`val out = mutableListOf<DocumentSnapshot>()`) — a local stored binding, no body span"
+      }
+    ]
+  },
+  "ReportBuilder.cs": {
+    "expected": [
+      {
+        "name": "ReportBuilder",
+        "kind": "class",
+        "start_line": 8,
+        "signature_contains": "public class ReportBuilder",
+        "tier": "core"
+      },
+      {
+        "name": "SectionCount",
+        "kind": "method",
+        "start_line": 13,
+        "signature_contains": "public int SectionCount",
+        "tier": "stretch",
+        "why_stretch": "Line 13 reads 'public int SectionCount' with no terminator: one line at a time the kind is undecidable between an eligible body-owning property (SPEC.md:39-40, 'computed properties with a body ... C# public int Count { get { ... } } are eligible') and an ineligible field/stored constant (SPEC.md:30) — the same text plus ';' would be a field. The accessor block that supplies the span is on lines 14-16 (Allman), so eligibility can only be established with cross-line context. The name itself IS on line 13, so this is not a name-placement stretch; kind recorded as 'method' because the schema has no 'property' kind."
+      },
+      {
+        "name": "Add",
+        "kind": "method",
+        "start_line": 18,
+        "signature_contains": "public ReportBuilder Add(string section)",
+        "tier": "core"
+      },
+      {
+        "name": "RenderAsync",
+        "kind": "method",
+        "start_line": 35,
+        "signature_contains": "public async Task<string> RenderAsync(",
+        "tier": "core"
+      }
+    ],
+    "negatives": [
+      "if",
+      "foreach",
+      "while",
+      "get",
+      "Render",
+      "Reset",
+      "nameof",
+      "ArgumentException",
+      "Delay",
+      "Join",
+      "IsNullOrWhiteSpace",
+      "Clear",
+      "IReadOnlyDictionary",
+      "TimeSpan",
+      "List",
+      "Length",
+      "NewLine"
+    ],
+    "spec_exclusions": [
+      {
+        "name": "Example.Reporting",
+        "line": 5,
+        "reason": "SPEC.md 'Not eligible' row: '`impl` blocks, `namespace`, `package` | containers, not units — their members are the units'. The namespace declaration on line 5 is a real declaration but is deliberately not a unit; ReportBuilder (line 8) is."
+      },
+      {
+        "name": "_sections",
+        "line": 10,
+        "reason": "SPEC.md 'Not eligible' row: 'fields, properties, stored constants, class attributes | no body to retrieve'. Line 10 is a field declaration 'private readonly List<string> _sections = new List<string>();' — its RHS is also a call (`new List<string>()`), covered by the 'binding whose right-hand side is a call' row."
+      },
+      {
+        "name": "Template",
+        "line": 11,
+        "reason": "SPEC.md 'Not eligible' row: 'fields, properties, stored constants, class attributes | no body to retrieve' (stored constant). Line 11 is a real declaration 'private const string Template = \"public void Render() { /* not a method */ }\";', so it is documented here rather than listed as a naive-regex negative — the reviewer correctly objected that penalising a field-aware extractor for seeing this declaration is wrong. The genuine trap on line 11 is the identifier 'Render' inside the string literal, which is kept in negatives."
+      }
+    ]
+  },
+  "PriceCatalog.scala": {
+    "expected": [
+      {
+        "name": "Money",
+        "kind": "class",
+        "start_line": 6,
+        "signature_contains": "case class Money(cents: Long, currency: String)",
+        "tier": "core"
+      },
+      {
+        "name": "plus",
+        "kind": "method",
+        "start_line": 7,
+        "signature_contains": "def plus(other: Money): Money",
+        "tier": "core"
+      },
+      {
+        "name": "PriceCatalog",
+        "kind": "class",
+        "start_line": 13,
+        "signature_contains": "object PriceCatalog",
+        "tier": "core"
+      },
+      {
+        "name": "lookup",
+        "kind": "method",
+        "start_line": 16,
+        "signature_contains": "def lookup(sku: String, table: Map[String, Money])",
+        "tier": "core"
+      },
+      {
+        "name": "QuoteEngine",
+        "kind": "class",
+        "start_line": 27,
+        "signature_contains": "class QuoteEngine(catalog: Map[String, Money])",
+        "tier": "core"
+      },
+      {
+        "name": "quote",
+        "kind": "method",
+        "start_line": 28,
+        "signature_contains": "def quote(skus: Seq[String]): Try[Money]",
+        "tier": "core"
+      }
+    ],
+    "negatives": [
+      "if",
+      "for",
+      "while",
+      "match",
+      "case",
+      "Some",
+      "None",
+      "phantom",
+      "reset",
+      "require",
+      "Try",
+      "getOrElse",
+      "get"
+    ],
+    "spec_exclusions": [
+      {
+        "name": "com.example.pricing",
+        "line": 1,
+        "reason": "Not eligible row: \"impl blocks, namespace, package\" — containers, not units; their members are the units."
+      },
+      {
+        "name": "Fallback",
+        "line": 14,
+        "reason": "Not eligible rows: \"fields, properties, stored constants, class attributes\" (no body to retrieve) and \"a binding whose right-hand side is a call or a scalar\" — the RHS is a string scalar, not a function literal, so the =>/function-literal exception does not apply."
+      },
+      {
+        "name": "total",
+        "line": 29,
+        "reason": "Not eligible row: \"a binding whose right-hand side is a call or a scalar\" — `var total = Money(0L, \"USD\")` names a constructor-call result, not a body."
+      }
+    ]
+  },
+  "ringbuf.c": {
+    "expected": [
+      {
+        "name": "ring_buffer",
+        "kind": "class",
+        "start_line": 11,
+        "signature_contains": "struct ring_buffer {",
+        "tier": "core"
+      },
+      {
+        "name": "rb_create",
+        "kind": "function",
+        "start_line": 20,
+        "signature_contains": "rb_create(size_t capacity)",
+        "tier": "core"
+      },
+      {
+        "name": "rb_used",
+        "kind": "function",
+        "start_line": 34,
+        "signature_contains": "static size_t",
+        "tier": "stretch",
+        "why_stretch": "The declaration begins on line 34 with storage class and return type alone (`static size_t`); the identifier `rb_used` is on line 35. Per SPEC.md Tiers, the name is genuinely not on the declaration's first line, so a one-line-at-a-time scanner cannot anchor it there. Reporting start_line 35 is found-with-a-known-one-line-offset; reporting nothing is a miss."
+      },
+      {
+        "name": "rb_push",
+        "kind": "function",
+        "start_line": 40,
+        "signature_contains": "rb_push(struct ring_buffer *rb,",
+        "tier": "core"
+      },
+      {
+        "name": "rb_describe",
+        "kind": "function",
+        "start_line": 55,
+        "signature_contains": "rb_describe(void)",
+        "tier": "core"
+      }
+    ],
+    "negatives": [
+      "if",
+      "while",
+      "for",
+      "calloc",
+      "malloc",
+      "sizeof",
+      "free",
+      "rb_destroy"
+    ],
+    "spec_exclusions": [
+      {
+        "name": "RB_WRAP",
+        "line": 6,
+        "reason": "\"single-line macros (#define LOG_SCOPE(name) ...)\" -- no span, and expansion is not retrievable. Call-shaped at its use site (line 49) but never a unit."
+      },
+      {
+        "name": "RB_MAX_SLOTS",
+        "line": 7,
+        "reason": "\"single-line macros\" -- object-like #define of a scalar; no body span."
+      },
+      {
+        "name": "rb_overflow_cb",
+        "line": 9,
+        "reason": "\"type aliases without a body (using TaskFn = void (*)(void *);)\" -- typedef of a function-pointer type: one line, no span. It is a real declaration, which is why it is documented here rather than used as a negative trap."
+      },
+      {
+        "name": "data",
+        "line": 12,
+        "reason": "\"fields, properties, stored constants, class attributes\" -- struct member, no body to retrieve."
+      },
+      {
+        "name": "capacity",
+        "line": 13,
+        "reason": "\"fields, properties, stored constants, class attributes\" -- struct member, no body to retrieve."
+      },
+      {
+        "name": "head",
+        "line": 14,
+        "reason": "\"fields, properties, stored constants, class attributes\" -- struct member, no body to retrieve."
+      },
+      {
+        "name": "tail",
+        "line": 15,
+        "reason": "\"fields, properties, stored constants, class attributes\" -- struct member, no body to retrieve."
+      },
+      {
+        "name": "on_overflow",
+        "line": 16,
+        "reason": "\"fields, properties, stored constants, class attributes\" -- struct member holding a function pointer; the body it names lives elsewhere, so the field is a reference, not a unit."
+      }
+    ]
+  },
+  "ringbuf.h": {
+    "expected": [
+      {
+        "name": "rb_status",
+        "kind": "class",
+        "start_line": 17,
+        "signature_contains": "enum rb_status {",
+        "tier": "core"
+      },
+      {
+        "name": "rb_stats",
+        "kind": "class",
+        "start_line": 25,
+        "signature_contains": "struct rb_stats {",
+        "tier": "core"
+      },
+      {
+        "name": "rb_all_dropped",
+        "kind": "function",
+        "start_line": 38,
+        "signature_contains": "rb_all_dropped(const struct rb_stats *st)",
+        "tier": "core"
+      }
+    ],
+    "negatives": [
+      "RB_DEFAULT_CAPACITY",
+      "RB_OK",
+      "rb_overflow_cb",
+      "ring_buffer",
+      "rb_create",
+      "rb_destroy",
+      "rb_push",
+      "rb_capacity",
+      "RINGBUF_H",
+      "if",
+      "while",
+      "RB_STATUS_OK",
+      "pushed",
+      "dropped"
+    ],
+    "spec_exclusions": [
+      {
+        "name": "RINGBUF_H",
+        "line": 8,
+        "reason": "\"single-line macros (#define LOG_SCOPE(name) ...)\" -- an include-guard #define, no span, not retrievable"
+      },
+      {
+        "name": "RB_DEFAULT_CAPACITY",
+        "line": 12,
+        "reason": "\"single-line macros\" -- object-like #define of a scalar; also \"stored constants\" (no body)"
+      },
+      {
+        "name": "RB_OK",
+        "line": 13,
+        "reason": "\"single-line macros (#define LOG_SCOPE(name) ...)\" -- function-like macro, no span, expansion not retrievable"
+      },
+      {
+        "name": "rb_overflow_cb",
+        "line": 15,
+        "reason": "\"type aliases without a body (using TaskFn = void (*)(void *);)\" -- typedef of a function-pointer type, one line, no span"
+      },
+      {
+        "name": "RB_STATUS_OK",
+        "line": 18,
+        "reason": "\"fields, properties, stored constants, class attributes\" -- enumerator inside enum rb_status, no body to retrieve"
+      },
+      {
+        "name": "RB_STATUS_FULL",
+        "line": 19,
+        "reason": "\"fields, properties, stored constants, class attributes\" -- enumerator, no body"
+      },
+      {
+        "name": "RB_STATUS_INVALID",
+        "line": 20,
+        "reason": "\"fields, properties, stored constants, class attributes\" -- enumerator, no body"
+      },
+      {
+        "name": "ring_buffer",
+        "line": 23,
+        "reason": "\"bare prototypes and forward declarations (void submit(Task);)\" -- opaque struct forward declaration with no member body; contrast struct rb_stats at 25 which does have one"
+      },
+      {
+        "name": "pushed",
+        "line": 26,
+        "reason": "\"fields, properties, stored constants, class attributes\" -- struct member, no body"
+      },
+      {
+        "name": "dropped",
+        "line": 27,
+        "reason": "\"fields, properties, stored constants, class attributes\" -- struct member, no body"
+      },
+      {
+        "name": "rb_create",
+        "line": 30,
+        "reason": "\"bare prototypes and forward declarations\" -- ends in `;`, definition lives in ringbuf.c; emitting both duplicates the symbol"
+      },
+      {
+        "name": "rb_destroy",
+        "line": 31,
+        "reason": "\"bare prototypes and forward declarations\" -- ends in `;`, no body span"
+      },
+      {
+        "name": "rb_push",
+        "line": 33,
+        "reason": "\"bare prototypes and forward declarations\" -- multi-line prototype (33-35) terminated by `;` on line 35; a scanner checking only line 33 for a trailing `;` will wrongly admit it"
+      }
+    ]
+  },
+  "scheduler.cpp": {
+    "expected": [
+      {
+        "name": "Scheduler",
+        "kind": "class",
+        "start_line": 13,
+        "signature_contains": "class Scheduler",
+        "tier": "core"
+      },
+      {
+        "name": "Scheduler::Scheduler",
+        "kind": "method",
+        "start_line": 15,
+        "signature_contains": "Scheduler(std::size_t slots)",
+        "tier": "core"
+      },
+      {
+        "name": "Scheduler::~Scheduler",
+        "kind": "method",
+        "start_line": 18,
+        "signature_contains": "~Scheduler()",
+        "tier": "core"
+      },
+      {
+        "name": "Scheduler::pending",
+        "kind": "method",
+        "start_line": 27,
+        "signature_contains": "pending() const",
+        "tier": "core"
+      },
+      {
+        "name": "Scheduler::submit",
+        "kind": "method",
+        "start_line": 35,
+        "signature_contains": "Scheduler::submit",
+        "tier": "core"
+      },
+      {
+        "name": "Scheduler::describe",
+        "kind": "method",
+        "start_line": 47,
+        "signature_contains": "Scheduler::describe",
+        "tier": "core"
+      },
+      {
+        "name": "clamp_to",
+        "kind": "function",
+        "start_line": 52,
+        "signature_contains": "template <typename T>",
+        "tier": "stretch",
+        "why_stretch": "SPEC.md Tiers names this exact case: the declaration's first line is the `template <typename T>` header on 52, and the identifier `clamp_to` occurs only on line 53, so a one-line-at-a-time scanner cannot get name and declaration start from the same line. signature_contains is the template header rather than the name precisely because the name is not on start_line 52 -- this is what resolves the prior entry's internal inconsistency (old entry claimed start_line 52 with signature_contains 'clamp_to', which can never match). A parser reporting start_line 53 has found the unit with a documented one-line offset; reporting nothing is a miss."
+      }
+    ],
+    "negatives": [
+      "LOG_SCOPE",
+      "TraceScope",
+      "TaskFn",
+      "worker",
+      "if",
+      "while",
+      "slots_",
+      "running_",
+      "queue_",
+      "emplace_back",
+      "pop_back",
+      "size",
+      "empty",
+      "max",
+      "min",
+      "pair",
+      "vector",
+      "public",
+      "private",
+      "drain"
+    ],
+    "spec_exclusions": [
+      {
+        "name": "LOG_SCOPE",
+        "line": 7,
+        "reason": "Not eligible: \"single-line macros (`#define LOG_SCOPE(name) ...`)\" -- no span, and expansion is not retrievable. SPEC.md cites this file's own line 7 verbatim, so the reviewer's push to promote it to expected is settled against."
+      },
+      {
+        "name": "TaskFn",
+        "line": 9,
+        "reason": "Not eligible: \"type aliases without a body (`using TaskFn = void (*)(void *);`)\" -- one line, no span. SPEC.md quotes this file's line 9 verbatim; it is a real alias-declaration (the reviewer was right about that) but deliberately excluded, so it stays a negative rather than an expected unit."
+      },
+      {
+        "name": "worker",
+        "line": 11,
+        "reason": "Not eligible: \"`impl` blocks, `namespace`, `package` -- containers, not units; their members are the units.\" Dropped from the prior expected list. Its members at 13, 35, 47 and 52 must still be emitted at top level; swallowing them is a failure."
+      },
+      {
+        "name": "submit",
+        "line": 24,
+        "reason": "Not eligible: \"bare prototypes and forward declarations (`void submit(Task);`) -- the definition is the unit; emitting both duplicates the symbol.\" The unit for submit is the out-of-line definition at line 35."
+      },
+      {
+        "name": "describe",
+        "line": 25,
+        "reason": "Not eligible: \"bare prototypes and forward declarations\" -- the in-class declaration is bodyless; the unit is the out-of-line definition at line 47."
+      },
+      {
+        "name": "slots_",
+        "line": 30,
+        "reason": "Not eligible: \"fields, properties, stored constants, class attributes\" -- no body to retrieve."
+      },
+      {
+        "name": "running_",
+        "line": 31,
+        "reason": "Not eligible: \"fields, properties, stored constants, class attributes\" -- no body to retrieve."
+      },
+      {
+        "name": "queue_",
+        "line": 32,
+        "reason": "Not eligible: \"fields, properties, stored constants, class attributes\" -- no body to retrieve. The `std::vector<std::pair<TaskFn, void *>>` angle brackets must not be read as a parameter list."
+      },
+      {
+        "name": "drain",
+        "line": 58,
+        "reason": "Not a declaration at all -- the whole line is a `//` comment. It has the exact shape of an eligible out-of-line method definition (`void Scheduler::drain() { ... }`), which is why it is also carried as a negative."
+      }
+    ]
+  },
+  "delivery.rb": {
+    "expected": [
+      {
+        "name": "Webhooks",
+        "kind": "class",
+        "start_line": 6,
+        "signature_contains": "module Webhooks",
+        "tier": "core"
+      },
+      {
+        "name": "DeliveryError",
+        "kind": "class",
+        "start_line": 9,
+        "signature_contains": "class DeliveryError < StandardError",
+        "tier": "core"
+      },
+      {
+        "name": "Delivery",
+        "kind": "class",
+        "start_line": 12,
+        "signature_contains": "class Delivery",
+        "tier": "core"
+      },
+      {
+        "name": "initialize",
+        "kind": "method",
+        "start_line": 15,
+        "signature_contains": "def initialize(url,",
+        "tier": "core"
+      },
+      {
+        "name": "retryable?",
+        "kind": "method",
+        "start_line": 25,
+        "signature_contains": "def retryable?",
+        "tier": "core"
+      },
+      {
+        "name": "from_json",
+        "kind": "method",
+        "start_line": 29,
+        "signature_contains": "def self.from_json",
+        "tier": "core"
+      },
+      {
+        "name": "perform!",
+        "kind": "method",
+        "start_line": 34,
+        "signature_contains": "def perform!",
+        "tier": "core"
+      },
+      {
+        "name": "dispatch",
+        "kind": "method",
+        "start_line": 49,
+        "signature_contains": "def dispatch(body)",
+        "tier": "core"
+      },
+      {
+        "name": "handler",
+        "kind": "function",
+        "start_line": 51,
+        "signature_contains": "handler = ->(chunk)",
+        "tier": "core"
+      }
+    ],
+    "negatives": [
+      "if",
+      "while",
+      "unless",
+      "break",
+      "raise",
+      "require",
+      "attr_reader",
+      "private",
+      "freeze",
+      "new",
+      "fetch",
+      "JSON.parse",
+      "key?",
+      "call",
+      "to_s",
+      "chunk",
+      "StandardError",
+      "legacy_dispatch"
+    ],
+    "spec_exclusions": [
+      {
+        "name": "DEFAULT_BACKOFF",
+        "line": 7,
+        "reason": "Not eligible: \"fields, properties, stored constants, class attributes — no body to retrieve\"; also \"a binding whose right-hand side is a call\" ([1, 2, 5, 15].freeze is a call, not a function literal)."
+      },
+      {
+        "name": "url",
+        "line": 13,
+        "reason": "Not eligible: \"fields, properties, stored constants, class attributes — no body to retrieve\". Declared by the attr_reader macro on line 13; the generated reader has no source span."
+      },
+      {
+        "name": "payload",
+        "line": 13,
+        "reason": "Not eligible: \"fields, properties, stored constants, class attributes — no body to retrieve\". Declared by the attr_reader macro on line 13; the generated reader has no source span."
+      }
+    ]
+  },
+  "Invoice.php": {
+    "expected": [
+      {
+        "name": "tax_rate_for",
+        "kind": "function",
+        "start_line": 10,
+        "signature_contains": "function tax_rate_for(string $region, ?int $year = null): float",
+        "tier": "core"
+      },
+      {
+        "name": "Chargeable",
+        "kind": "class",
+        "start_line": 23,
+        "signature_contains": "interface Chargeable",
+        "tier": "core"
+      },
+      {
+        "name": "Invoice",
+        "kind": "class",
+        "start_line": 28,
+        "signature_contains": "final class Invoice implements Chargeable",
+        "tier": "core"
+      },
+      {
+        "name": "__construct",
+        "kind": "method",
+        "start_line": 32,
+        "signature_contains": "public function __construct(",
+        "tier": "core"
+      },
+      {
+        "name": "addLine",
+        "kind": "method",
+        "start_line": 38,
+        "signature_contains": "public function addLine(string $label, int $cents): self",
+        "tier": "core"
+      },
+      {
+        "name": "amountDue",
+        "kind": "method",
+        "start_line": 45,
+        "signature_contains": "public function amountDue(): int",
+        "tier": "core"
+      },
+      {
+        "name": "format",
+        "kind": "function",
+        "start_line": 51,
+        "signature_contains": "$format = function (int $cents): string {",
+        "tier": "core"
+      }
+    ],
+    "negatives": [
+      "if",
+      "foreach",
+      "match",
+      "declare",
+      "addDiscount",
+      "sprintf",
+      "date",
+      "RuntimeException",
+      "throw"
+    ],
+    "spec_exclusions": [
+      {
+        "name": "amountDue",
+        "line": 25,
+        "reason": "\"bare prototypes and forward declarations (`void submit(Task);`)\" -- the semicolon-terminated abstract interface method owns no body span; the concrete definition on line 45 is the unit, and emitting both duplicates the symbol. (Also fails the top rule \"a named declaration that owns a body span\".)"
+      },
+      {
+        "name": "$lines",
+        "line": 30,
+        "reason": "\"fields, properties, stored constants, class attributes\" -- no body to retrieve."
+      },
+      {
+        "name": "$customerId",
+        "line": 33,
+        "reason": "\"fields, properties, stored constants, class attributes\" -- constructor-promoted property; it is a field declaration with no body."
+      },
+      {
+        "name": "$currency",
+        "line": 34,
+        "reason": "\"fields, properties, stored constants, class attributes\" -- constructor-promoted property with a scalar default; no body."
+      },
+      {
+        "name": "App\\Billing",
+        "line": 5,
+        "reason": "\"`impl` blocks, `namespace`, `package` | containers, not units -- their members are the units.\""
+      }
+    ]
+  },
+  "FeedStore.swift": {
+    "expected": [
+      {
+        "name": "PageLoading",
+        "kind": "class",
+        "start_line": 4,
+        "signature_contains": "public protocol PageLoading",
+        "tier": "core"
+      },
+      {
+        "name": "Page",
+        "kind": "class",
+        "start_line": 10,
+        "signature_contains": "public struct Page<Item: Decodable>: Decodable",
+        "tier": "core"
+      },
+      {
+        "name": "isEmpty",
+        "kind": "method",
+        "start_line": 14,
+        "signature_contains": "public var isEmpty: Bool {",
+        "tier": "core"
+      },
+      {
+        "name": "FeedStore",
+        "kind": "class",
+        "start_line": 19,
+        "signature_contains": "public final class FeedStore<Loader: PageLoading>",
+        "tier": "core"
+      },
+      {
+        "name": "init",
+        "kind": "method",
+        "start_line": 24,
+        "signature_contains": "public init(loader: Loader,",
+        "tier": "core"
+      },
+      {
+        "name": "itemCount",
+        "kind": "method",
+        "start_line": 30,
+        "signature_contains": "public var itemCount: Int {",
+        "tier": "core"
+      },
+      {
+        "name": "refresh",
+        "kind": "method",
+        "start_line": 34,
+        "signature_contains": "public func refresh() async throws {",
+        "tier": "core"
+      },
+      {
+        "name": "description",
+        "kind": "method",
+        "start_line": 46,
+        "signature_contains": "public var description: String {",
+        "tier": "core"
+      },
+      {
+        "name": "debugSummary",
+        "kind": "method",
+        "start_line": 50,
+        "signature_contains": "func debugSummary(indent: String = \"  \") -> String",
+        "tier": "core"
+      }
+    ],
+    "negatives": [
+      "guard",
+      "for",
+      "where",
+      "print",
+      "reload",
+      "banner",
+      "reduce",
+      "map",
+      "joined",
+      "import",
+      "loadPage",
+      "items",
+      "nextCursor",
+      "pages",
+      "loader",
+      "prefetchDistance",
+      "Decodable",
+      "CustomStringConvertible",
+      "partial"
+    ],
+    "spec_exclusions": [
+      {
+        "name": "Item",
+        "line": 5,
+        "reason": "\"type aliases without a body\" row - `associatedtype Item` is a one-line named type declaration with no span to retrieve."
+      },
+      {
+        "name": "loadPage",
+        "line": 7,
+        "reason": "\"bare prototypes and forward declarations (`void submit(Task);`)\" row - the protocol requirement has no body; the conforming definition is the unit. Also fails the top rule \"owns a body span\"."
+      },
+      {
+        "name": "items",
+        "line": 11,
+        "reason": "\"fields, properties, stored constants, class attributes\" row - `public let items: [Item]` has no body."
+      },
+      {
+        "name": "nextCursor",
+        "line": 12,
+        "reason": "\"fields, properties, stored constants, class attributes\" row - `public let nextCursor: String?` has no body."
+      },
+      {
+        "name": "pages",
+        "line": 20,
+        "reason": "\"fields, properties, stored constants, class attributes\" row - `private var pages: [Page<Loader.Item>] = []`; RHS is an array literal, also covered by the \"object/array/map literals bound to a name\" row."
+      },
+      {
+        "name": "loader",
+        "line": 21,
+        "reason": "\"fields, properties, stored constants, class attributes\" row - `private let loader: Loader` has no body."
+      },
+      {
+        "name": "prefetchDistance",
+        "line": 22,
+        "reason": "\"fields, properties, stored constants, class attributes\" row - `private let prefetchDistance: Int` has no body."
+      },
+      {
+        "name": "FeedStore",
+        "line": 45,
+        "reason": "\"`impl` blocks, `namespace`, `package` | containers, not units - their members are the units\" row. Swift's `extension FeedStore: CustomStringConvertible` is the direct analogue of a Rust `impl` block; its members `description` (46) and `debugSummary` (50) are the units, and the class itself is already a unit at line 19."
+      }
+    ]
+  },
+  "deploy.sh": {
+    "expected": [
+      {
+        "name": "log",
+        "kind": "function",
+        "start_line": 10,
+        "signature_contains": "log() {",
+        "tier": "core"
+      },
+      {
+        "name": "require_env",
+        "kind": "function",
+        "start_line": 14,
+        "signature_contains": "function require_env {",
+        "tier": "core"
+      },
+      {
+        "name": "write_manifest",
+        "kind": "function",
+        "start_line": 22,
+        "signature_contains": "function write_manifest() {",
+        "tier": "core"
+      },
+      {
+        "name": "publish_bundle",
+        "kind": "function",
+        "start_line": 34,
+        "signature_contains": "publish_bundle()",
+        "tier": "core"
+      },
+      {
+        "name": "run_checks",
+        "kind": "function",
+        "start_line": 46,
+        "signature_contains": "run_checks() {",
+        "tier": "core"
+      }
+    ],
+    "negatives": [
+      "fake_unit",
+      "also_fake",
+      "ghost",
+      "old_publish",
+      "not-a-real-unit",
+      "prod",
+      "staging",
+      "if",
+      "fi",
+      "while",
+      "done",
+      "case",
+      "esac",
+      "local",
+      "printf",
+      "scp",
+      "echo",
+      "date"
+    ],
+    "spec_exclusions": [
+      {
+        "name": "APP_NAME",
+        "line": 5,
+        "reason": "SPEC \"Not eligible\" row: fields, properties, stored constants — scalar string binding, no body span."
+      },
+      {
+        "name": "BUILD_DIR",
+        "line": 6,
+        "reason": "SPEC \"Not eligible\" row: a binding whose right-hand side is a call or a scalar — parameter-expansion scalar with a default, no body."
+      },
+      {
+        "name": "MANIFEST_STUB",
+        "line": 7,
+        "reason": "SPEC \"Not eligible\" rows: stored constants, and object/array/map literals bound to a name — the RHS is a quoted JSON-object literal, a value not a declaration."
+      },
+      {
+        "name": "BUILD_ID",
+        "line": 8,
+        "reason": "SPEC \"Not eligible\" row: a binding whose right-hand side is a call (`$(date -u ...)`) — the body being named lives elsewhere; the binding is a reference."
+      }
+    ]
+  }
+}

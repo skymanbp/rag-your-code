@@ -36,12 +36,12 @@ Measured evidence for each is recorded in the phase sections below.
 
 ## Phases
 
-### P0 — Foundation
+### P0 — Foundation *(landed)*
 
 Version control, ignore rules, removal of stray run artifacts, this document.
 Not a polish item: without git, no later phase is revertible or bisectable.
 
-### P1 — Stop the bleeding (root causes C, D)
+### P1 — Stop the bleeding (root causes C, D) *(landed)*
 
 Two edits, each deleting a wrong assumption rather than adding machinery.
 
@@ -55,7 +55,7 @@ Two edits, each deleting a wrong assumption rather than adding machinery.
   character in a result kills the agent subprocess; a UTF-8 CJK query is
   mis-decoded and returns `results: []` with exit 0.
 
-### P2 — Build the ruler
+### P2 — Build the ruler *(landed)*
 
 The golden set currently holds seven queries, all resolving to Python units, so
 the parser can regress arbitrarily on the seven other languages README.md names
@@ -93,7 +93,7 @@ Layer 3 is conservative by design: brace balancing for `{}` languages, the `end`
 keyword for Ruby, and the existing next-declaration fallback where neither
 applies. Its limits are documented rather than guessed at.
 
-### P4 — Retrieval correctness (root cause E)
+### P4 — Retrieval correctness (root cause E) *(landed)*
 
 - Candidate set becomes the full lexical set; the selective set decides only
   *which candidates additionally receive a cosine score* — the intent already
@@ -109,7 +109,7 @@ applies. Its limits are documented rather than guessed at.
   incremental run reuses them while reporting `stale: false`. One snapshot,
   shared.
 
-### P5 — Agent protocol robustness
+### P5 — Agent protocol robustness *(landed)*
 
 Catch-all around the request loop (a single `1e400` in a request currently kills
 the subprocess), a real output bound on `open`, and an ignore list for it.
