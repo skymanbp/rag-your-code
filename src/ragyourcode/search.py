@@ -7,8 +7,13 @@ from bisect import bisect_left
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 
+from .config import BY_PATH
 from .embeddings import DEFAULT_DIMENSIONS, embed, tokenize
 from .models import CodeUnit, SearchResult
+
+# Named here rather than repeated as a literal so `search.vector_weight` in
+# rag-your-code.toml and the default a direct caller gets cannot drift apart.
+DEFAULT_VECTOR_WEIGHT: float = BY_PATH["search.vector_weight"].default
 
 
 @dataclass(slots=True)
@@ -45,6 +50,7 @@ def search(
     query: str,
     limit: int = 8,
     search_index: SearchIndex | None = None,
+    vector_weight: float = DEFAULT_VECTOR_WEIGHT,
 ) -> list[SearchResult]:
     query_tokens = set(tokenize(query))
     if limit <= 0 or not query_tokens:
@@ -93,7 +99,7 @@ def search(
         # lexical overlap dominant so a noisy feature-hash vector cannot push an
         # exact match below an unrelated semantic neighbor; use the vector score
         # to rank paraphrases and break lexical ties.
-        score = lexical + 0.15 * max(0.0, vector_score)
+        score = lexical + vector_weight * max(0.0, vector_score)
         if lexical or score > 0:
             scored.append((score, unit_id))
     # Materialise only the winners. Building a SearchResult for every lexical

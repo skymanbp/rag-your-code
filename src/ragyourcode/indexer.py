@@ -12,33 +12,68 @@ from array import array
 from dataclasses import dataclass, replace
 from pathlib import Path
 
+from . import config as config_module
 from .annotate import comment_for
-from .embeddings import DEFAULT_DIMENSIONS, embed, embedding_metadata
+from .config import Config
+from .embeddings import embed, embedding_metadata
 from .models import CodeUnit
 from .parser import parse_file
 
-DEFAULT_IGNORES = {".git", ".hg", ".svn", ".venv", "venv", "node_modules", "dist", "build", "__pycache__", ".rag-your-code"}
-SOURCE_SUFFIXES = {".py", ".pyi", ".js", ".jsx", ".ts", ".tsx", ".go", ".rs", ".java", ".c", ".h", ".cpp", ".cc", ".php", ".rb", ".swift", ".kt", ".kts", ".cs", ".scala", ".sh", ".bash"}
-MAX_SOURCE_BYTES = 5 * 1024 * 1024
+# These names predate the configuration layer and several tests import them.
+# They are derived from the settings table rather than restated, so there is
+# still exactly one place a default is written down.
+DEFAULT_IGNORES = set(config_module.BY_PATH["index.ignore"].default)
+SOURCE_SUFFIXES = set(config_module.BY_PATH["index.suffixes"].default)
+MAX_SOURCE_BYTES = config_module.BY_PATH["index.max_file_bytes"].default
+
+
+def _resolve(root: Path, cfg: Config | None) -> Config:
+    """Fall back to the repository's own configuration file.
+
+    Callers that do not pass one get the same settings the CLI would use, so a
+    library caller and a command line invocation cannot disagree about which
+    files are source.
+    """
+    return cfg if cfg is not None else config_module.load(root)
 
 
 class StaleMonitor:
     """Rate-limit repository stat walks while allowing forced checks."""
 
-    def __init__(self, root: Path, payload: dict, interval_seconds: float = 1.0, assume_checked: bool = False):
+    def __init__(
+        self,
+        root: Path,
+        payload: dict,
+        interval_seconds: float = 1.0,
+        assume_checked: bool = False,
+        cfg: Config | None = None,
+    ):
         self.root = root
         self.payload = payload
+        self.cfg = _resolve(root, cfg)
         self.interval_seconds = max(0.0, interval_seconds)
         self.last_checked = time.monotonic() if assume_checked else 0.0
-        self.value = bool(payload.get("stale", True))
+        # A configuration change is not a file change, and `rag-your-code.toml`
+        # is not itself an indexed source, so nothing in the file-stat
+        # comparison below can see one. An index built under different
+        # suffixes, ignores or vector width describes a different corpus, so it
+        # is stale from here on regardless of what the walk reports.
+        self.config_changed = index_config_fingerprint(payload) != self.cfg.build_fingerprint
+        self.value = self.config_changed or bool(payload.get("stale", True))
 
     def check(self, force: bool = False) -> bool:
+        if self.config_changed:
+            self.payload["stale"] = True
+            return True
         now = time.monotonic()
         if not force and self.last_checked and now - self.last_checked < self.interval_seconds:
             return self.value
         try:
             stored_stats = self.payload.get("file_stats")
-            self.value = stored_stats != file_stats(self.root) if isinstance(stored_stats, dict) else self.payload.get("fingerprint") != fingerprint(self.root)
+            if isinstance(stored_stats, dict):
+                self.value = stored_stats != file_stats(self.root, self.cfg)
+            else:
+                self.value = self.payload.get("fingerprint") != fingerprint(self.root, self.cfg)
         except OSError:
             self.value = True
         self.last_checked = now
@@ -46,16 +81,31 @@ class StaleMonitor:
         return self.value
 
 
-def iter_source_files(root: Path, ignores: set[str] | None = None):
-    ignored = DEFAULT_IGNORES | (ignores or set())
+def index_config_fingerprint(payload: dict) -> str:
+    """The build fingerprint an index was published with.
+
+    An index written before 0.4.0 carries no such key, and by construction it
+    was built with the built-in defaults, so that is what a missing key means.
+    Treating it as unknown instead would force one pointless full rebuild on
+    every upgrade.
+    """
+    stored = payload.get("config_fingerprint")
+    return stored if isinstance(stored, str) else config_module.defaults().build_fingerprint
+
+
+def iter_source_files(root: Path, cfg: Config | None = None):
+    cfg = _resolve(root, cfg)
+    ignored = set(cfg["index.ignore"])
+    suffixes = {suffix.lower() for suffix in cfg["index.suffixes"]}
+    max_bytes = cfg["index.max_file_bytes"]
     for directory, dirs, files in os.walk(root):
         dirs[:] = sorted(name for name in dirs if name not in ignored and not name.startswith("."))
         for filename in sorted(files):
             path = Path(directory) / filename
-            if path.suffix.lower() not in SOURCE_SUFFIXES or path.is_symlink():
+            if path.suffix.lower() not in suffixes or path.is_symlink():
                 continue
             try:
-                if path.stat().st_size > MAX_SOURCE_BYTES:
+                if path.stat().st_size > max_bytes:
                     continue
             except OSError:
                 continue
@@ -83,12 +133,12 @@ class RepositorySnapshot:
         return _fingerprint_files(self.fingerprints)
 
 
-def snapshot_repository(root: Path) -> RepositorySnapshot:
+def snapshot_repository(root: Path, cfg: Config | None = None) -> RepositorySnapshot:
     """Hash, stat and collect every source file in a single pass."""
     paths: list[Path] = []
     fingerprints: dict[str, str] = {}
     stats: dict[str, list[int]] = {}
-    for path in iter_source_files(root):
+    for path in iter_source_files(root, cfg):
         try:
             stat = path.stat()
             digest = hashlib.sha256(path.read_bytes()).hexdigest()
@@ -105,11 +155,11 @@ def snapshot_repository(root: Path) -> RepositorySnapshot:
     return RepositorySnapshot(tuple(paths), fingerprints, stats)
 
 
-def file_fingerprints(root: Path) -> dict[str, str]:
-    return snapshot_repository(root).fingerprints
+def file_fingerprints(root: Path, cfg: Config | None = None) -> dict[str, str]:
+    return snapshot_repository(root, cfg).fingerprints
 
 
-def file_stats(root: Path) -> dict[str, list[int]]:
+def file_stats(root: Path, cfg: Config | None = None) -> dict[str, list[int]]:
     """Size and mtime only -- deliberately NOT routed through the snapshot.
 
     StaleMonitor asks "has anything changed?" many times per session and needs
@@ -118,7 +168,7 @@ def file_stats(root: Path) -> dict[str, list[int]]:
     regression (69 ms -> 172 ms at 10k units).
     """
     result: dict[str, list[int]] = {}
-    for path in iter_source_files(root):
+    for path in iter_source_files(root, cfg):
         try:
             stat = path.stat()
         except OSError:
@@ -156,15 +206,28 @@ def build_units(
     previous_files: dict[str, str] | None = None,
     diagnostics: list[dict] | None = None,
     snapshot: RepositorySnapshot | None = None,
+    cfg: Config | None = None,
+    previous_config: str | None = None,
+    descriptions: dict[str, str] | None = None,
 ) -> list[CodeUnit]:
     """Build units, reusing unchanged files and stable serials when possible.
 
     Pass the same ``snapshot`` to ``write_index`` so the hashes published
     describe exactly the bytes these units were parsed from.
+
+    ``previous_config`` is the build fingerprint the previous index was
+    published with. When it disagrees with the current one the previous units
+    describe a different corpus -- different suffixes, ignores, size cap or
+    vector width -- so they are discarded rather than reused. Reuse is keyed on
+    file content, which cannot notice that the rules changed.
     """
-    snapshot = snapshot or snapshot_repository(root)
+    cfg = _resolve(root, cfg)
+    if previous_config is not None and previous_config != cfg.build_fingerprint:
+        previous_units, previous_files = None, None
+    dimensions = cfg["embedding.dimensions"]
+    snapshot = snapshot or snapshot_repository(root, cfg)
     current_files = snapshot.fingerprints
-    old_by_path = {}
+    old_by_path: dict[str, list[CodeUnit]] = {}
     for unit in previous_units or []:
         old_by_path.setdefault(unit.path, []).append(unit)
     units: list[CodeUnit] = []
@@ -177,17 +240,24 @@ def build_units(
     previous_serials = {unit.id: unit.serial for unit in previous_units or []}
     _assign_global_serials(units, previous_serials)
     for unit in units:
+        # An authored description replaces the generated one before the vector
+        # is computed, which is the whole point of storing it: the words an
+        # agent chose have to reach both the inverted index and the vector.
+        if descriptions:
+            authored = descriptions.get(unit.id)
+            if authored:
+                unit.description = authored
         # Embed the numbered sidecar comment together with source/context so
         # semantic retrieval is grounded in the same records users can review.
-        if previous_serials.get(unit.id, unit.serial) != unit.serial:
+        if previous_serials.get(unit.id, unit.serial) != unit.serial or len(unit.vector) != dimensions:
             unit.vector = []
         if not unit.vector:
-            unit.vector = embed(comment_for(unit.description, unit.serial, unit.id) + "\n" + unit.searchable_text)
+            unit.vector = embed(comment_for(unit.description, unit.serial, unit.id) + "\n" + unit.searchable_text, dimensions)
     return sorted(units, key=lambda item: (item.serial, item.id))
 
 
-def fingerprint(root: Path) -> str:
-    return _fingerprint_files(file_fingerprints(root))
+def fingerprint(root: Path, cfg: Config | None = None) -> str:
+    return _fingerprint_files(file_fingerprints(root, cfg))
 
 
 def _fingerprint_files(files: dict[str, str]) -> str:
@@ -206,12 +276,14 @@ def write_index(
     compact: bool = False,
     diagnostics: list[dict] | None = None,
     snapshot: RepositorySnapshot | None = None,
+    cfg: Config | None = None,
 ) -> None:
+    cfg = _resolve(root, cfg)
     path.parent.mkdir(parents=True, exist_ok=True)
-    snapshot = snapshot or snapshot_repository(root)
+    snapshot = snapshot or snapshot_repository(root, cfg)
     files = snapshot.fingerprints
     repository_fingerprint = snapshot.fingerprint
-    dimensions = len(units[0].vector) if units and units[0].vector else DEFAULT_DIMENSIONS
+    dimensions = len(units[0].vector) if units and units[0].vector else cfg["embedding.dimensions"]
     serialized_units = [unit.to_dict(include_vector=not compact) for unit in units]
     vector_store = None
     if compact and units:
@@ -239,6 +311,7 @@ def write_index(
         "schema": 2,
         "root": str(root.resolve()),
         "fingerprint": repository_fingerprint,
+        "config_fingerprint": cfg.build_fingerprint,
         "files": files,
         "file_stats": snapshot.stats,
         "dimensions": dimensions,
@@ -299,7 +372,7 @@ def read_index(path: Path) -> tuple[dict, list[CodeUnit]]:
     payload["degraded"] = None
     if isinstance(vector_store, dict):
         vector_path = (path.parent / str(vector_store.get("path", ""))).resolve()
-        dimensions = int(vector_store.get("dimensions", payload.get("dimensions", DEFAULT_DIMENSIONS)))
+        dimensions = int(vector_store.get("dimensions", payload.get("dimensions", 384)))
         count = len(raw_units)
         try:
             vector_path.relative_to(path.parent.resolve())

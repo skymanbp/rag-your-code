@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from typing import Iterable
 
 from .models import CodeUnit, SearchResult
-from .search import SearchIndex, search
+from .search import DEFAULT_VECTOR_WEIGHT, SearchIndex, search
 
 
 @dataclass(frozen=True, slots=True)
@@ -172,13 +172,14 @@ def graph_search(
     hops: int = 1,
     graph: CodeGraph | None = None,
     search_index: SearchIndex | None = None,
+    vector_weight: float = DEFAULT_VECTOR_WEIGHT,
 ) -> list[SearchResult]:
     """Search seeds and add bounded graph neighbors with explicit evidence."""
     if limit <= 0:
         return []
     hops = min(3, max(0, hops))
     graph = graph or build_graph(units)
-    seeds = search(units, query, max(limit * 2, 8), search_index=search_index)
+    seeds = search(units, query, max(limit * 2, 8), search_index=search_index, vector_weight=vector_weight)
     ranked: dict[str, SearchResult] = {seed.unit.id: seed for seed in seeds}
     if hops <= 0:
         return seeds[:limit]
