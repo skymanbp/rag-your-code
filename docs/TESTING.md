@@ -72,9 +72,13 @@ the parser as of P2, over the 91 core entries: 28 found (31%), 4 with the
 correct `start_line` (4%), 5 with a usable signature (5%), and 24 phantom units
 invented from control flow, string literals and commented-out code.
 
-`PENDING_PARSER_REWRITE` in `tests/test_language_fixtures.py` is the known-gap
-ledger — 57 of 75 parametrised cases. Its marks are `strict`, so a case that
-starts passing fails as XPASS: the ledger can only shrink, never be forgotten.
+`PENDING_PARSER_REWRITE` in `tests/test_language_fixtures.py` was the known-gap
+ledger — 57 of 75 parametrised cases. Its marks were `strict`, so every entry had
+to be removed by a case that actually started passing; the parser rewrite emptied
+it. All 91 core entries are now found, with the correct `start_line` and a usable
+signature, no phantom units and no SPEC-excluded construct indexed. Three of the
+five `stretch` entries are reached; the remaining two stay recorded as documented
+limits with the reason each needs cross-line context.
 
 ## Baseline versus hybrid
 

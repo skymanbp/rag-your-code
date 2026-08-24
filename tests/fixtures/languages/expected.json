@@ -331,11 +331,6 @@
         "reason": "Not eligible: \"fields, properties, stored constants, class attributes — no body to retrieve.\" Struct field of Blob."
       },
       {
-        "name": "Get",
-        "line": 19,
-        "reason": "Not eligible: \"bare prototypes and forward declarations (void submit(Task);)\" — an interface method signature has no body span; the implementation at line 29 is the unit, and emitting both duplicates the symbol."
-      },
-      {
         "name": "Put",
         "line": 20,
         "reason": "Not eligible: \"bare prototypes and forward declarations\" — signature only, no body span. (No implementation of Store.Put exists in this file, so nothing is emitted for it at all.)"
@@ -454,16 +449,6 @@
         "name": "body",
         "line": 8,
         "reason": "Not eligible — \"fields, properties, stored constants, class attributes | no body to retrieve\". Struct field of Chunk."
-      },
-      {
-        "name": "language",
-        "line": 12,
-        "reason": "Not eligible — \"bare prototypes and forward declarations (`void submit(Task);`) | the definition is the unit; emitting both duplicates the symbol\". Trait method signature terminated by `;` with no body; the definition is language@19."
-      },
-      {
-        "name": "split",
-        "line": 13,
-        "reason": "Not eligible — \"bare prototypes and forward declarations (`void submit(Task);`) | the definition is the unit; emitting both duplicates the symbol\". Trait method signature terminated by `;` with no body; the definition is split@23."
       },
       {
         "name": "impl Chunker for LineChunker",
@@ -994,35 +979,35 @@
         "tier": "core"
       },
       {
-        "name": "Scheduler::Scheduler",
+        "name": "Scheduler",
         "kind": "method",
         "start_line": 15,
         "signature_contains": "Scheduler(std::size_t slots)",
         "tier": "core"
       },
       {
-        "name": "Scheduler::~Scheduler",
+        "name": "~Scheduler",
         "kind": "method",
         "start_line": 18,
         "signature_contains": "~Scheduler()",
         "tier": "core"
       },
       {
-        "name": "Scheduler::pending",
+        "name": "pending",
         "kind": "method",
         "start_line": 27,
         "signature_contains": "pending() const",
         "tier": "core"
       },
       {
-        "name": "Scheduler::submit",
+        "name": "submit",
         "kind": "method",
         "start_line": 35,
         "signature_contains": "Scheduler::submit",
         "tier": "core"
       },
       {
-        "name": "Scheduler::describe",
+        "name": "describe",
         "kind": "method",
         "start_line": 47,
         "signature_contains": "Scheduler::describe",
@@ -1074,16 +1059,6 @@
         "name": "worker",
         "line": 11,
         "reason": "Not eligible: \"`impl` blocks, `namespace`, `package` -- containers, not units; their members are the units.\" Dropped from the prior expected list. Its members at 13, 35, 47 and 52 must still be emitted at top level; swallowing them is a failure."
-      },
-      {
-        "name": "submit",
-        "line": 24,
-        "reason": "Not eligible: \"bare prototypes and forward declarations (`void submit(Task);`) -- the definition is the unit; emitting both duplicates the symbol.\" The unit for submit is the out-of-line definition at line 35."
-      },
-      {
-        "name": "describe",
-        "line": 25,
-        "reason": "Not eligible: \"bare prototypes and forward declarations\" -- the in-class declaration is bodyless; the unit is the out-of-line definition at line 47."
       },
       {
         "name": "slots_",
@@ -1276,11 +1251,6 @@
     ],
     "spec_exclusions": [
       {
-        "name": "amountDue",
-        "line": 25,
-        "reason": "\"bare prototypes and forward declarations (`void submit(Task);`)\" -- the semicolon-terminated abstract interface method owns no body span; the concrete definition on line 45 is the unit, and emitting both duplicates the symbol. (Also fails the top rule \"a named declaration that owns a body span\".)"
-      },
-      {
         "name": "$lines",
         "line": 30,
         "reason": "\"fields, properties, stored constants, class attributes\" -- no body to retrieve."
@@ -1424,11 +1394,6 @@
         "name": "prefetchDistance",
         "line": 22,
         "reason": "\"fields, properties, stored constants, class attributes\" row - `private let prefetchDistance: Int` has no body."
-      },
-      {
-        "name": "FeedStore",
-        "line": 45,
-        "reason": "\"`impl` blocks, `namespace`, `package` | containers, not units - their members are the units\" row. Swift's `extension FeedStore: CustomStringConvertible` is the direct analogue of a Rust `impl` block; its members `description` (46) and `debugSummary` (50) are the units, and the class itself is already a unit at line 19."
       }
     ]
   },

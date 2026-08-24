@@ -21,74 +21,13 @@ from ragyourcode.parser import parse_file
 FIXTURES = Path(__file__).parent / "fixtures" / "languages"
 EXPECTED = json.loads((FIXTURES / "expected.json").read_text(encoding="utf-8"))
 
-# Known-gap ledger: the 57 of 75 parametrised cases the current parser cannot
-# satisfy. P3 empties it. The marks are strict, so a case that starts passing
-# fails as XPASS and cannot be quietly left behind; the ledger can only shrink.
-# It is keyed per (test, fixture) rather than per fixture because 18 cases
-# already pass -- marking those pending would have hidden working behaviour.
-#
-# Baseline over the 91 core entries: 28 found (31%), 4 with the correct
-# start_line (4%), 5 with a usable signature (5%), 24 phantom units invented
-# from control flow, string literals and commented-out code.
-PENDING_PARSER_REWRITE = frozenset({
-    "test_core_declarations_are_found[FeedStore.swift]",
-    "test_core_declarations_are_found[Invoice.php]",
-    "test_core_declarations_are_found[PriceCatalog.scala]",
-    "test_core_declarations_are_found[ReportBuilder.cs]",
-    "test_core_declarations_are_found[SyncEngine.kt]",
-    "test_core_declarations_are_found[delivery.rb]",
-    "test_core_declarations_are_found[deploy.sh]",
-    "test_core_declarations_are_found[ringbuf.c]",
-    "test_core_declarations_are_found[ringbuf.h]",
-    "test_core_declarations_are_found[sample.go]",
-    "test_core_declarations_are_found[sample.js]",
-    "test_core_declarations_are_found[sample.rs]",
-    "test_core_declarations_are_found[sample.ts]",
-    "test_core_declarations_are_found[scheduler.cpp]",
-    "test_core_declarations_carry_a_usable_signature[FeedStore.swift]",
-    "test_core_declarations_carry_a_usable_signature[InventoryService.java]",
-    "test_core_declarations_carry_a_usable_signature[Invoice.php]",
-    "test_core_declarations_carry_a_usable_signature[ReportBuilder.cs]",
-    "test_core_declarations_carry_a_usable_signature[SyncEngine.kt]",
-    "test_core_declarations_carry_a_usable_signature[delivery.rb]",
-    "test_core_declarations_carry_a_usable_signature[deploy.sh]",
-    "test_core_declarations_carry_a_usable_signature[ringbuf.c]",
-    "test_core_declarations_carry_a_usable_signature[sample.go]",
-    "test_core_declarations_carry_a_usable_signature[sample.js]",
-    "test_core_declarations_carry_a_usable_signature[sample.ts]",
-    "test_core_declarations_carry_a_usable_signature[scheduler.cpp]",
-    "test_core_declarations_report_the_right_line[FeedStore.swift]",
-    "test_core_declarations_report_the_right_line[InventoryService.java]",
-    "test_core_declarations_report_the_right_line[Invoice.php]",
-    "test_core_declarations_report_the_right_line[ReportBuilder.cs]",
-    "test_core_declarations_report_the_right_line[SyncEngine.kt]",
-    "test_core_declarations_report_the_right_line[delivery.rb]",
-    "test_core_declarations_report_the_right_line[deploy.sh]",
-    "test_core_declarations_report_the_right_line[ringbuf.c]",
-    "test_core_declarations_report_the_right_line[sample.go]",
-    "test_core_declarations_report_the_right_line[sample.js]",
-    "test_core_declarations_report_the_right_line[sample.ts]",
-    "test_core_declarations_report_the_right_line[scheduler.cpp]",
-    "test_no_phantom_units_are_invented[FeedStore.swift]",
-    "test_no_phantom_units_are_invented[InventoryService.java]",
-    "test_no_phantom_units_are_invented[Invoice.php]",
-    "test_no_phantom_units_are_invented[PriceCatalog.scala]",
-    "test_no_phantom_units_are_invented[ReportBuilder.cs]",
-    "test_no_phantom_units_are_invented[delivery.rb]",
-    "test_no_phantom_units_are_invented[deploy.sh]",
-    "test_no_phantom_units_are_invented[ringbuf.c]",
-    "test_no_phantom_units_are_invented[ringbuf.h]",
-    "test_no_phantom_units_are_invented[sample.go]",
-    "test_no_phantom_units_are_invented[sample.js]",
-    "test_no_phantom_units_are_invented[sample.rs]",
-    "test_no_phantom_units_are_invented[sample.ts]",
-    "test_no_phantom_units_are_invented[scheduler.cpp]",
-    "test_spec_excluded_constructs_are_not_indexed[FeedStore.swift]",
-    "test_spec_excluded_constructs_are_not_indexed[Invoice.php]",
-    "test_spec_excluded_constructs_are_not_indexed[ringbuf.h]",
-    "test_spec_excluded_constructs_are_not_indexed[sample.rs]",
-    "test_spec_excluded_constructs_are_not_indexed[scheduler.cpp]",
-})
+# Known-gap ledger, emptied by the P3 parser rewrite. The marks it carried
+# were strict, so every one of its 57 entries had to be removed by a case
+# that actually started passing. Baseline before the rewrite, over the 91
+# core entries: 28 found (31%), 4 with the correct start_line (4%), 5 with a
+# usable signature (5%), 24 phantom units invented from control flow, string
+# literals and commented-out code. After: 91 / 91 / 91, 0 phantoms, 0 leaks.
+PENDING_PARSER_REWRITE: frozenset[str] = frozenset()
 
 
 def _mark_pending(request: pytest.FixtureRequest, fixture: str) -> None:

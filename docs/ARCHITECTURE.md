@@ -9,7 +9,7 @@ Turn a repository into a searchable semantic layer that a coding agent can use b
 ```text
 repository
   -> deterministic file walker (ignore generated/dependency trees)
-  -> language parser (Python AST, conservative multi-language fallback)
+  -> language parser (Python AST; line scanner + rule table for 14 others)
   -> CodeUnit records (stable id, serial, signature, calls, imports, lines)
   -> descriptive sidecar text (RAG[serial] comments)
   -> local deterministic embedding + JSON/float32 persistence
@@ -24,6 +24,36 @@ repository
 ## Why the first implementation is local
 
 The feature-hash embedder is deterministic, offline, and dependency-free. That gives a working baseline for private repositories and makes tests reproducible. It is intentionally an adapter boundary: a future provider can implement `embed(text)` and keep the same records, persistence, and retrieval API. For larger repositories, the next storage step is SQLite plus an ANN index (FAISS, Qdrant, or LanceDB).
+
+## Parsing
+
+Python goes through the standard-library AST. Every other language goes through
+three separated layers:
+
+```text
+Layer 1  line scanner    one match attempt per line; the line number IS the
+                         loop index, so it cannot drift
+Layer 2  rule table      per-language declaration patterns, each anchored
+                         inside a single line
+Layer 3  span closer     brace balance, or Ruby's `end`, or the next declaration
+```
+
+The separation is what fixes things, not the individual patterns. One whole-file
+regex previously did all three jobs at once and the coupling produced three
+defects at once: catastrophic backtracking (a 530-byte `.js` file took 12.6 s,
+growing as roughly n^4.3), an `[^;]*` that consumed newlines and swallowed every
+declaration up to the last `)` in a file, and a leading `\s*` that began matches
+on preceding blank lines so 9 line numbers in 10 were wrong and the signature was
+the blank line. A pattern that cannot see a second line cannot consume one, and
+the same rewrite closed all three. Measured after: the same 530-byte file parses
+in 0.37 ms and a 10 KB one in 1.40 ms, so growth is linear.
+
+Adding a language is adding rows to the rule table; the scanner does not change.
+What counts as a unit is stated once in `tests/fixtures/languages/SPEC.md` -- a
+named declaration that owns a body span -- which matches what the Python path
+already emits. Layer 3 answers that question too: a declaration reaching `;`
+before `{` owns nothing, which is how prototypes, trait and interface method
+signatures, Swift protocol requirements and Rust unit structs stay out.
 
 ## Retrieval strategy
 

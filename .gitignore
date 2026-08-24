@@ -31,3 +31,4 @@ agent-e2e-result.jsonl
 .io-probe/
 .runtime-tmp-*/
 memory/
+.ce/

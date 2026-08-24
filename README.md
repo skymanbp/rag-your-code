@@ -38,7 +38,13 @@ This small protocol makes the index usable as a subprocess tool from Claude Code
 ## Design notes
 
 - Python uses the standard-library AST, so nested functions, methods, calls, imports, signatures, and source line ranges are precise.
-- JavaScript/TypeScript/Go/Rust/Java/C/C++ use a conservative declaration parser and remain searchable without third-party parsers.
+- Other languages use a line-oriented declaration scanner: a per-language rule
+  table matched one line at a time, then a span closer (brace balance, Ruby's
+  `end`, or the next declaration). Because a pattern never sees a second line,
+  the reported line number is the scanner's own loop index and cannot drift,
+  and a declaration cannot swallow the ones after it. Fourteen languages are
+  covered and graded against source-controlled fixtures in
+  `tests/fixtures/languages/`; `SPEC.md` there states what counts as a unit.
 - Retrieval combines lexical overlap and cosine similarity. Every result is explainable; no opaque model output is required to understand why it matched.
 - Schema 2 supports incremental per-file reuse, repository-global serials, graph edges, and optional compact float32 vector storage (`index --compact`).
 - GRAG expands bounded `calls`/`imports`/`contains` neighbors with edge-path evidence. ARAG exposes bounded, observable `research`, `neighbors`, `open`, and `refresh` actions.

@@ -65,7 +65,7 @@ unit names, line ranges, and signatures — the ground truth P3 is graded agains
 Ordering is deliberate: written after P3, these fixtures would encode whatever
 the new parser happens to do.
 
-### P3 — Parser: three-layer rewrite (root causes A, B)
+### P3 — Parser: three-layer rewrite (root causes A, B) *(landed)*
 
 Replace the single whole-file regex with three separated layers:
 
