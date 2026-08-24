@@ -15,6 +15,7 @@ from pathlib import Path
 from . import config as config_module
 from .annotate import comment_for
 from .config import Config
+from .descriptions import DescriptionStore, index_descriptions_fingerprint
 from .embeddings import embed, embedding_metadata
 from .models import CodeUnit
 from .parser import parse_file
@@ -47,22 +48,26 @@ class StaleMonitor:
         interval_seconds: float = 1.0,
         assume_checked: bool = False,
         cfg: Config | None = None,
+        descriptions_fingerprint: str | None = None,
     ):
         self.root = root
         self.payload = payload
         self.cfg = _resolve(root, cfg)
         self.interval_seconds = max(0.0, interval_seconds)
         self.last_checked = time.monotonic() if assume_checked else 0.0
-        # A configuration change is not a file change, and `rag-your-code.toml`
-        # is not itself an indexed source, so nothing in the file-stat
-        # comparison below can see one. An index built under different
-        # suffixes, ignores or vector width describes a different corpus, so it
-        # is stale from here on regardless of what the walk reports.
+        # Neither authored input is an indexed source, so nothing in the
+        # file-stat comparison below can see either one change. An index built
+        # under different suffixes, ignores or vector width describes a
+        # different corpus; an index built from different descriptions serves
+        # text nobody wrote any more. Both are stale regardless of the walk.
         self.config_changed = index_config_fingerprint(payload) != self.cfg.build_fingerprint
-        self.value = self.config_changed or bool(payload.get("stale", True))
+        self.inputs_changed = self.config_changed or (
+            descriptions_fingerprint is not None and index_descriptions_fingerprint(payload) != descriptions_fingerprint
+        )
+        self.value = self.inputs_changed or bool(payload.get("stale", True))
 
     def check(self, force: bool = False) -> bool:
-        if self.config_changed:
+        if self.inputs_changed:
             self.payload["stale"] = True
             return True
         now = time.monotonic()
@@ -208,7 +213,7 @@ def build_units(
     snapshot: RepositorySnapshot | None = None,
     cfg: Config | None = None,
     previous_config: str | None = None,
-    descriptions: dict[str, str] | None = None,
+    descriptions: "DescriptionStore | None" = None,
 ) -> list[CodeUnit]:
     """Build units, reusing unchanged files and stable serials when possible.
 
@@ -239,19 +244,24 @@ def build_units(
             units.extend(parse_file(path, root, diagnostics))
     previous_serials = {unit.id: unit.serial for unit in previous_units or []}
     _assign_global_serials(units, previous_serials)
+    # Authored descriptions are checked against the units they describe, which
+    # is why the store is filtered here rather than by the caller: the digest
+    # comparison needs the parsed units, and the parsed units do not exist
+    # until this point.
+    authored = descriptions.applicable(units) if descriptions is not None else {}
     for unit in units:
-        # An authored description replaces the generated one before the vector
-        # is computed, which is the whole point of storing it: the words an
-        # agent chose have to reach both the inverted index and the vector.
-        if descriptions:
-            authored = descriptions.get(unit.id)
-            if authored:
-                unit.description = authored
-        # Embed the numbered sidecar comment together with source/context so
-        # semantic retrieval is grounded in the same records users can review.
+        # The generated description is replaced before the vector is computed.
+        # `description` is part of `searchable_text`, so embedding first would
+        # produce a vector for the sentence the agent replaced.
+        text = authored.get(unit.id)
+        if text and unit.description != text:
+            unit.description = text
+            unit.vector = []
         if previous_serials.get(unit.id, unit.serial) != unit.serial or len(unit.vector) != dimensions:
             unit.vector = []
         if not unit.vector:
+            # Embed the numbered sidecar comment together with source/context so
+            # retrieval is grounded in the same records users can review.
             unit.vector = embed(comment_for(unit.description, unit.serial, unit.id) + "\n" + unit.searchable_text, dimensions)
     return sorted(units, key=lambda item: (item.serial, item.id))
 
@@ -277,6 +287,7 @@ def write_index(
     diagnostics: list[dict] | None = None,
     snapshot: RepositorySnapshot | None = None,
     cfg: Config | None = None,
+    descriptions_fingerprint: str | None = None,
 ) -> None:
     cfg = _resolve(root, cfg)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -312,6 +323,7 @@ def write_index(
         "root": str(root.resolve()),
         "fingerprint": repository_fingerprint,
         "config_fingerprint": cfg.build_fingerprint,
+        "descriptions_fingerprint": descriptions_fingerprint,
         "files": files,
         "file_stats": snapshot.stats,
         "dimensions": dimensions,

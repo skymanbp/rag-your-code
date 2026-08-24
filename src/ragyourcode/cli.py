@@ -9,10 +9,12 @@ import sys
 from pathlib import Path
 
 from . import config as config_module
+from . import descriptions as descriptions_module
 from .annotate import comment_for
 from .agentic import research
 from .config import BY_PATH, SETTINGS, Config, ConfigError
-from .embeddings import embedding_metadata
+from .descriptions import DescriptionStore, guidance, index_descriptions_fingerprint
+from .embeddings import embed, embedding_metadata
 from .graph import build_graph, graph_from_dict, graph_search
 from .indexer import StaleMonitor, build_units, fingerprint, index_config_fingerprint, read_index, snapshot_repository, write_index
 from .search import build_search_index, context, search
@@ -54,6 +56,7 @@ def _refresh_index(root: Path, output: Path, full: bool = False, compact: bool |
     # One snapshot for both halves: parsing from one walk and publishing hashes
     # from another let a save landing between them poison incremental reuse.
     snapshot = snapshot_repository(root, cfg)
+    store = descriptions_module.load(root)
     units = build_units(
         root,
         previous_units=previous_units,
@@ -62,9 +65,11 @@ def _refresh_index(root: Path, output: Path, full: bool = False, compact: bool |
         snapshot=snapshot,
         cfg=cfg,
         previous_config=None if config_changed else previous_config,
+        descriptions=store,
     )
     graph = build_graph(units)
-    write_index(output, root, units, graph.to_dict(), compact=compact, diagnostics=diagnostics, snapshot=snapshot, cfg=cfg)
+    write_index(output, root, units, graph.to_dict(), compact=compact, diagnostics=diagnostics, snapshot=snapshot, cfg=cfg, descriptions_fingerprint=store.fingerprint)
+    groups = store.classify(units)
     return {
         "indexed_units": len(units),
         "graph_edges": len(graph.edges),
@@ -72,6 +77,8 @@ def _refresh_index(root: Path, output: Path, full: bool = False, compact: bool |
         "incremental": bool(previous_units) and not full,
         "rebuilt_for_config": config_changed,
         "compact": bool(compact),
+        "described": len(groups["described"]),
+        "pending_descriptions": len(groups["missing"]) + len(groups["superseded"]),
         "index": str(output),
         "root": str(root),
         "config": str(cfg.source) if cfg.source else None,
@@ -89,21 +96,24 @@ def _cmd_index(args: argparse.Namespace) -> int:
 def _load(args: argparse.Namespace):
     root = Path(args.root).resolve()
     cfg = config_module.load(root)
+    store = descriptions_module.load(root)
     path = Path(args.index) if args.index else _default_index(root)
     payload, units = read_index(path)
     try:
-        # A configuration change is invisible to a file fingerprint: the index
-        # then describes a different corpus while every tracked file is
-        # untouched, so it has to be reported stale on its own account.
+        # Both authored inputs are invisible to a file fingerprint. A changed
+        # configuration means the index describes a different corpus; changed
+        # descriptions mean it serves text nobody wrote any more. Neither moves
+        # a tracked file, so each has to report itself.
         stale = payload.get("fingerprint") != fingerprint(root, cfg)
-        payload["stale"] = stale or index_config_fingerprint(payload) != cfg.build_fingerprint
+        stale = stale or index_config_fingerprint(payload) != cfg.build_fingerprint
+        payload["stale"] = stale or index_descriptions_fingerprint(payload) != store.fingerprint
     except OSError:
         payload["stale"] = True
-    return payload, units, graph_from_dict(units, payload.get("graph")), cfg
+    return payload, units, graph_from_dict(units, payload.get("graph")), cfg, store
 
 
 def _cmd_search(args: argparse.Namespace) -> int:
-    payload, units, graph, cfg = _load(args)
+    payload, units, graph, cfg, _ = _load(args)
     limit = args.limit if args.limit is not None else cfg["search.limit"]
     max_chars = args.max_chars if args.max_chars is not None else cfg["search.max_chars"]
     weight = cfg["search.vector_weight"]
@@ -123,7 +133,7 @@ def _cmd_search(args: argparse.Namespace) -> int:
 
 
 def _cmd_annotate(args: argparse.Namespace) -> int:
-    payload, units, _, _ = _load(args)
+    payload, units, _, _, _ = _load(args)
     if payload.get("stale"):
         print("Index is stale; run `rag-your-code index` before annotating.", file=sys.stderr)
         return 2
@@ -179,6 +189,140 @@ def _cmd_config(args: argparse.Namespace) -> int:
     ]
     print(json.dumps({"source": str(cfg.source) if cfg.source else None, "build_fingerprint": cfg.build_fingerprint, "settings": listing}, ensure_ascii=False, indent=2, default=list))
     return 0
+
+
+def _describe_batch(units: list, store: DescriptionStore, cfg: Config, limit: int) -> dict:
+    """The work packet handed to an agent: what to describe, and how.
+
+    The source is included because the brief forbids describing behaviour the
+    source does not show, and an agent cannot honour that without seeing it.
+    The generated description goes along so the agent can tell what retrieval
+    already has and add what it lacks rather than paraphrasing it.
+    """
+    groups = store.classify(units)
+    pending = store.pending(units, limit)
+    languages = cfg["describe.languages"]
+    return {
+        "languages": list(languages),
+        "max_chars": cfg["describe.max_chars"],
+        "guidance": guidance(languages, cfg["describe.max_chars"]),
+        "described": len(groups["described"]),
+        "superseded": len(groups["superseded"]),
+        "missing": len(groups["missing"]),
+        "remaining": len(groups["missing"]) + len(groups["superseded"]),
+        "units": [
+            {
+                "id": unit.id,
+                "path": unit.path,
+                "language": unit.language,
+                "kind": unit.kind,
+                "qualified_name": unit.qualified_name,
+                "signature": unit.signature,
+                "start_line": unit.start_line,
+                "end_line": unit.end_line,
+                "generated_description": unit.description,
+                "source": unit.source,
+            }
+            for unit in pending
+        ],
+    }
+
+
+def _store_descriptions(units: list, store: DescriptionStore, cfg: Config, items) -> dict:
+    """Validate and persist a batch, reporting every rejection with a reason.
+
+    Nothing is truncated to fit. A description silently cut at the limit would
+    lose exactly the trailing synonyms that make it worth writing, and the
+    agent would have no way to learn that it had happened.
+    """
+    if not isinstance(items, list):
+        raise ValueError("descriptions must be a list of {id, text} objects")
+    by_id = {unit.id: unit for unit in units}
+    max_chars = cfg["describe.max_chars"]
+    stored: list[str] = []
+    rejected: list[dict] = []
+    for item in items:
+        if not isinstance(item, dict):
+            rejected.append({"id": None, "reason": "not_an_object"})
+            continue
+        unit_id = str(item.get("id", ""))
+        text = str(item.get("text", "")).strip()
+        unit = by_id.get(unit_id)
+        if unit is None:
+            rejected.append({"id": unit_id, "reason": "unknown_unit"})
+        elif not text:
+            rejected.append({"id": unit_id, "reason": "empty"})
+        elif len(text) > max_chars:
+            rejected.append({"id": unit_id, "reason": "too_long", "length": len(text), "limit": max_chars})
+        else:
+            store.put(unit, text)
+            stored.append(unit_id)
+    if stored:
+        store.save({unit.id for unit in units})
+    groups = store.classify(units)
+    return {
+        "stored": len(stored),
+        "stored_ids": stored,
+        "rejected": rejected,
+        "remaining": len(groups["missing"]) + len(groups["superseded"]),
+        # The store is written but the published index still holds the previous
+        # text. Said as its own field rather than folded into `stale`, which
+        # answers a different question -- whether the index still describes the
+        # repository -- and is correctly False here.
+        "reindex_required": len(stored) > 0,
+        "path": str(store.path),
+    }
+
+
+def _apply_descriptions(units: list, store: DescriptionStore, cfg: Config) -> int:
+    """Push newly stored text into the in-memory units, re-embedding as needed.
+
+    Without this an agent would describe a unit and keep retrieving against the
+    sentence it replaced until the next `refresh`, which is the slowest way to
+    discover that the work had an effect.
+    """
+    authored = store.applicable(units)
+    changed = 0
+    for unit in units:
+        text = authored.get(unit.id)
+        if text and unit.description != text:
+            unit.description = text
+            unit.vector = embed(comment_for(text, unit.serial, unit.id) + "\n" + unit.searchable_text, cfg["embedding.dimensions"])
+            changed += 1
+    return changed
+
+
+def _cmd_describe(args: argparse.Namespace) -> int:
+    payload, units, _, cfg, store = _load(args)
+    if args.action == "status":
+        groups = store.classify(units)
+        print(json.dumps({
+            "units": len(units),
+            "described": len(groups["described"]),
+            "superseded": len(groups["superseded"]),
+            "missing": len(groups["missing"]),
+            "coverage": round(len(groups["described"]) / len(units), 4) if units else 0.0,
+            "path": str(store.path),
+            "exists": store.path.is_file(),
+            "stale_index": bool(payload.get("stale")),
+        }, ensure_ascii=False, indent=2))
+        return 0
+    if args.action == "export":
+        limit = args.limit if args.limit is not None else cfg["describe.batch"]
+        batch = _describe_batch(units, store, cfg, limit)
+        text = json.dumps(batch, ensure_ascii=False, indent=2)
+        if args.output:
+            Path(args.output).write_text(text + "\n", encoding="utf-8", newline="\n")
+            print(json.dumps({"exported": len(batch["units"]), "remaining": batch["remaining"], "output": args.output}, ensure_ascii=False))
+        else:
+            print(text)
+        return 0
+    incoming = json.loads(Path(args.file).read_text(encoding="utf-8"))
+    if isinstance(incoming, dict):
+        incoming = incoming.get("descriptions", [])
+    report = _store_descriptions(units, store, cfg, incoming)
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+    return 0 if not report["rejected"] else 1
 
 
 def _open_source(root: Path, relative_path: str, start_line=None, end_line=None, cfg: Config | None = None) -> dict:
@@ -239,13 +383,17 @@ def _request_int(request: dict, key: str, default: int, minimum: int, maximum: i
 
 def _cmd_agent(args: argparse.Namespace) -> int:
     """Serve one JSON request per line, suitable for a plugin subprocess."""
-    payload, units, graph, cfg = _load(args)
+    payload, units, graph, cfg, store = _load(args)
     search_index = build_search_index(units)
     root = Path(args.root).resolve()
     weight = cfg["search.vector_weight"]
     default_limit = cfg["search.limit"]
     default_chars = cfg["search.max_chars"]
-    stale_monitor = StaleMonitor(root, payload, assume_checked=True, cfg=cfg)
+    stale_monitor = StaleMonitor(root, payload, assume_checked=True, cfg=cfg, descriptions_fingerprint=store.fingerprint)
+    # Descriptions stored this session reach the live units immediately but not
+    # the published index, which is a different thing from the index being
+    # stale against the repository.
+    index_behind = False
     for line in sys.stdin:
         if not line.strip():
             continue
@@ -294,14 +442,26 @@ def _cmd_agent(args: argparse.Namespace) -> int:
                 response = {"stale": payload.get("stale", True), "id": unit_id, "neighbors": response_neighbors}
             elif action == "open":
                 response = _open_source(root, str(request.get("path", "")), request.get("start_line"), request.get("end_line"), cfg)
+            elif action == "describe_pending":
+                response = _describe_batch(units, store, cfg, _request_int(request, "limit", cfg["describe.batch"], 0, 200))
+            elif action == "describe_put":
+                response = _store_descriptions(units, store, cfg, request.get("descriptions", []))
+                # Applied to the live units immediately, so the next search in
+                # this session already retrieves on the new words rather than
+                # waiting for a refresh the agent has no reason to expect.
+                response["applied"] = _apply_descriptions(units, store, cfg)
+                if response["applied"]:
+                    search_index = build_search_index(units)
+                index_behind = index_behind or response["reindex_required"]
             elif action == "refresh":
                 output = Path(args.index) if args.index else _default_index(root)
                 response = _refresh_index(root, output, cfg=cfg)
-                payload, units, graph, cfg = _load(args)
+                payload, units, graph, cfg, store = _load(args)
                 search_index = build_search_index(units)
-                stale_monitor = StaleMonitor(root, payload, assume_checked=True, cfg=cfg)
+                stale_monitor = StaleMonitor(root, payload, assume_checked=True, cfg=cfg, descriptions_fingerprint=store.fingerprint)
+                index_behind = False
             elif action == "stats":
-                response = {"units": len(units), "files": len({unit.path for unit in units}), "edges": len(graph.edges), "warnings": len(payload.get("diagnostics", [])), "compact": bool(payload.get("vector_store")), "embedding": payload.get("embedding"), "config": str(cfg.source) if cfg.source else None, "stale": payload.get("stale", True)}
+                response = {"units": len(units), "files": len({unit.path for unit in units}), "edges": len(graph.edges), "warnings": len(payload.get("diagnostics", [])), "compact": bool(payload.get("vector_store")), "embedding": payload.get("embedding"), "config": str(cfg.source) if cfg.source else None, "described": len(store.applicable(units)), "index_behind": index_behind, "stale": payload.get("stale", True)}
             else:
                 response = {"error": f"unsupported action: {action}"}
         except (TypeError, ValueError) as exc:
@@ -361,6 +521,14 @@ def build_parser() -> argparse.ArgumentParser:
     config_parser.add_argument("--root", default=".")
     config_parser.add_argument("--force", action="store_true", help="with init, overwrite an existing file")
     config_parser.set_defaults(func=_cmd_config)
+    describe = sub.add_parser("describe", help="inspect or supply agent-authored unit descriptions")
+    describe.add_argument("action", choices=("status", "export", "import"))
+    describe.add_argument("file", nargs="?", help="with import, a JSON file of {id, text} objects")
+    describe.add_argument("--root", default=".")
+    describe.add_argument("--index")
+    describe.add_argument("--limit", type=int, default=None, help=f"with export, units per batch (config describe.batch, default {BY_PATH['describe.batch'].default})")
+    describe.add_argument("--output", help="with export, write the batch here instead of stdout")
+    describe.set_defaults(func=_cmd_describe)
     return parser
 
 
