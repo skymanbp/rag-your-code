@@ -1,6 +1,14 @@
 import json
-import tomllib
+import sys
 from pathlib import Path
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    # `tomllib` arrived in 3.11. Nothing in src/ needs 3.11, so the declared
+    # floor stays at 3.10 and this one test takes the backport instead; the
+    # `dev` extra in pyproject.toml supplies it below 3.11.
+    import tomli as tomllib
 
 import ragyourcode
 

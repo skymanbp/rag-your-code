@@ -52,6 +52,14 @@ This small protocol makes the index usable as a subprocess tool from Claude Code
 
 ## Development
 
-```powershell
-pytest
+```bash
+python -m pip install -e ".[dev]"
+pytest -q
 ```
+
+No runtime dependencies; `pytest` and, below Python 3.11, `tomli` come
+from the `dev` extra. CI covers Python 3.10 through 3.13 on Linux and
+Windows and installs the built wheel into a clean environment to check that
+the workflow the bundled skill documents actually runs from a published
+artifact. See [CONTRIBUTING.md](CONTRIBUTING.md) for what the golden set
+and the language fixtures are protecting.

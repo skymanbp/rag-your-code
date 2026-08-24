@@ -114,7 +114,7 @@ applies. Its limits are documented rather than guessed at.
 Catch-all around the request loop (a single `1e400` in a request currently kills
 the subprocess), a real output bound on `open`, and an ignore list for it.
 
-### P6 — Release bar
+### P6 — Release bar *(landed)*
 
 `LICENSE` (pyproject declares MIT with no license text in the tree or the built
 wheel), `.claude-plugin/marketplace.json`, an install step in `SKILL.md` (which
@@ -122,6 +122,19 @@ today tells an agent to run a module that nothing installs), pyproject
 classifiers/URLs/dev extra, `py.typed`, `requires-python` corrected to match the
 `tomllib` import in the test suite, and CI. CI lands last so it gates the fixed
 suite rather than the broken one.
+
+## Open, and not mine to decide
+
+The plugin manifest and marketplace entry carry no `homepage` or `repository`.
+Every comparable installed plugin declares both, but this repository has no
+remote yet, and inventing a URL that resolves to nothing would be worse than
+omitting the field. Add them once the repository has a home.
+
+Qualified names for non-Python languages are also still open. `CodeUnit`
+carries `qualified_name`, and the Python path fills it (`Svc.helper`), but the
+line scanner sets it equal to `name`. A scope stack keyed on brace depth would
+supply it and would improve `contains` edges; it was outside P3's scope, which
+was root causes A and B.
 
 ## Non-goals for this pass
 

@@ -1,8 +1,20 @@
 {
   "name": "rag-your-code",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Local explainable codebase RAG indexing and retrieval for coding agents",
   "author": {
     "name": "rag-your-code contributors"
-  }
+  },
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "plugin",
+    "rag",
+    "code-search",
+    "retrieval",
+    "indexing",
+    "graphrag",
+    "offline",
+    "explainable"
+  ]
 }

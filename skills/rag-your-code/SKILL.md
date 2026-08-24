@@ -9,6 +9,15 @@ Use this skill when repository context is broad or a symbol's implementation is 
 
 ## Workflow
 
+0. Make sure the package is importable. A plugin install copies this skill
+   but not the Python package, so check once per machine and install if the
+   import fails. Use `python -m pip` rather than a bare `pip` so the package
+   lands in the same interpreter the later commands run under.
+
+   ```bash
+   python -c "import ragyourcode" || python -m pip install --user rag-your-code
+   ```
+
 1. Build or refresh the index from the repository root:
 
    ```bash
