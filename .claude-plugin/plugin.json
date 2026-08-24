@@ -6,6 +6,8 @@
     "name": "rag-your-code contributors"
   },
   "license": "MIT",
+  "homepage": "https://github.com/skymanbp/rag-your-code",
+  "repository": "https://github.com/skymanbp/rag-your-code",
   "keywords": [
     "claude-code",
     "plugin",

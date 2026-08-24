@@ -3,6 +3,8 @@
   "owner": {
     "name": "rag-your-code contributors"
   },
+  "homepage": "https://github.com/skymanbp/rag-your-code",
+  "repository": "https://github.com/skymanbp/rag-your-code",
   "metadata": {
     "description": "Single-plugin marketplace for the rag-your-code local codebase RAG index.",
     "version": "0.3.0"
@@ -17,6 +19,8 @@
         "name": "rag-your-code contributors"
       },
       "license": "MIT",
+      "homepage": "https://github.com/skymanbp/rag-your-code",
+      "repository": "https://github.com/skymanbp/rag-your-code",
       "keywords": [
         "claude-code",
         "plugin",
