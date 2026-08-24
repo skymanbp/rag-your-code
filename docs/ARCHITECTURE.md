@@ -68,7 +68,7 @@ defect: units matching more query terms went unranked and `--limit 8` returned a
 single result on a 116-unit repository.
 
 Complete recall is not free. Measured at 10,000 units, mean query time went from
-1.63 ms to 3.82 ms — the earlier figure was cheap because it scored a subset and
+1.63 ms to 3.42 ms — the earlier figure was cheap because it scored a subset and
 under-filled the result list. Scoring accumulates match counts straight from the
 posting lists, materialises only the `limit` results actually returned, and
 recovers each one's matched terms by binary search over the sorted postings;
@@ -139,12 +139,13 @@ query into a zero-result, exit-0 answer, and a response holding a character
 outside the codepage terminated the subprocess.
 
 One representative synthetic Windows run (500 files, 20 functions/file) took
-1.82 s for full parsing/embedding and 0.249 s for a one-file incremental refresh
-(7.30x). Compact storage was 35.6% of readable JSON. In an isolated agent
-process, 10,000 units loaded in 48.6 ms, built the inverted index in 89.5 ms,
-used 57.8 MiB current/64.1 MiB peak RSS, and full-recall hybrid queries averaged
-3.82 ms. A full stale stat walk cost 83.7 ms; the one-second monitor cache made
-repeated checks effectively free (0.0004 ms). These are directional local measurements,
+1.82 s for full parsing/embedding and 0.225 s for a one-file incremental refresh
+(8.09x). Compact storage was 35.6% of readable JSON. In an isolated agent
+process, 10,000 units loaded in 46.1 ms, built the inverted index in 98.0 ms,
+used 58.4 MiB current/64.5 MiB peak RSS, and full-recall hybrid queries averaged
+3.42 ms. A full stale stat walk cost 69.9 ms; the one-second monitor cache made
+repeated checks effectively free (0.0003 ms). Four runs put the spread on the build
+and walk timings at a few percent. These are directional local measurements,
 not universal service-level guarantees; see `large-benchmark-result.json`.
 
 ## Evolution plan
