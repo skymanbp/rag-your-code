@@ -216,7 +216,10 @@ def render_patch(root: Path, insertions: list[Insertion]) -> str:
         by_path.setdefault(item.path, []).append(item)
     chunks: list[str] = []
     for path, group in sorted(by_path.items()):
-        original = (root / path).read_text(encoding="utf-8", newline="")
+        # open(newline="") rather than read_text(newline=...), because that
+        # keyword only exists from Python 3.13 and the declared floor is 3.10.
+        with (root / path).open(encoding="utf-8", newline="") as handle:
+            original = handle.read()
         newline = '\r\n' if '\r\n' in original else '\n'
         # keepends, not split-and-rejoin: splitting on the newline yields a
         # phantom empty final element for a file that ends with one, and
