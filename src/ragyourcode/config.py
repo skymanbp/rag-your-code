@@ -146,7 +146,14 @@ SETTINGS: tuple[Setting, ...] = (
         help="languages an agent is asked to write unit descriptions in",
     ),
     Setting("describe.batch", "int", 20, minimum=1, maximum=200, help="units per describe_pending response"),
-    Setting("describe.max_chars", "int", 600, minimum=40, maximum=4000, help="cap on one stored description"),
+    # 600 was picked before any real corpus existed. Measured against the 119
+    # descriptions written for this repository's own src/ tree, the median is
+    # 349 characters but the 90th percentile is 662 -- so a 600 cap rejects
+    # roughly one good-faith description in eight, and rejects them at the
+    # complex units retrieval most needs help with. Nothing is truncated to
+    # fit, so a cap set inside the normal range silently leaves those units
+    # undescribed. 1000 covers the whole observed range.
+    Setting("describe.max_chars", "int", 1000, minimum=40, maximum=4000, help="cap on one stored description"),
 )
 
 BY_PATH: dict[str, Setting] = {setting.path: setting for setting in SETTINGS}

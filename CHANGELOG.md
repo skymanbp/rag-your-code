@@ -3,6 +3,55 @@
 Notable changes per release. Dates are the release date; measurements are from
 the development machine (Windows 11, CPython 3.13) and are directional.
 
+## 0.4.1 — 2026-08-25
+
+The first release published to PyPI, and two defects that only appeared once
+0.4.0's own features were used on a real corpus rather than a fixture.
+
+### Added
+
+- A release workflow that publishes to PyPI through trusted publishing, so no
+  API token exists to leak or rotate. It refuses to publish when the tag and
+  the declared version disagree, and installs the built wheel into a clean
+  environment and runs the documented commands before uploading anything.
+- This repository now describes its own implementation: all 120 units under
+  `src/` carry an agent-written bilingual description, committed in
+  `rag-your-code.descriptions.json`.
+
+### Fixed
+
+- **A description was orphaned when its code merely moved.** Unit ids embed
+  the line a declaration starts on, so inserting a comment near the top of a
+  file gives every declaration below it a new id while changing none of them.
+  Adding a seven-line comment to `config.py` orphaned nineteen descriptions
+  that described code which had not changed by a single byte. A description is
+  now found by file and code digest when its id no longer resolves, and
+  pruning keeps an entry whose code is still live. Two declarations in one file
+  with identical source and different stored text stay ambiguous and resolve to
+  nothing rather than to a guess.
+- **`describe.max_chars` was set inside the normal range.** 600 was chosen
+  before any real corpus existed. Measured over the 120 descriptions written
+  for this project's own `src/` tree the median is 349 characters but the 90th
+  percentile is 662, so the cap rejected roughly one good-faith description in
+  eight — and rejected them at the complex units retrieval most needs help
+  with, since nothing is truncated to fit. The default is now 1000, which
+  covers the whole observed range.
+
+### Measured
+
+Ten natural-language questions about this repository, before and after
+describing `src/`: units matching the expected file went from 2 of 8 to 6 of 8,
+Chinese queries from 0 of 4 to 3 of 4, and the number of queries answered only
+by the no-overlap cosine fallback — that is, with no lexical evidence at all —
+from 4 to 0.
+
+Two still miss, and both are worth stating. One query says `catastrophic
+backtracking` where the description says `backtracks catastrophically`: there
+is no stemming, so those share no token, which is exactly the limit this
+feature is documented to have. The other returned a unit that answers the
+question from a different file than the one predicted, so the expectation was
+wrong rather than the retrieval.
+
 ## 0.4.0 — 2026-08-24
 
 0.3.0 made the existing claims true. 0.4.0 is the first release that adds one,

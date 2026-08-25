@@ -258,7 +258,7 @@ def _store_descriptions(units: list, store: DescriptionStore, cfg: Config, items
             store.put(unit, text)
             stored.append(unit_id)
     if stored:
-        store.save({unit.id for unit in units})
+        store.save(units)
     groups = store.classify(units)
     return {
         "stored": len(stored),

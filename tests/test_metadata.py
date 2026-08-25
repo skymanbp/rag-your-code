@@ -84,14 +84,30 @@ def test_every_documented_protocol_action_is_handled():
         assert used, f"{name} should show at least one protocol action"
 
 
+def _publishes_to_pypi() -> bool:
+    """Whether this repository actually uploads its distributions to PyPI.
+
+    Read from the workflow rather than asserted as a constant, so the guard
+    below cannot be satisfied by editing a boolean.
+    """
+    workflow = ROOT / ".github" / "workflows" / "release.yml"
+    return workflow.is_file() and "gh-action-pypi-publish" in workflow.read_text(encoding="utf-8")
+
+
 def test_no_document_claims_this_package_is_on_an_index_it_is_not_on():
     """The audit found SKILL.md naming a module nothing installs.
 
-    0.3.0 replaced that with `pip install rag-your-code`, which is a package
-    index this project does not publish to, so the instruction was still
-    unrunnable and nothing checked it. Any install line must name a source
-    that exists: a URL, a path, or an editable checkout.
+    0.3.0 replaced that with `pip install rag-your-code`, a package index this
+    project did not publish to, so the instruction was still unrunnable and
+    nothing checked it. An install line must name a source that resolves: a
+    URL, a path, an editable checkout -- or this project's own distribution
+    name, and that one only while a workflow in this repository actually
+    uploads to PyPI. The condition is read from the workflow, so removing
+    publishing without fixing the docs fails here rather than silently
+    restoring the original defect.
     """
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["name"]
+    allowed_names = {project, project.replace("-", "_")} if _publishes_to_pypi() else set()
     # Flags first, then an optionally quoted target -- `--user "git+https://..."`
     # is the documented form, and a target class that excluded the quote made
     # the flag itself look like the target.
@@ -100,7 +116,23 @@ def test_no_document_claims_this_package_is_on_an_index_it_is_not_on():
     for name in DOCS:
         for target in pattern.findall((ROOT / name).read_text(encoding="utf-8")):
             seen += 1
-            assert target.startswith(("git+", "http", ".", "/", "-e")) or target.endswith(
-                (".whl", ".tar.gz")
+            assert (
+                target.startswith(("git+", "http", ".", "/", "-e"))
+                or target.endswith((".whl", ".tar.gz"))
+                or target in allowed_names
             ), f"{name}: `pip install {target}` names no installable source"
     assert seen, "the install instructions vanished; this guard would then pass vacuously"
+
+
+def test_the_release_workflow_publishes_under_the_name_the_project_declares():
+    """A tag, a package name and a trusted-publisher claim that disagree.
+
+    Publishing is irreversible, so the two things that decide *what* gets
+    published are checked here rather than discovered on PyPI: the workflow
+    filename, which the trusted-publisher claim is bound to, and the version
+    guard that refuses a tag disagreeing with pyproject.
+    """
+    workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+    assert "gh-action-pypi-publish" in workflow
+    assert "id-token: write" in workflow, "trusted publishing needs an OIDC token"
+    assert "does not match pyproject version" in workflow, "a tag must not be able to disagree with the package"

@@ -133,6 +133,58 @@ def test_a_source_change_supersedes_the_description(repo, capsys):
     assert descriptions_module.load(repo).entries[UNIT_ID]["text"] == AUTHORED
 
 
+def test_a_description_survives_the_code_moving_down_the_file(repo, capsys):
+    """An edit above a declaration changes its id but not its code.
+
+    Unit ids embed the line a declaration starts on, so inserting a comment or
+    an import near the top of a file gives every declaration below it a new id
+    while changing none of them. Keyed on id alone, every description in that
+    file is orphaned by an edit that touched nothing they describe -- which is
+    what a seven-line comment added to this project's own config.py did to
+    nineteen of them.
+    """
+    units = build_units(repo)
+    _write_store(repo, UNIT_ID, AUTHORED, source_key(units[0]))
+    assert main(["index", str(repo)]) == 0
+    capsys.readouterr()
+    assert _search(repo, "exponential backoff", capsys), "precondition: the description applies"
+
+    (repo / "billing.py").write_text("# a comment nobody asked about\n\n" + SOURCE, encoding="utf-8")
+    assert main(["index", str(repo)]) == 0
+    capsys.readouterr()
+
+    _, indexed = read_index(repo / ".rag-your-code" / "index.json")
+    assert indexed[0].id != UNIT_ID, "precondition: the id really did change"
+    assert indexed[0].description == AUTHORED, "the code is byte-identical; the description must follow it"
+    assert _search(repo, "exponential backoff", capsys)
+
+    assert main(["describe", "status", "--root", str(repo)]) == 0
+    assert json.loads(capsys.readouterr().out)["described"] == 1
+
+
+def test_relocation_never_guesses_between_identical_declarations(repo, capsys):
+    """Two byte-identical declarations in one file resolve to nothing.
+
+    The relocation lookup is keyed on file and code digest. When one file holds
+    two declarations with identical source and different stored text, there is
+    no way to tell which description belongs where, so neither is applied.
+    """
+    body = "def alpha():\n    return 1\n\n\ndef beta():\n    return 1\n"
+    (repo / "twins.py").write_text(body, encoding="utf-8")
+    units = [unit for unit in build_units(repo) if unit.path == "twins.py"]
+    assert len(units) == 2 and source_key(units[0]) != source_key(units[1]), "the sources differ by name"
+
+    store = descriptions_module.load(repo)
+    for unit, text in zip(units, ("first description", "second description")):
+        store.put(unit, text)
+    # Force the ambiguity the guard exists for: same file, same digest, two texts.
+    for entry, text in zip(store.entries.values(), ("first description", "second description")):
+        entry["hash"] = "identical-digest"
+        entry["text"] = text
+    store.entries = {f"twins.py:99:{name}": entry for name, entry in zip(("alpha", "beta"), store.entries.values())}
+    assert store._relocations()[("twins.py", "identical-digest")] is None
+
+
 def test_a_mismatched_digest_is_not_applied(repo):
     _write_store(repo, UNIT_ID, AUTHORED, "0" * 16)
     units = build_units(repo, descriptions=descriptions_module.load(repo))
@@ -152,7 +204,7 @@ def test_saving_prunes_entries_for_units_that_no_longer_exist(repo):
     store = descriptions_module.load(repo)
     store.put(units[0], AUTHORED)
     store.entries["gone.py:1:removed"] = {"hash": "x", "text": "y"}
-    store.save({unit.id for unit in units})
+    store.save(units)
     assert set(descriptions_module.load(repo).entries) == {UNIT_ID}
 
 

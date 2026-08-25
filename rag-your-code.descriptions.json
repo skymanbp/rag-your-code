@@ -1,0 +1,612 @@
+{
+  "schema": 1,
+  "descriptions": {
+    "src/ragyourcode/agentic.py:10:_result_ids": {
+      "hash": "68f9fada99217d46",
+      "path": "src/ragyourcode/agentic.py",
+      "text": "Collects the unit identifiers out of a list of search results, so two result sets can be compared for overlap or novelty. Used to decide whether a second retrieval round actually surfaced anything new. 中文：从检索结果里抽出单元 ID 集合，用于比较两批结果是否重合、有无新发现；判断第二轮扩展是否带来了新证据。"
+    },
+    "src/ragyourcode/agentic.py:14:_serialize": {
+      "hash": "c9b086ca576f6820",
+      "path": "src/ragyourcode/agentic.py",
+      "text": "Converts search results into plain JSON-ready dictionaries for the agent protocol reply. 中文：把检索结果转成可直接 JSON 序列化的字典，供 agent 协议应答使用。"
+    },
+    "src/ragyourcode/agentic.py:18:research": {
+      "hash": "e49d7237bcdd562a",
+      "path": "src/ragyourcode/agentic.py",
+      "text": "Multi-step investigation for an ambiguous question: runs a first retrieval, and when confidence is low expands once through the code graph, merging both rounds and keeping the best score per unit. Deliberately bounded to at most two steps, and every reply records what it did and why it stopped: high confidence, no results, new graph evidence, or nothing new. 中文：面向含糊问题的多步查证。先检索一次，置信度不足时再沿代码图扩展一次，合并两轮并保留每个单元的最高分。步数硬上限为二，应答里记录每一步与停止原因（高置信、无结果、有新图证据、无新证据），预算与可观测性是安全契约。"
+    },
+    "src/ragyourcode/annotate.py:14:describe_python": {
+      "hash": "7a20909be9ec39b5",
+      "path": "src/ragyourcode/annotate.py",
+      "text": "Builds a readable sentence about a Python function or class without using a language model: the humanised name, the arguments it accepts, the functions it calls, the modules it uses, and the docstring appended verbatim as stated intent. Because it only rearranges words already in the source, it adds no vocabulary the code did not have, which is why retrieval cannot reach a concept nobody wrote down. 中文：不调用任何模型，为 Python 函数或类拼出一句可读描述：名字还原、接受的参数、调用的函数、用到的模块，最后原样附上 docstring。它只重排源码里已有的词，不产生新词汇——这正是检索够不到无人写下的概念的原因。"
+    },
+    "src/ragyourcode/annotate.py:33:comment_for": {
+      "hash": "8885c6ab8696f95c",
+      "path": "src/ragyourcode/annotate.py",
+      "text": "Formats one numbered sidecar comment line combining a unit serial number, its identifier and its description. Language-neutral text, written to a separate annotations file so the source is never rewritten. 中文：把单元的序号、ID 与描述格式化成一行编号注释。与语言无关，写进独立的注解文件，绝不改动用户源码。"
+    },
+    "src/ragyourcode/annotate.py:9:_humanize": {
+      "hash": "b68f1dbcc1827cba",
+      "path": "src/ragyourcode/annotate.py",
+      "text": "Turns a programmer identifier into ordinary words: splits camelCase apart, replaces underscores with spaces, lowercases the result. Empty input becomes a placeholder rather than an empty string. 中文：把标识符还原成普通词语——拆开驼峰、下划线换空格、转小写；空输入给占位名而非空串。"
+    },
+    "src/ragyourcode/cli.py:115:_cmd_search": {
+      "hash": "9f5aec52c290953c",
+      "path": "src/ragyourcode/cli.py",
+      "text": "The search command: retrieves the code units most relevant to a question, optionally following relationships outward, and prints either a readable context block or machine-readable output for an agent. Result count, context budget and the balance between word overlap and vector similarity all fall back to the repository settings when no flag overrides them. Warns when the index no longer describes the repository. 中文：search 命令——检索与问题最相关的代码单元，可选择沿关系向外扩展，输出可读上下文块或供 agent 使用的机器可读结果。结果条数、上下文预算、词面与向量的权重比例在未加开关时都回落到仓库设置。索引已不描述当前仓库时给出警告。"
+    },
+    "src/ragyourcode/cli.py:135:_cmd_annotate": {
+      "hash": "a4c3968adebe813e",
+      "path": "src/ragyourcode/cli.py",
+      "text": "The annotate command: writes a numbered inventory of every indexed unit to a separate document, with its location, kind and description. Source files are never touched. Refuses to run against an index that no longer describes the repository, since a numbered inventory of stale code is worse than none. 中文：annotate 命令——把每个已索引单元的编号清单写进一份独立文档，含位置、种类与描述，绝不改动源文件。索引已不描述当前仓库时拒绝执行：一份过时代码的编号清单比没有更糟。"
+    },
+    "src/ragyourcode/cli.py:150:_cmd_config": {
+      "hash": "5e9525fddea54644",
+      "path": "src/ragyourcode/cli.py",
+      "text": "The config command: creates a commented settings file, lists every setting with its effective value and whether it was customised, reads one value, changes one value in place, or reports where the file lives. Changing a value refuses anything out of range before writing, so a rejected change leaves the file exactly as it was, and the reply says whether the change forces a full rebuild. Creating refuses to overwrite an existing file unless told to. 中文：config 命令——生成带注释的配置文件、列出每项设置的生效值与是否被改过、读取单项、就地修改单项、或报告文件位置。修改前先校验越界并在写盘前拒绝，因此被拒的修改不会改动文件分毫；应答会说明该改动是否强制全量重建。创建时除非明确要求，否则拒绝覆盖已有文件。"
+    },
+    "src/ragyourcode/cli.py:194:_describe_batch": {
+      "hash": "d084af905d35164a",
+      "path": "src/ragyourcode/cli.py",
+      "text": "Assembles the work packet handed to an agent: which units still need describing, each with its location, signature, current generated description and full source, plus the brief and the limits to write within. The source is included because the brief forbids describing behaviour the code does not show, and an agent cannot honour that without seeing it. The existing generated description goes along so the agent can add what retrieval lacks rather than paraphrase what it already has. 中文：组装交给 agent 的工作包：哪些单元仍需描述，每个附带位置、签名、当前生成的描述与完整源码，外加说明与字数限制。附上源码是因为说明禁止描述代码未展示的行为，看不到源码就无从遵守；附上现有生成描述，是让 agent 补充检索缺的部分，而不是把已有的换句话说一遍。"
+    },
+    "src/ragyourcode/cli.py:231:_store_descriptions": {
+      "hash": "f63544c671612685",
+      "path": "src/ragyourcode/cli.py",
+      "name": "_store_descriptions",
+      "text": "Takes a batch of written descriptions, validates each one, and saves those that pass. Nothing is trimmed to fit: a description cut at the limit would lose exactly the trailing synonyms that make it worth writing, and the agent would have no way to learn it had happened. An unknown identifier, an empty text, one over the length limit and a malformed entry are each rejected individually with a reason, and a batch that saved nothing writes no file at all. 中文：接收一批写好的描述，逐条校验，保存通过的。绝不为了塞进限制而截断——被截掉的恰恰是使这条描述有价值的尾部同义词，而 agent 完全无从得知发生过截断。未知标识符、空文本、超长、格式不合，各自单独拒绝并给出理由；一条都没存成的批次不会写出任何文件。"
+    },
+    "src/ragyourcode/cli.py:277:_apply_descriptions": {
+      "hash": "0fe7f8af4f5921d0",
+      "path": "src/ragyourcode/cli.py",
+      "text": "Pushes newly saved descriptions into the units held in memory and recomputes their vectors, so the very next query in the same session already matches on the new words. Without this an agent would describe a unit and go on retrieving against the sentence it had just replaced, which is the slowest possible way to discover the work had an effect. 中文：把刚保存的描述推进内存中的单元并重算向量，使同一会话内的下一次查询立刻按新词匹配。没有这一步，agent 写完描述后仍在用它刚刚替换掉的那句话检索——那是发现『工作是否奏效』的最慢方式。"
+    },
+    "src/ragyourcode/cli.py:28:_default_index": {
+      "hash": "985d8ad107fe0948",
+      "path": "src/ragyourcode/cli.py",
+      "text": "Where a repository index file is kept when the caller names no other location. 中文：调用方未指定位置时，仓库索引文件的默认存放路径。"
+    },
+    "src/ragyourcode/cli.py:295:_cmd_describe": {
+      "hash": "ec8b4347decd6ea3",
+      "path": "src/ragyourcode/cli.py",
+      "text": "The describe command: reports how many units have a usable description, how many have one that the code has since outgrown and how many have none; exports a batch of pending work with source and brief; or imports written descriptions back. Importing says explicitly that a rebuild is needed, because the published index still holds the previous wording and no source file moved to signal it. 中文：describe 命令——报告有多少单元描述可用、多少条因代码变动而失效、多少个从未描述；导出一批待办工作（含源码与说明）；或把写好的描述导入回来。导入时明确指出需要重建：已发布的索引仍持有旧措辞，而没有任何源文件的变动能暗示这一点。"
+    },
+    "src/ragyourcode/cli.py:328:_open_source": {
+      "hash": "df62eb1061c66bd1",
+      "path": "src/ragyourcode/cli.py",
+      "text": "Reads a slice of a file for an agent, refusing anything outside the repository and bounding the reply twice, by file size and by returned characters. Two bounds because a line count is not a size: a three-line file holding one enormous line satisfied the old line-based limit and returned megabytes on a single output line. Output that hits the character bound is truncated and says so. 中文：为 agent 读取文件的一段，拒绝仓库之外的路径，并按文件大小与返回字符数双重限制。之所以两重：行数不等于体积——一个三行但单行极长的文件满足旧的行数限制，却在一行输出里返回了数兆字节。触及字符上限的输出会被截断并明确标注。"
+    },
+    "src/ragyourcode/cli.py:32:_refresh_index": {
+      "hash": "e60b3eb84d8e16a4",
+      "path": "src/ragyourcode/cli.py",
+      "text": "Builds or rebuilds a repository index and publishes it, reusing the previous one where it can. It works out up front whether the settings that decide what an index contains have changed, and when they have it discards the previous work rather than reusing it, so the report can honestly say whether reuse happened. That report previously claimed reuse on exactly the runs that had rebuilt everything, because it was computed from whether a previous index existed rather than from whether its units were kept. It also applies the written descriptions and reports how many units still have none. 中文：构建或重建仓库索引并发布，能复用就复用。它预先判定『决定索引内容的设置』是否变化，变了就整体作废旧成果而非复用，使报告能诚实地说明是否发生了复用。此前该报告恰恰在『全量重建』的那些运行上宣称复用——因为它算的是『有没有旧索引』而不是『旧单元有没有被保留』。同时应用已写描述，并报告还有多少单元没有描述。"
+    },
+    "src/ragyourcode/cli.py:365:_request_int": {
+      "hash": "ec34b792bc8db22b",
+      "path": "src/ragyourcode/cli.py",
+      "text": "Clamps a numeric field from an incoming request into its allowed range. The clamp has to survive values that are not ordinary numbers: an enormous literal becomes infinity, and converting infinity to a whole number raises an error that is neither of the two the request loop originally caught, so a single such request terminated the whole session. Saturating at the bound is the reading the caller intended anyway. 中文：把请求中的数值字段夹到允许范围内。这个夹取必须扛得住非常规数值：极大的字面量会变成无穷大，而把无穷大转成整数抛出的错误不属于请求循环原本捕获的那两类，一条这样的请求就终止了整个会话。饱和到边界本来也就是调用方想表达的意思。"
+    },
+    "src/ragyourcode/cli.py:384:_cmd_agent": {
+      "hash": "4b386e4fdae1264e",
+      "path": "src/ragyourcode/cli.py",
+      "text": "The long-running agent server: reads one request per line and answers on the same channel, offering retrieval, multi-step investigation, relationship navigation, bounded file reading, description hand-off and rebuilding. Its defining property is that no single request can end the session: a malformed field is reported as a bad request and anything unanticipated is reported with its exception type, then the next line is served. Enumerating the expected failures was the original design and the reason one oversized number killed the process. It also separates two questions easily conflated: whether the index still describes the repository, and whether descriptions stored during this session have reached the published index. 中文：常驻的 agent 服务端：每行一条请求、同一通道应答，提供检索、多步查证、关系导航、有界读文件、描述交接与重建。它的立身之本是『任何单条请求都不能终止会话』：字段不合报为无效请求，意料之外的一律带异常类型报出，然后继续服务下一行——枚举预期错误正是旧设计，也是一个超大数字杀死进程的原因。它还区分两个容易混为一谈的问题：索引是否仍描述当前仓库，以及本会话存下的描述是否已进入已发布的索引。"
+    },
+    "src/ragyourcode/cli.py:486:build_parser": {
+      "hash": "d9f2fa3a669786c9",
+      "path": "src/ragyourcode/cli.py",
+      "text": "Declares the whole command-line surface: indexing, retrieval, annotation, the long-running agent, settings and descriptions, with their options and help text. Options that have a configurable counterpart default to nothing rather than to a literal, so an unset flag means whatever the repository configured instead of a number frozen into the program. 中文：声明整个命令行界面——建索引、检索、注解、常驻 agent、设置与描述，及其选项与帮助文字。有对应配置项的选项默认为空而非某个字面值，因此未设置的开关意味着『按仓库配置的来』，而不是一个被冻进程序里的数字。"
+    },
+    "src/ragyourcode/cli.py:535:_use_utf8_streams": {
+      "hash": "53d8213311f1cfa1",
+      "path": "src/ragyourcode/cli.py",
+      "text": "Pins the process input and output to the encoding the protocol promises, instead of inheriting whatever the console locale happens to be. Without it a non-Western console cost correctness twice: printing a result containing a character the console could not represent raised an error and killed a long-running agent, and an incoming query was mis-decoded into text matching nothing, returning an empty answer with a success code. A stream that refuses to be reconfigured keeps its own encoding rather than failing the command. 中文：把进程输入输出钉在协议承诺的编码上，而不是继承控制台区域设置。没有它，非西文控制台会两次损害正确性：输出含控制台无法表示的字符时抛错并杀死常驻 agent；传入的查询被错误解码成匹配不到任何东西的乱码，返回空结果却带成功退出码。拒绝重配的流保留自身编码，而不是让整条命令失败。"
+    },
+    "src/ragyourcode/cli.py:559:main": {
+      "hash": "d86ce9685aeb18d0",
+      "path": "src/ragyourcode/cli.py",
+      "text": "The program entry point: pins the streams, parses the command line, runs the chosen command, and turns an expected failure into a message and a non-zero exit code instead of a stack trace. A settings problem is reported separately and names the file, because that fix is always in one known place. 中文：程序入口——钉住流编码、解析命令行、执行所选命令，并把可预期的失败转成一条消息与非零退出码，而不是一段调用栈。配置类问题单独报出并点名文件，因为那类修复永远在一个已知位置。"
+    },
+    "src/ragyourcode/cli.py:88:_cmd_index": {
+      "hash": "e390fc591ae4e46b",
+      "path": "src/ragyourcode/cli.py",
+      "text": "The index command: scans a repository and writes its index, reporting how many units and relationships were found and how many descriptions are still pending. 中文：index 命令——扫描仓库并写出索引，报告找到多少单元与关系、还有多少描述待写。"
+    },
+    "src/ragyourcode/cli.py:96:_load": {
+      "hash": "da27495d0b437e20",
+      "path": "src/ragyourcode/cli.py",
+      "text": "Opens a published index for a read-only command and settles whether it is still current. Three things can make it out of date and only one of them is a file edit: the repository content can have moved, the settings that decide what gets indexed can have changed, or the written descriptions can have changed. Neither authored input is an indexed file, so each has to report itself. 中文：为只读命令打开已发布的索引，并判定它是否仍然当前。三件事可使其过期，其中只有一件是文件改动：仓库内容变了、决定索引内容的设置变了、已写描述变了。两项手写输入都不是被索引的文件，因此各自必须自行上报。"
+    },
+    "src/ragyourcode/config.py:156:_coerce": {
+      "hash": "5696230b531baf2c",
+      "path": "src/ragyourcode/config.py",
+      "text": "Validates one supplied value against what a setting accepts, and refuses anything outside it with a message naming the setting and the bound. Booleans are rejected for numeric settings on purpose, because a boolean is a kind of integer in Python and a true would otherwise quietly mean one. A value drawn from a closed set, such as a file suffix, is checked against that set and the error lists what is supported. Values are refused rather than clamped: a number silently adjusted to fit looks identical to one that had no effect. 中文：校验一个值是否符合某设置的要求，越界即拒并在消息中点明设置名与边界。数值型设置刻意拒绝布尔值——布尔在 Python 里是整数的子类，否则 true 会悄悄变成 1。取自封闭集合的值（例如文件后缀）会对照集合检查，错误信息列出全部受支持项。越界拒绝而非截断：被悄悄改成合法值的数字，看起来和完全没生效一模一样。"
+    },
+    "src/ragyourcode/config.py:196:Config": {
+      "hash": "319c88382093e530",
+      "path": "src/ragyourcode/config.py",
+      "text": "The resolved settings for one repository, addressed by dotted name, together with the file they came from if any. 中文：某个仓库解析完成的设置，按点分名称访问，并记录它们来自哪个文件（如果有）。"
+    },
+    "src/ragyourcode/config.py:202:Config.__getitem__": {
+      "hash": "457621bf691e06dd",
+      "path": "src/ragyourcode/config.py",
+      "text": "Reads one resolved setting by its dotted name. 中文：按点分名称读取一项已解析的设置。"
+    },
+    "src/ragyourcode/config.py:206:Config.build_fingerprint": {
+      "hash": "7f7cc4c7e7cd2eab",
+      "path": "src/ragyourcode/config.py",
+      "text": "A digest of only those settings that determine what an index contains: which directories are skipped, which file suffixes count as source, the size cap, and the vector width. An index built under different values is not a stale index of this repository, it is an index of something else, so a mismatch forces a full rebuild rather than reuse. The vector width case matters most because it fails silently otherwise: ranking simply skips the similarity term when widths disagree, so the only symptom would be quietly worse results. 中文：只对『决定索引内容』的那几项设置取摘要——跳过哪些目录、哪些后缀算源码、单文件大小上限、向量维度。用不同取值建出的索引不是本仓库的陈旧索引，而是另一个东西的索引，因此不一致时强制全量重建而非复用。维度这一项尤其重要：不一致时排序只是跳过相似度项，唯一症状是结果悄悄变差。"
+    },
+    "src/ragyourcode/config.py:220:Config.with_overrides": {
+      "hash": "7eff7cc510b7dd36",
+      "path": "src/ragyourcode/config.py",
+      "text": "Layers explicitly supplied values on top of the resolved ones, ignoring any left unset. An unset command-line flag has to mean no opinion rather than clear this, or every flag would need its own sentinel default duplicating the settings table. 中文：把显式给定的值叠加在已解析设置之上，未给定的一律忽略。命令行未传的开关必须解读为『无意见』而非『清空』，否则每个开关都要自带哨兵默认值，等于把设置表复制一遍。"
+    },
+    "src/ragyourcode/config.py:239:defaults": {
+      "hash": "bc131b04c3f5a6ef",
+      "path": "src/ragyourcode/config.py",
+      "text": "The built-in settings, used when a repository supplies no file of its own. They reproduce the previously hardcoded constants exactly, so a repository with no configuration behaves identically to before the settings layer existed. 中文：内置默认设置，用于仓库没有自带配置文件的情况。它们精确复现了此前硬编码的常量，因此无配置文件的仓库与配置层出现之前行为完全一致。"
+    },
+    "src/ragyourcode/config.py:243:config_path": {
+      "hash": "c846b5578bb228f3",
+      "path": "src/ragyourcode/config.py",
+      "text": "Where a repository settings file lives: at the repository root, not inside the generated artifacts directory. That directory is ignored by version control and is what people delete to clear the cache, so anything authored there would be both uncommittable and destroyed by the obvious cleanup. 中文：仓库配置文件的位置——仓库根目录，而非生成物目录。后者被版本控制忽略，也是人们清缓存时直接删掉的目录；把手写内容放在那里既提交不了，又会被最自然的清理动作毁掉。"
+    },
+    "src/ragyourcode/config.py:247:load": {
+      "hash": "bee58dfe3122a9fc",
+      "path": "src/ragyourcode/config.py",
+      "text": "Reads a repository settings file if it has one, and falls back to the built-in defaults if it does not. An unreadable file is an error naming the file, not a silent fallback. 中文：读取仓库的配置文件（若存在），否则回落到内置默认值。文件存在但读不了会报出点名该文件的错误，而不是静默回落。"
+    },
+    "src/ragyourcode/config.py:259:from_text": {
+      "hash": "12ceacaca5bcb336",
+      "path": "src/ragyourcode/config.py",
+      "text": "Parses settings text and validates every entry against the table, starting from the defaults. An unrecognised section or key is refused with a message listing what that section actually accepts, so a misspelling is caught at load time instead of appearing as a setting that mysteriously does nothing. 中文：以默认值为起点解析配置文本，并逐条对照设置表校验。不认识的段或键会被拒绝，消息里列出该段实际接受哪些键——拼写错误在加载时就被抓住，而不是表现为『设了但莫名其妙不起作用』。"
+    },
+    "src/ragyourcode/config.py:296:parse_toml": {
+      "hash": "846277c209d48594",
+      "path": "src/ragyourcode/config.py",
+      "text": "Reads settings text, using the standard library parser where it exists and the built-in fallback reader below it. The fallback exists so that supporting older interpreters does not require adding a runtime dependency, which would contradict what this package claims about having none. 中文：解析配置文本——标准库有解析器就用标准库，没有则用下面的内置回退读取器。回退读取器的存在是为了支持较老的解释器而不引入运行时依赖，否则就与本包『零依赖』的声明相矛盾。"
+    },
+    "src/ragyourcode/config.py:307:_strip_comment": {
+      "hash": "9651f971d29c4b89",
+      "path": "src/ragyourcode/config.py",
+      "text": "Removes a trailing comment from a line while respecting quotes, so a comment marker appearing inside a quoted value is left alone. Directory names and file suffixes are exactly the kind of value that might contain one. 中文：去掉行尾注释，但尊重引号——出现在引号内的注释符号原样保留。目录名与文件后缀恰恰是可能含有它的那类值。"
+    },
+    "src/ragyourcode/config.py:325:_parse_string": {
+      "hash": "f462b4d3037f7469",
+      "path": "src/ragyourcode/config.py",
+      "text": "Reads a quoted text value, expanding the standard escape sequences including Unicode ones in the escaping form, and leaving the literal form untouched as its own rules require. An unsupported or truncated escape is refused with its line number rather than guessed at. 中文：读取带引号的文本值，展开标准转义序列（含 Unicode 转义），而字面量形式按其规则原样不动。不支持或被截断的转义会带着行号被拒绝，而不是靠猜。"
+    },
+    "src/ragyourcode/config.py:34:ConfigError": {
+      "hash": "b456673d5a51f37a",
+      "path": "src/ragyourcode/config.py",
+      "text": "The error raised when a settings file cannot be applied as written. Raised rather than warned about, because a setting that is silently dropped looks from outside exactly like a setting that had no effect, leaving no way to tell a typo from a misunderstanding. 中文：配置文件无法按其字面生效时抛出的错误。选择抛错而非警告：被静默丢弃的设置从外部看和『设了但没效果』完全一样，用户无从区分拼写错误与理解错误。"
+    },
+    "src/ragyourcode/config.py:359:_parse_scalar": {
+      "hash": "c3483e9b5089671d",
+      "path": "src/ragyourcode/config.py",
+      "text": "Reads one single value: quoted text, a boolean, an integer in any supported base, a decimal or exponential number, or the non-finite float names. Anything else this reader cannot handle, such as a date or a multi-line form, is refused with its line number and a note of what is supported, rather than being misread. Recognising the non-finite names matters for agreement: omitting them once made this reader refuse a value the standard parser accepted, so the same file produced two different errors on two interpreters. 中文：读取单个值——带引号文本、布尔、任意进制整数、小数或指数形式的数、以及非有限浮点名。这个读取器处理不了的（日期、多行形式等）会带行号被拒绝并说明支持范围，而不是被误读。识别非有限浮点名对『两个读取器保持一致』很关键：遗漏它们曾让本读取器拒绝一个标准解析器接受的值，同一个文件在两种解释器上给出两种不同错误。"
+    },
+    "src/ragyourcode/config.py:392:_split_array": {
+      "hash": "d70740c2c1665cb6",
+      "path": "src/ragyourcode/config.py",
+      "text": "Splits a bracketed list into its entries, respecting quotes and nesting so that a separator inside a quoted value or an inner list does not split it. An unclosed quote or bracket is refused with its line number. 中文：把方括号列表拆成条目，尊重引号与嵌套，使引号内或内层列表中的分隔符不会造成错误切分。未闭合的引号或括号会带行号被拒绝。"
+    },
+    "src/ragyourcode/config.py:423:parse_toml_subset": {
+      "hash": "b07e354e2aba676c",
+      "path": "src/ragyourcode/config.py",
+      "text": "The fallback settings reader used where the standard library parser is unavailable. It handles sections, keys, text, numbers, booleans and lists including those written across several lines, and refuses everything else with a line number instead of guessing. Its agreement with the real parser is checked case by case wherever the real one exists, so the two cannot drift apart in silence. 中文：标准库解析器不可用时使用的回退配置读取器。它处理段、键、文本、数字、布尔与列表（含跨行写法），其余一律带行号拒绝而不猜测。凡是有真解析器的环境都会逐例比对二者，确保它们不会悄悄产生分歧。"
+    },
+    "src/ragyourcode/config.py:44:Setting": {
+      "hash": "8c7d44ee0ef3e5a0",
+      "path": "src/ragyourcode/config.py",
+      "text": "One tunable value and everything known about it: its dotted name, its type, its default, its permitted range or closed set of members, whether changing it invalidates an existing index, and one line of help. Every consumer reads this table rather than restating the field list, so a value is named, defaulted and bounded in exactly one place. 中文：一个可调值及其全部已知信息：点分名称、类型、默认值、允许范围或封闭取值集、改动是否会作废现有索引、一行帮助文字。所有消费方都读这张表而不各自复述字段清单，因此一个值只在一处被命名、给默认、定边界。"
+    },
+    "src/ragyourcode/config.py:478:render_template": {
+      "hash": "e94ef17b68f75418",
+      "path": "src/ragyourcode/config.py",
+      "text": "Writes out a commented settings file listing every available setting at its default, with a line of help above each. Everything is commented out, so the file documents the whole surface without changing any behaviour merely by existing. 中文：生成一份带注释的配置文件，列出每一项设置及其默认值，每项上方一行帮助文字。全部处于注释状态，因此这个文件只是把可配置面写清楚，其存在本身不改变任何行为。"
+    },
+    "src/ragyourcode/config.py:504:render_value": {
+      "hash": "c3878390e25cd406",
+      "path": "src/ragyourcode/config.py",
+      "text": "Formats one value back into the settings file syntax, for the generated template and for writing a changed value back. 中文：把一个值格式化回配置文件语法，供生成模板与写回改动使用。"
+    },
+    "src/ragyourcode/config.py:514:parse_literal": {
+      "hash": "a90a1ffc3b14848b",
+      "path": "src/ragyourcode/config.py",
+      "text": "Interprets one value given on the command line using exactly the same reader the file uses, so that setting something from a command and editing the file cannot disagree about what a value means, and both produce the same error text when it is wrong. 中文：用与配置文件完全相同的读取器解释命令行上给出的值，因此『用命令设置』与『手改文件』不会对某个值的含义产生分歧，出错时给出的也是同一段错误文字。"
+    },
+    "src/ragyourcode/config.py:525:update_file": {
+      "hash": "000d60a4e985fd7a",
+      "path": "src/ragyourcode/config.py",
+      "text": "Changes one setting in place while preserving comments, ordering and every unrelated section. It replaces an existing assignment where there is one, uncomments the template line where there is one, and otherwise inserts under the right section, creating it if absent. Reading the file through a parser and writing it back out would be shorter and would silently delete every comment in it, including the explanations the generated template supplies. 中文：就地修改单项设置，同时保留注释、顺序与所有无关段落。已有赋值就替换，模板里的注释行就取消注释，都没有就插到对应段下（段不存在则新建）。用解析器读进来再写回去代码更短，但会静默删掉文件里的每一条注释，包括生成模板提供的全部说明。"
+    },
+    "src/ragyourcode/config.py:68:Setting.table": {
+      "hash": "d850e853fef8a947",
+      "path": "src/ragyourcode/config.py",
+      "text": "The section a setting belongs to, taken from the part of its name before the dot. 中文：设置所属的段名，取自点号之前的部分。"
+    },
+    "src/ragyourcode/config.py:72:Setting.key": {
+      "hash": "b20bcee8f2a4530a",
+      "path": "src/ragyourcode/config.py",
+      "text": "The bare key of a setting within its section, taken from the part of its name after the dot. 中文：设置在其段内的裸键名，取自点号之后的部分。"
+    },
+    "src/ragyourcode/descriptions.py:126:DescriptionStore.applicable": {
+      "hash": "0de92f31c5a52ec0",
+      "path": "src/ragyourcode/descriptions.py",
+      "name": "DescriptionStore.applicable",
+      "text": "Selects only those saved descriptions whose digest still matches the code they were written about, finding each one either by its unit identifier or, when the code has moved, by file and digest. Everything else is held back, because serving text that outlived the code it described would be a confident wrong answer. 中文：只挑出摘要仍与所述代码相符的描述——先按单元标识符找，代码位移过就按文件与摘要找。其余一律扣下：提供『比它所描述的代码活得更久』的文字，就是给出一个自信的错误答案。"
+    },
+    "src/ragyourcode/descriptions.py:128:DescriptionStore.pending": {
+      "hash": "082c666d9ef3f431",
+      "path": "src/ragyourcode/descriptions.py",
+      "text": "Returns the next units worth describing, offering those with no description at all before those needing a refresh. A unit retrieval is currently blind to is worth more than a re-write of one that already works, so an agent working under a budget spends its first batches where they matter most. 中文：返回下一批值得描述的单元，把『完全没有描述』的排在『需要刷新』的前面。检索目前完全够不到的单元，价值高于重写一条本来就能用的——预算有限的 agent 因此把最初几批花在最要紧的地方。"
+    },
+    "src/ragyourcode/descriptions.py:140:DescriptionStore.classify": {
+      "hash": "10b9cb5e1851f992",
+      "path": "src/ragyourcode/descriptions.py",
+      "name": "DescriptionStore.classify",
+      "text": "Sorts units into three groups: described and still valid, described but superseded because the code has since changed, and never described at all. Superseded is told apart from never-described by file and declaration name rather than by identifier, for the same reason applicability is: an identifier changes when the lines above it do. 中文：把单元分成三组——已描述且仍有效、已描述但因代码变动而失效、从未描述。『失效』与『从未描述』按文件与声明名区分而非按标识符，理由与生效判定相同：上方行数一变，标识符就变了。"
+    },
+    "src/ragyourcode/descriptions.py:166:index_descriptions_fingerprint": {
+      "hash": "71b5971d3d35217a",
+      "path": "src/ragyourcode/descriptions.py",
+      "text": "Reads back the descriptions digest an index was published with, treating an index written before that field existed as having had no descriptions. Read as unknown instead, every older index would report itself permanently out of date over descriptions the repository does not have. 中文：读回索引发布时记录的描述摘要；此字段出现之前建的索引一律视为『当时没有任何描述』。若解读为『未知』，所有旧索引都会因为仓库根本没有的描述而永久自称过期。"
+    },
+    "src/ragyourcode/descriptions.py:173:DescriptionStore.put": {
+      "hash": "1d94062a62b632e5",
+      "path": "src/ragyourcode/descriptions.py",
+      "name": "DescriptionStore.put",
+      "text": "Saves one written description together with a digest of the code it was written about, the file it came from and its qualified name. The digest is what later decides whether the description may still be used; the file and name are what let it be found again after the code moves. 中文：保存一条写好的描述，连同所述代码的摘要、所在文件与限定名。摘要决定这条描述日后是否还能用；文件与名字则让它在代码位移之后仍能被找回。"
+    },
+    "src/ragyourcode/descriptions.py:176:store_path": {
+      "hash": "30c379bc0da08281",
+      "path": "src/ragyourcode/descriptions.py",
+      "text": "Where the written descriptions live: at the repository root beside the settings file, not inside the generated artifacts directory, because they are authored work that must survive a cache clear and must be committable. 中文：已写描述的存放位置——仓库根目录、与配置文件并列，而不在生成物目录内：它们是手写成果，必须能提交、且必须在清缓存后依然存在。"
+    },
+    "src/ragyourcode/descriptions.py:180:load": {
+      "hash": "90d340fd66ab462d",
+      "path": "src/ragyourcode/descriptions.py",
+      "text": "Reads the saved descriptions, treating a damaged or unreadable file as simply empty. This file is committed and will therefore meet merge conflicts and hand editing; a malformed one costs retrieval quality, which describing again recovers, whereas refusing to search until it is repaired would not be recoverable at all. 中文：读取已保存的描述，损坏或不可读的文件一律按空处理。这个文件会被提交，因而必然遇到合并冲突与手工编辑；格式坏了损失的是检索质量（重写一遍即可恢复），而『修好之前拒绝检索』则完全无法挽回。"
+    },
+    "src/ragyourcode/descriptions.py:181:DescriptionStore.save": {
+      "hash": "9c66ef8a53dddfcc",
+      "path": "src/ragyourcode/descriptions.py",
+      "name": "DescriptionStore.save",
+      "text": "Writes the store to disk atomically, and drops entries for units that no longer exist when given the full list of what does. An entry is kept when its identifier is still live or its code is, because a declaration that merely moved down the file has a new identifier and the same digest; pruning on identifiers alone would delete exactly the entries the relocation lookup exists to rescue. Pruning happens only when the full list is supplied, since a partial one would silently discard the descriptions of everything it omitted. 中文：原子地把存储写盘；拿到完整的现存单元清单时，清除已不存在单元的条目。条目只要标识符还在、或其代码还在，就予以保留——仅仅在文件里下移的声明有新标识符却是同一摘要，只按标识符剪枝会恰好删掉重定位查找要救的那批。只有拿到完整清单才清理：不完整的清单会静默丢弃所有被遗漏单元的描述。"
+    },
+    "src/ragyourcode/descriptions.py:42:source_key": {
+      "hash": "47def1bf3c436dbf",
+      "path": "src/ragyourcode/descriptions.py",
+      "text": "A short digest of the exact code text a description was written about, so a description can never be applied to code it does not describe. When the code changes the digest stops matching and the description is set aside rather than served. 中文：对『描述所针对的那段代码文本』取短摘要，使描述永远不会被套用到它没有描述过的代码上。代码一变摘要就不再匹配，描述随即被搁置而非继续提供。"
+    },
+    "src/ragyourcode/descriptions.py:47:guidance": {
+      "hash": "3d6572d3a736f882",
+      "path": "src/ragyourcode/descriptions.py",
+      "text": "The brief handed to an agent with every batch of units awaiting description. It states plainly that matching is by shared words, so the agent is asked for the words a person would search by: what the unit is for in domain terms, the operation it performs, the failure it handles, and the obvious synonyms for each. It also forbids restating the signature and forbids describing behaviour the source does not show. Returned through the protocol rather than living only in documentation, so any host gets the same brief and it cannot drift from the settings that shape it. 中文：随每批待描述单元交给 agent 的说明。它直白地讲明匹配靠共享词，因此要求写『人会用来搜索的词』：业务含义、执行的操作、处理的故障，以及各自的常见同义说法；同时禁止复述签名、禁止描述源码未展示的行为。它通过协议返回而非只写在文档里，使任何宿主都拿到同一份说明，且不会与塑造它的设置脱节。"
+    },
+    "src/ragyourcode/descriptions.py:69:DescriptionStore": {
+      "hash": "039e4527ce3cd5b3",
+      "path": "src/ragyourcode/descriptions.py",
+      "name": "DescriptionStore",
+      "text": "The saved descriptions an agent has written, addressed by unit, each stored beside a digest of the code it describes, the file it lives in and its qualified name. Kept at the repository root and meant to be committed, so one person pass benefits everyone who clones. 中文：agent 写过的描述的持久存储，按单元寻址，每条与所述代码的摘要、所在文件、限定名一同保存。放在仓库根目录并期望提交，使一个人写过的描述让所有克隆者受益。"
+    },
+    "src/ragyourcode/descriptions.py:76:DescriptionStore.fingerprint": {
+      "hash": "1e0640bf2130d7a2",
+      "path": "src/ragyourcode/descriptions.py",
+      "text": "A digest of all the written text, so an index can tell when the descriptions it was built from have changed. Importing descriptions touches no source file, so nothing the usual freshness check tracks would move, and the index would go on serving the previous wording until somebody happened to rebuild. An empty store deliberately digests to nothing, so an index written before this field existed is not mistaken for one built from descriptions it never had. 中文：对全部已写文本取摘要，让索引能察觉『它所依据的描述已经变了』。导入描述不触碰任何源文件，常规新鲜度检查追踪的东西都没动，索引会一直提供旧措辞直到有人恰好重建。空存储刻意摘要为空，使此字段出现之前建的索引不会被误认为『依据了它从未有过的描述』。"
+    },
+    "src/ragyourcode/descriptions.py:98:DescriptionStore._relocations": {
+      "hash": "e54b7ae3c665f8ce",
+      "path": "src/ragyourcode/descriptions.py",
+      "name": "DescriptionStore._relocations",
+      "text": "Finds saved text by file and code digest rather than by unit identifier, so a description follows the code it describes when that code merely moves. Identifiers embed the line a declaration starts on, so inserting a comment or an import near the top of a file gives everything below it a new identifier while changing none of their code; keyed on the identifier alone, every description in that file would be orphaned by an edit that touched nothing they describe. Two declarations in one file with byte-identical source and different saved text are ambiguous and resolve to nothing rather than to a guess. 中文：按文件与代码摘要查找已保存的文字，而不是按单元标识符，使代码仅仅位移时描述能跟着走。标识符里嵌着声明的起始行号，因此在文件顶部插入一条注释或一个 import，就会让其下所有声明换新标识符而代码一字未改；只按标识符查找的话，一次没碰到任何被描述对象的编辑就会让整个文件的描述全部失联。同一文件中源码逐字节相同、保存文字不同的两个声明属于歧义，解析为空而非靠猜。"
+    },
+    "src/ragyourcode/embeddings.py:22:embedding_metadata": {
+      "hash": "7758f4ee92b96adb",
+      "path": "src/ragyourcode/embeddings.py",
+      "text": "Reports which embedding scheme and version produced an index, and how wide its vectors are. Stored inside the index so vectors built by an incompatible scheme are detected and discarded instead of being silently mixed in. 中文：报告索引是由哪种嵌入方案、哪个版本、多少维生成的。写进索引，用于发现并丢弃不兼容方案产出的旧向量，避免静默混用。"
+    },
+    "src/ragyourcode/embeddings.py:26:tokenize": {
+      "hash": "e22f91a8839b15af",
+      "path": "src/ragyourcode/embeddings.py",
+      "text": "Splits text into the lowercase terms that both indexing and querying match on: identifiers, numbers, and runs of Chinese characters. Chinese is additionally broken into overlapping two-character pieces, because whole-phrase matching would almost never hit; this is why a Chinese query can reach a unit whose indexed text contains Chinese. 中文：把文本切成索引与查询共用的小写词项——标识符、数字、连续汉字。汉字额外切成相邻二字组，否则整句匹配几乎永远落空；这也是中文查询能命中含中文索引文本的机制。"
+    },
+    "src/ragyourcode/embeddings.py:36:_bucket": {
+      "hash": "de3854be72292261",
+      "path": "src/ragyourcode/embeddings.py",
+      "text": "Hashes one term into a stable slot number using BLAKE2b, so the same word always lands in the same position on any machine and any run. Determinism is the point: it is what makes an index reproducible without a network or a model. 中文：用 BLAKE2b 把一个词哈希成稳定的槽位号，同一个词在任何机器、任何一次运行都落在同一位置。确定性是关键——它让索引无需联网、无需模型即可复现。"
+    },
+    "src/ragyourcode/embeddings.py:41:embed": {
+      "hash": "7d0179cfd003eef9",
+      "path": "src/ragyourcode/embeddings.py",
+      "text": "Turns text into a fixed-width numeric vector by the hashing trick: each term is hashed to a slot and added with a hash-derived sign, then the vector is normalised to unit length. There is no trained model and no semantic knowledge here. Cosine between two of these vectors measures shared words, so texts with no word in common score exactly zero however close their meanings. A width below the floor is refused because collisions would dominate. 中文：用哈希技巧把文本变成定宽数值向量——每个词哈希到一个槽位并按符号累加，最后归一化。这里没有训练过的模型、没有语义知识：余弦度量的是共享词，毫无共词的两段文本无论意思多接近都精确得零。维度低于下限会被拒绝，因为碰撞过重。"
+    },
+    "src/ragyourcode/embeddings.py:57:cosine": {
+      "hash": "a5095b2b383289c7",
+      "path": "src/ragyourcode/embeddings.py",
+      "text": "Similarity between two already-normalised vectors, as a plain dot product. Returns zero rather than raising when either side is empty or the widths disagree, which is how an index whose vectors were built at a different width degrades quietly to word-overlap-only ranking instead of failing loudly. 中文：两个已归一化向量的相似度，即点积。任一为空或维度不一致时返回零而非抛错——这也是为什么用不同维度建的旧向量只会静默退化成纯词面排序，而不会报错。"
+    },
+    "src/ragyourcode/graph.py:112:build_graph": {
+      "hash": "2dfe02244b90e40d",
+      "path": "src/ragyourcode/graph.py",
+      "text": "Derives the whole relationship graph from parsed units: containment from declared parents, calls from recorded references, imports from module names. Every edge is capped and conservative. An ambiguous reference that could mean several units produces no edge at all, a per-unit budget stops one heavily-connected function from flooding the graph, and a module reference only becomes an edge when the target has a small unambiguous surface. Omitting an uncertain relationship is preferred to inventing one. 中文：从解析出的单元推导整张关系图：包含关系来自声明的父节点，调用来自记录的引用，导入来自模块名。每条边都保守且有上限：歧义引用（可能指向多个单元）不产生任何边；每单元的边数预算防止高连接函数淹没图；模块引用只在目标面很小且无歧义时才成边。宁可省略不确定的关系，也不凭空造一条。"
+    },
+    "src/ragyourcode/graph.py:155:graph_from_dict": {
+      "hash": "cb95938d8ed7a191",
+      "path": "src/ragyourcode/graph.py",
+      "text": "Rebuilds the relationship graph from what an index stored, skipping any entry whose shape it does not recognise. A scanned repository can ship its own index file, so a malformed entry must be ignored rather than trusted. 中文：从索引中存储的内容重建关系图，跳过任何形状不合的条目。被扫描的仓库可能自带索引文件，因此格式错误的条目必须忽略而非信任。"
+    },
+    "src/ragyourcode/graph.py:168:graph_search": {
+      "hash": "635be591087c0102",
+      "path": "src/ragyourcode/graph.py",
+      "text": "Retrieval that also follows relationships: finds seed units by query, then walks calls, imports and containment outward, giving each neighbour a decayed share of its seed score so distance costs relevance. Answers questions plain retrieval cannot, such as what calls the retry handler, and attaches the exact edge path to every expanded result as evidence. 中文：会沿关系扩展的检索——先按查询找到种子单元，再沿调用、导入、包含向外走，邻居按衰减比例继承种子分数，距离越远相关度越低。它能回答纯检索答不了的问题（例如『谁调用了重试处理器』），并把确切的边路径作为证据附在每条扩展结果上。"
+    },
+    "src/ragyourcode/graph.py:19:CodeEdge": {
+      "hash": "804c47f5528089da",
+      "path": "src/ragyourcode/graph.py",
+      "text": "One directed relationship between two code units, carrying its kind and a human-readable label. Kinds are deliberately few and conservative: one unit calls another, imports it, or contains it. 中文：两个代码单元之间的一条有向关系，带类型与可读标签。类型刻意保持极少且保守：调用、导入、包含。"
+    },
+    "src/ragyourcode/graph.py:25:CodeEdge.to_dict": {
+      "hash": "8cab8c6fc49a0500",
+      "path": "src/ragyourcode/graph.py",
+      "text": "Serialises one relationship for storage inside the index or for an agent reply. 中文：把一条关系序列化，供写入索引或应答 agent。"
+    },
+    "src/ragyourcode/graph.py:29:CodeGraph": {
+      "hash": "de3e62f44ea5720e",
+      "path": "src/ragyourcode/graph.py",
+      "text": "The directed relationship graph over indexed units, with bounded neighbourhood traversal. It answers navigation questions retrieval alone cannot: what calls this, what does this call, what contains it. Every answer carries the exact path of edges that reached it. 中文：建立在已索引单元之上的有向关系图，支持有界邻域遍历。它回答纯检索答不了的导航问题：谁调用了它、它调用了谁、谁包含它。每个答案都附带到达它的确切边路径。"
+    },
+    "src/ragyourcode/graph.py:32:CodeGraph.__init__": {
+      "hash": "f3f553e9559a330d",
+      "path": "src/ragyourcode/graph.py",
+      "text": "Builds the forward and backward adjacency tables, keeping only relationships whose two endpoints both exist in this index. An edge pointing at something that is not indexed is dropped rather than kept as a dangling reference. 中文：建立正向与反向邻接表，只保留两端都存在于本索引中的关系。指向未索引对象的边直接丢弃，不留悬空引用。"
+    },
+    "src/ragyourcode/graph.py:42:CodeGraph.neighbors": {
+      "hash": "a42c7e9bcdc22687",
+      "path": "src/ragyourcode/graph.py",
+      "text": "Walks outward from one unit to find related code within a hop limit, following relationships forward, backward or both. Each unit is visited once, and every result comes back with the full chain of edges that reached it so the connection can be checked rather than trusted. 中文：从一个单元向外走，在跳数上限内找出相关代码，可沿正向、反向或双向。每个单元只访问一次，每条结果都带回到达它的完整边链，使连接可核查而非只能相信。"
+    },
+    "src/ragyourcode/graph.py:69:CodeGraph.to_dict": {
+      "hash": "1b63539f42ced9e3",
+      "path": "src/ragyourcode/graph.py",
+      "text": "Serialises the whole relationship graph for storage inside the index. 中文：把整张关系图序列化，写入索引存储。"
+    },
+    "src/ragyourcode/graph.py:73:_name_indexes": {
+      "hash": "26422a6415911bbf",
+      "path": "src/ragyourcode/graph.py",
+      "text": "Builds two lookup tables used to resolve references: identifier to the units declaring it, and module filename to the units it defines. The second is what lets a reference be recognised as belonging to this repository rather than to an installed library. 中文：建立两张用于解析引用的查找表——标识符到声明它的单元、模块文件名到它定义的单元。后者用于判断一个引用属于本仓库还是外部库。"
+    },
+    "src/ragyourcode/graph.py:85:_call_targets": {
+      "hash": "8135a733968cdc44",
+      "path": "src/ragyourcode/graph.py",
+      "text": "Resolves a recorded function reference to the local units it actually names. An exact match on the recorded text always wins. Matching only the last dotted segment is a guess, and is allowed only when the leading part is attributable to this repository, meaning a receiver or a module some file here defines. Unrestricted, that guess gave a standard-library path an edge into an unrelated local function of the same short name; foreign prefixes now resolve to nothing, which is what this module promises. 中文：把记录下来的调用文本解析成本地单元。精确匹配优先。只匹配最后一段是猜测，仅当前缀可归属于本仓库（接收者，或本地某文件定义的模块）时才允许。不加限制时，这种猜测曾让一个标准库路径连到同名的本地函数上；现在外部前缀一律解析为空，这正是本模块承诺的『解析不出就省略，而不是猜』。"
+    },
+    "src/ragyourcode/indexer.py:101:iter_source_files": {
+      "hash": "c55ba3fa88ef5a8f",
+      "path": "src/ragyourcode/indexer.py",
+      "text": "Walks a repository and yields the files that count as source, skipping configured directories, hidden ones, unsupported suffixes, anything above the size cap, and symbolic links. Links are skipped so a link pointing outside the repository cannot pull foreign files into the index. 中文：遍历仓库并产出算作源码的文件，跳过配置指定的目录、隐藏目录、不支持的后缀、超过大小上限的文件，以及符号链接。跳过链接是为了防止指向仓库之外的链接把外部文件拉进索引。"
+    },
+    "src/ragyourcode/indexer.py:121:RepositorySnapshot": {
+      "hash": "6f229dcb56504387",
+      "path": "src/ragyourcode/indexer.py",
+      "text": "One reading of the repository taken in a single pass, shared by parsing and by publication. Hashing in a second pass let a save landing between the two record a file new content hash beside units parsed from its old content; the index then reported itself fresh, and every later incremental run reused the outdated units permanently. Taking the reading once removes that window rather than narrowing it, and cut a run from four directory walks to one. 中文：一次遍历中取得的仓库快照，供解析与发布共用。分两次遍历时，落在两次之间的一次保存会让索引记下文件的新哈希、旁边却是从旧内容解析出的单元；此后索引自称新鲜，而每一次增量运行都永久复用这批过时单元。一次取样是消除这个窗口而非缩小它，同时把一次运行的目录遍历从四次降到一次。"
+    },
+    "src/ragyourcode/indexer.py:137:RepositorySnapshot.fingerprint": {
+      "hash": "5b07ad39ac44c69d",
+      "path": "src/ragyourcode/indexer.py",
+      "text": "A single digest standing for the whole repository content at the moment it was read. 中文：代表快照时刻整个仓库内容的单一摘要。"
+    },
+    "src/ragyourcode/indexer.py:141:snapshot_repository": {
+      "hash": "9c21ec1501944325",
+      "path": "src/ragyourcode/indexer.py",
+      "text": "Reads, hashes and measures every source file in one pass. A file that vanished or became unreadable between being listed and being read is simply absent from the reading, because recording a half-read entry would reintroduce exactly the mismatch this snapshot exists to prevent. 中文：一次遍历中读取、哈希并测量每个源文件。在列出与读取之间消失或变得不可读的文件，直接不出现在这次快照里——记下一个读了一半的条目，等于把这份快照本来要消灭的不一致又请回来。"
+    },
+    "src/ragyourcode/indexer.py:163:file_fingerprints": {
+      "hash": "00295f9157bd62fc",
+      "path": "src/ragyourcode/indexer.py",
+      "text": "The content hash of every source file, used to decide which files can be reused unchanged on the next run. 中文：每个源文件的内容哈希，用于判断下次运行时哪些文件可以原样复用。"
+    },
+    "src/ragyourcode/indexer.py:167:file_stats": {
+      "hash": "31d97f05ecfb6ced",
+      "path": "src/ragyourcode/indexer.py",
+      "text": "Collects only the size and modification time of every source file, deliberately without hashing anything. The freshness check asks whether anything moved many times per session and needs no content guarantee; routing it through the full hashing pass measured two and a half times slower on a large repository. 中文：只收集每个源文件的大小与修改时间，刻意不做任何哈希。新鲜度检查每次会话要问很多遍、且不需要内容一致性保证；把它接到全量哈希那条路上，在大仓库上实测慢了两倍半。"
+    },
+    "src/ragyourcode/indexer.py:187:_assign_global_serials": {
+      "hash": "cad8a19baf1674cd",
+      "path": "src/ragyourcode/indexer.py",
+      "text": "Gives every unit a repository-wide number, keeping the number a unit already had so that references written down in an earlier session still point at the same code. New units take the lowest numbers not already in use. 中文：给每个单元分配一个仓库范围内的编号，并保留单元原有的编号，使早先会话里记下的引用仍指向同一段代码。新单元取尚未被占用的最小编号。"
+    },
+    "src/ragyourcode/indexer.py:208:build_units": {
+      "hash": "1d642a79d5fe0cf0",
+      "path": "src/ragyourcode/indexer.py",
+      "text": "Builds the full set of indexed units, re-parsing only the files whose content actually changed and reusing everything else along with its number and its vector. Settings that decide what an index contains make a previous index an index of something else rather than a stale one, so when they differ the previous work is discarded outright: reuse is keyed on file content, which cannot notice that the rules changed. Written descriptions are checked against the code they describe and applied before the vector is computed, since the description is part of what gets embedded and doing it after would embed the sentence the agent replaced. 中文：构建完整的索引单元集合，只重新解析内容真正变化的文件，其余连同编号与向量一并复用。决定索引内容的那些设置一旦不同，旧索引就不是『陈旧』而是『另一个东西的索引』，因此旧成果整体作废——复用以文件内容为键，察觉不到规则变了。已写描述会先对照其所述代码校验，并在计算向量之前应用：描述本身就是被嵌入的内容之一，放到之后做就会把 agent 替换掉的那句话嵌进去。"
+    },
+    "src/ragyourcode/indexer.py:269:fingerprint": {
+      "hash": "c43969d994f83628",
+      "path": "src/ragyourcode/indexer.py",
+      "text": "A single digest standing for the whole repository content right now, used to tell a published index apart from the current state. 中文：代表仓库当前全部内容的单一摘要，用于区分已发布索引与当前状态。"
+    },
+    "src/ragyourcode/indexer.py:273:_fingerprint_files": {
+      "hash": "3ced1591267525c6",
+      "path": "src/ragyourcode/indexer.py",
+      "text": "Combines per-file hashes into one repository-wide digest in a fixed order, so the same content always yields the same value. 中文：按固定顺序把逐文件哈希合成一个仓库级摘要，相同内容永远得到相同值。"
+    },
+    "src/ragyourcode/indexer.py:281:write_index": {
+      "hash": "b88ded2ccec9d268",
+      "path": "src/ragyourcode/indexer.py",
+      "text": "Publishes the index atomically: vector data is written to a content-addressed side file first, then the readable metadata is swapped into place in one step, so a reader never sees a half-written index. Alongside the content hashes it records digests of both authored inputs, the settings and the descriptions, because neither is an indexed file and a change in either would otherwise be invisible. Compact storage moves the vectors out of verbose text numbers into a compact binary side file while the metadata stays readable. 中文：原子地发布索引——先把向量写入内容寻址的旁文件，再一步换入可读元数据，读者绝不会看到写了一半的索引。除内容哈希外，还记录两项手写输入（配置与描述）的摘要：它们都不是被索引的文件，否则其变化将完全不可见。紧凑存储把向量从冗长的文本数字挪进紧凑二进制旁文件，元数据仍保持可读。"
+    },
+    "src/ragyourcode/indexer.py:31:_resolve": {
+      "hash": "e474035b71b4f08d",
+      "path": "src/ragyourcode/indexer.py",
+      "text": "Falls back to the repository own settings when a caller supplies none, so a program using this as a library and the same operation run from the command line cannot disagree about which files count as source. 中文：调用方未提供设置时回落到仓库自己的配置，使『作为库调用』与『命令行运行同一操作』不会对『哪些文件算源码』产生分歧。"
+    },
+    "src/ragyourcode/indexer.py:344:_remove_superseded_vectors": {
+      "hash": "8ce74d921e7967bb",
+      "path": "src/ragyourcode/indexer.py",
+      "text": "Deletes this index own outdated vector side files. Which files to remove is worked out from the naming scheme publication itself uses, and never from a path read back out of the index being replaced. A scanned repository can ship its own index file, so trusting a path stored inside one turned publishing into deleting an arbitrary file in the tree. Working it out instead also reclaims side files orphaned by an earlier run whose index was unreadable, and a file that cannot be removed is left alone since nothing points at it. 中文：删除本索引自己过期的向量旁文件。删哪些是按发布流程自身的命名规则推算出来的，绝不取自被替换索引里读到的路径——被扫描的仓库可以自带索引文件，信任其中存储的路径会把『发布』变成『删除目录树里的任意文件』。改用推算还能回收更早一次运行遗留的孤儿旁文件；删不掉的文件直接放着，因为没有任何索引指向它。"
+    },
+    "src/ragyourcode/indexer.py:375:read_index": {
+      "hash": "6da06559fc6db023",
+      "path": "src/ragyourcode/indexer.py",
+      "text": "Loads a published index back into memory, attaching vectors from the compact side file when one is used. Everything about that side file is verified before it is trusted: it must sit inside the index directory, its declared width must be within bounds, and its length must match the number of units. Any failure degrades to metadata without vectors and says so explicitly, rather than raising, so a damaged side file costs ranking quality instead of availability. 中文：把已发布的索引读回内存，使用紧凑旁文件时顺带挂上向量。旁文件在被信任之前逐项校验：必须位于索引目录内、声明的维度必须在合理范围、长度必须与单元数吻合。任何一项不过就降级为『只有元数据、没有向量』并明确标注，而不是抛错——旁文件损坏付出的是排序质量而非可用性。"
+    },
+    "src/ragyourcode/indexer.py:41:StaleMonitor": {
+      "hash": "2125bcd9cead54e6",
+      "path": "src/ragyourcode/indexer.py",
+      "text": "Answers whether an index still describes the repository, rate-limited so an agent can ask many times a second without re-walking the tree each time. 中文：回答『索引是否仍然描述着当前仓库』，带频率限制，使 agent 每秒问很多次也不会每次都重走一遍目录树。"
+    },
+    "src/ragyourcode/indexer.py:44:StaleMonitor.__init__": {
+      "hash": "7d8fe1d030533a75",
+      "path": "src/ragyourcode/indexer.py",
+      "text": "Prepares the freshness check and settles up front whether either authored input has changed since the index was published. Neither the settings file nor the written descriptions is itself an indexed source file, so no amount of walking the tree could notice a change in them: different suffixes or size caps mean the index describes a different set of files, and different descriptions mean it serves wording nobody wrote any more. Both make it out of date regardless of what the file scan reports. 中文：准备新鲜度检查，并预先判定两项手写输入自索引发布以来是否改变。配置文件与描述文件本身都不是被索引的源文件，因此再怎么遍历目录树也发现不了它们的变化：后缀或大小上限不同意味着索引描述的是另一批文件，描述不同意味着它提供的是无人再写过的措辞。无论文件扫描报告什么，这两者都使索引过期。"
+    },
+    "src/ragyourcode/indexer.py:69:StaleMonitor.check": {
+      "hash": "b2bfe4728e1cf75c",
+      "path": "src/ragyourcode/indexer.py",
+      "text": "Reports whether anything has changed, comparing recorded file sizes and modification times against the repository as it now is, and answering from the previous result when asked again within the rate-limit window. A changed authored input short-circuits to out of date immediately. A directory that cannot be read is treated as changed, since not knowing is not the same as knowing nothing moved. 中文：报告是否有变化——把记录下的文件大小与修改时间与当前仓库比对；在限流窗口内再次询问则复用上次结果。手写输入有变时直接短路判定为过期。目录读不了一律当作有变化：『不知道』不等于『确定没动』。"
+    },
+    "src/ragyourcode/indexer.py:89:index_config_fingerprint": {
+      "hash": "fbf6c38dfbbcb592",
+      "path": "src/ragyourcode/indexer.py",
+      "text": "Reads back the settings digest an index was published with, treating an index written before that field existed as having been built with the defaults, which by construction it was. Read as unknown instead, every upgrade would force one pointless full rebuild. 中文：读回索引发布时记录的配置摘要；此字段出现之前建的索引一律视为用默认设置建成——事实也确实如此。若解读为『未知』，每次升级都会白白触发一次全量重建。"
+    },
+    "src/ragyourcode/models.py:11:CodeUnit": {
+      "hash": "ad6eb8a9f9b0f709",
+      "path": "src/ragyourcode/models.py",
+      "text": "One indexed piece of code and everything known about it: where it lives, which language and kind it is, its name and qualified name, its signature, the exact line range and source text, a stable serial number that survives re-indexing, what it calls and imports, its description, and its vector. This record is the contract every stage shares: walking, parsing, embedding, storage and retrieval move these and nothing else. 中文：一个被索引的代码单元及其全部已知信息：位置、语言与种类、名字与限定名、签名、精确行范围与源码、跨重建保持稳定的序号、调用与导入、描述、向量。它是各阶段共享的唯一契约。"
+    },
+    "src/ragyourcode/models.py:32:CodeUnit.searchable_text": {
+      "hash": "eb11731d90e11236",
+      "path": "src/ragyourcode/models.py",
+      "text": "Assembles everything about a unit that retrieval is allowed to match against: qualified name, kind and signature, the description, the names it calls and imports, and the full source. Because the description is part of this text, replacing a generated description with a better one immediately widens the set of queries that can reach this unit. 中文：把一个单元中允许被检索匹配的内容拼成一段文本——限定名、种类、签名、描述、调用与导入的名字，以及完整源码。描述也在其中，所以把生成的描述换成更好的，立刻就扩大了能命中它的查询范围。"
+    },
+    "src/ragyourcode/models.py:43:CodeUnit.to_dict": {
+      "hash": "922a22e929636cc8",
+      "path": "src/ragyourcode/models.py",
+      "text": "Serialises a unit to a plain dictionary for storage or for an agent reply, optionally leaving the vector out. Vectors are an internal ranking detail; sending them to an agent would consume context and explain nothing. 中文：把单元序列化成普通字典以便存储或应答，可选择不带向量。向量是排序用的内部细节，发给 agent 只会占用上下文且无助于解释。"
+    },
+    "src/ragyourcode/models.py:66:CodeUnit.from_dict": {
+      "hash": "806bdcd4d85335de",
+      "path": "src/ragyourcode/models.py",
+      "text": "Rebuilds a unit from its stored dictionary form when an index is loaded back from disk. 中文：从磁盘读回索引时，把存储的字典形式还原成单元对象。"
+    },
+    "src/ragyourcode/models.py:71:SearchResult": {
+      "hash": "75832a6f38666083",
+      "path": "src/ragyourcode/models.py",
+      "text": "One retrieved unit together with why it was retrieved: its relevance score, the query words that actually matched, and for graph expansion the chain of edges that led to it. The evidence is the point: a result you cannot explain is a result you should not act on. 中文：一条检索结果，连同它为何被检出：相关度分数、真正命中的查询词，以及图扩展时到达它的边路径。证据本身就是目的——无法解释的结果不该据以行动。"
+    },
+    "src/ragyourcode/models.py:77:SearchResult.to_dict": {
+      "hash": "ba572f78ce75680f",
+      "path": "src/ragyourcode/models.py",
+      "text": "Serialises a result for an agent reply, rounding the score and stripping the vector. 中文：把结果序列化为 agent 应答，分数取整并去掉向量。"
+    },
+    "src/ragyourcode/parser.py:182:_line_offsets": {
+      "hash": "d1bbaf5826cbf431",
+      "path": "src/ragyourcode/parser.py",
+      "text": "Computes where each line begins in the source, counting only the line breaks Python itself counts. The obvious library call also breaks on form feed, vertical tab and several Unicode separators that the Python tokenizer does not, so a single form feed inside a string literal shifted every later position: one unit was truncated mid-literal and the next lost its whole body. 中文：计算每行在源码中的起始位置，只按 Python 自身认可的换行符切分。现成的库函数还会在换页符、垂直制表符和若干 Unicode 分隔符处断行，而 Python 分词器不认，于是字符串字面量里的一个换页符就让此后所有位置错位：一个单元在字面量中途被截断，下一个单元整个函数体丢失。"
+    },
+    "src/ragyourcode/parser.py:200:_snippet": {
+      "hash": "e45d2781f9952078",
+      "path": "src/ragyourcode/parser.py",
+      "text": "Extracts the source text between two character positions and trims surrounding blank space. 中文：按字符位置区间取出源码文本并去掉首尾空白。"
+    },
+    "src/ragyourcode/parser.py:212:_strip_literals": {
+      "hash": "077331287992bd84",
+      "path": "src/ragyourcode/parser.py",
+      "text": "Blanks out string and character literals and trailing comments so that braces, semicolons and quotes appearing inside text are not mistaken for structure. Written as a character-by-character scan rather than a pattern on purpose: the alternation a pattern would need backtracks catastrophically on an unterminated quote, which is the exact failure this parser was rewritten to remove. 中文：把字符串、字符字面量与行尾注释抹平，避免文本内部的花括号、分号、引号被当成结构。刻意写成逐字符扫描而非正则：正则所需的交替在遇到未闭合引号时会灾难性回溯，而那正是本解析器重写要根除的故障。"
+    },
+    "src/ragyourcode/parser.py:250:_brace_depths": {
+      "hash": "649e980771db7ced",
+      "path": "src/ragyourcode/parser.py",
+      "text": "Records the running nesting depth after every line, with literals and comments already removed, so a body can later be closed by finding where the depth returns to where it started. 中文：在抹去字面量与注释后，记录每行结束时的嵌套深度，供后续用『深度回到起点』来判定函数体在哪结束。"
+    },
+    "src/ragyourcode/parser.py:261:_terminates_before_body": {
+      "hash": "4f1ecee1b79dd4e0",
+      "path": "src/ragyourcode/parser.py",
+      "text": "Decides whether a declaration ends without ever opening a body. This single question answers both whether something counts as a unit at all and how far it reaches. A C prototype, a trait or interface method signature, a protocol requirement and a bare struct declaration all end without owning anything, and the terminator often lands on a later line than the name, which no single-line pattern can see. 中文：判断一个声明是否根本没有打开函数体就结束了。这一个问题同时回答『它算不算一个单元』和『它管到哪一行』。C 的原型声明、trait 与 interface 的方法签名、protocol 的要求项、以及裸结构体声明都不拥有任何主体，而终止符常常落在名字之后的某一行——单行模式看不见它。"
+    },
+    "src/ragyourcode/parser.py:288:_opens_a_body": {
+      "hash": "1a7fcc62e3a5f234",
+      "path": "src/ragyourcode/parser.py",
+      "text": "The eligibility test the specification states: something counts as a unit only when it is a named declaration that owns a body. 中文：规范给出的资格判定——只有『拥有主体的具名声明』才算一个单元。"
+    },
+    "src/ragyourcode/parser.py:293:_close_brace_span": {
+      "hash": "ac05ae4736d3aa64",
+      "path": "src/ragyourcode/parser.py",
+      "text": "Finds the last line of a brace-delimited body by following nesting depth back to where it opened. A declaration that ends without opening anything owns exactly its own line: without that check the scan ran on to the next opening brace in the file and swallowed a whole following block into a one-line declaration. 中文：沿嵌套深度回到起点，找出花括号主体的最后一行。不打开任何主体的声明只拥有自己那一行——没有这个判断时，扫描会一直跑到文件里下一个左花括号，把后面整块内容吞进一个单行声明里。"
+    },
+    "src/ragyourcode/parser.py:323:_close_end_span": {
+      "hash": "9d0e7dcd05cd58fe",
+      "path": "src/ragyourcode/parser.py",
+      "text": "Finds where a Ruby definition ends by looking for the closing keyword at the same indentation the declaration started at, and handles the one-line form that opens and closes on the same line. 中文：按声明起始的缩进层级寻找 Ruby 的结束关键字，从而确定定义在哪结束；同时处理开合同行的单行写法。"
+    },
+    "src/ragyourcode/parser.py:337:_generic_units": {
+      "hash": "92030f3ac0ac265f",
+      "path": "src/ragyourcode/parser.py",
+      "text": "Extracts declarations from any non-Python language by scanning one line at a time against that language rule table, then closing each body by nesting depth or by the closing keyword. Because a pattern never sees a second line, the reported line number is the loop position and cannot drift, and no declaration can swallow the ones after it. Blank lines, comments and statement continuations are skipped, and shell here-document text is treated as data so documentation inside it is never indexed as code. 中文：对任何非 Python 语言，逐行对照该语言的规则表提取声明，再按嵌套深度或结束关键字闭合每个主体。由于模式永远看不到第二行，报告的行号就是循环位置、不会漂移，声明也无法吞掉它后面的内容。空行、注释与续行被跳过；shell 的 here-document 内容按数据处理，其中的说明文字绝不会被当作代码索引。"
+    },
+    "src/ragyourcode/parser.py:401:_python_units": {
+      "hash": "6498097879853741",
+      "path": "src/ragyourcode/parser.py",
+      "text": "Extracts Python functions, methods and classes using the language own syntax tree, so nesting, qualified names, argument lists, called functions, imported modules and exact line ranges are precise rather than inferred. A file that will not parse is reported as a diagnostic and contributes nothing, instead of failing the whole run. 中文：用 Python 自身的语法树提取函数、方法与类，因此嵌套、限定名、参数、调用的函数、导入的模块与精确行范围都是准确的而非推断的。无法解析的文件记为一条诊断信息并贡献零个单元，而不是让整次运行失败。"
+    },
+    "src/ragyourcode/parser.py:41:Declaration": {
+      "hash": "2b3f975b8eade6b5",
+      "path": "src/ragyourcode/parser.py",
+      "text": "One rule in the per-language table: what kind of thing it recognises, and the pattern that recognises it on a single line. Adding support for a language means adding rows of these, not changing the scanner. 中文：每语言规则表中的一条：它识别什么种类，以及在单行内识别它的模式。新增一门语言等于加几行这样的数据，而不是改扫描器。"
+    },
+    "src/ragyourcode/parser.py:421:_python_units.visit": {
+      "hash": "732a298734732d4c",
+      "path": "src/ragyourcode/parser.py",
+      "text": "Walks the syntax tree and records every function, method and class as a unit, building the dotted qualified name from the enclosing scope, gathering what it calls and imports, and recursing so nested definitions are indexed in their own right. 中文：遍历语法树，把每个函数、方法与类记为一个单元，按外层作用域拼出带点的限定名，收集其调用与导入，并递归下去让嵌套定义各自成为独立单元。"
+    },
+    "src/ragyourcode/parser.py:466:_humanize_name": {
+      "hash": "55cd6bdc65956688",
+      "path": "src/ragyourcode/parser.py",
+      "text": "Turns a declaration identifier into ordinary words for the generated description. 中文：把声明的标识符还原成普通词语，供生成描述使用。"
+    },
+    "src/ragyourcode/parser.py:470:parse_file": {
+      "hash": "b44c91615cbfd881",
+      "path": "src/ragyourcode/parser.py",
+      "text": "Reads one source file and returns the code units in it, choosing the syntax-tree route for Python and the line-scanner route for every other supported language. A suffix with no rules yields nothing. A file that cannot be decoded as text or cannot be read is reported as a diagnostic rather than raising, so one unreadable file cannot stop an indexing run. 中文：读入一个源文件并返回其中的代码单元：Python 走语法树，其余支持的语言走行扫描器。没有规则的后缀返回空。无法按文本解码或读取失败的文件记为诊断信息而非抛错，因此单个坏文件不会中断整次索引。"
+    },
+    "src/ragyourcode/parser.py:75:_rule": {
+      "hash": "e61087e966fba649",
+      "path": "src/ragyourcode/parser.py",
+      "text": "Compiles one declaration-recognising pattern into a table entry. 中文：把一条识别声明的模式编译成规则表条目。"
+    },
+    "src/ragyourcode/parser.py:79:_register": {
+      "hash": "cf8d3f240fd6f961",
+      "path": "src/ragyourcode/parser.py",
+      "text": "Registers one shared set of rules for several languages at once, since families such as Java, Kotlin, C-sharp and Scala declare things the same way. 中文：一次为多门语言登记同一套规则——Java、Kotlin、C#、Scala 这类家族的声明写法本就相同。"
+    },
+    "src/ragyourcode/search.py:120:context": {
+      "hash": "b40fb151fb6e7eac",
+      "path": "src/ragyourcode/search.py",
+      "text": "Packs ranked results into one readable block for an agent prompt, each carrying identifier, score, matching evidence, description and source, and stops before exceeding the caller character budget. 中文：把排好序的结果打包成一段可读文本供 agent 使用（每条含 ID、分数、命中证据、描述与源码），并在超出字符预算前停止。"
+    },
+    "src/ragyourcode/search.py:20:SearchIndex": {
+      "hash": "d196b48c4b98153f",
+      "path": "src/ragyourcode/search.py",
+      "text": "The reusable in-memory lookup table for a session: every unit by identifier, and for every term the sorted list of units containing it. Built once so queries need not re-tokenise the whole corpus. It deliberately does not cache a per-unit word set, which cost the largest share of resident memory while holding nothing the term lists did not already have. 中文：一次会话内可复用的内存查找表——按 ID 索引的全部单元，以及每个词项对应的有序单元列表。只建一次，避免每次查询重新切分整个语料。刻意不再缓存每单元的词集合：那占了常驻内存最大一块，而它能提供的信息倒排表本就都有。"
+    },
+    "src/ragyourcode/search.py:34:build_search_index": {
+      "hash": "62b60eeaeed0b547",
+      "path": "src/ragyourcode/search.py",
+      "text": "Builds the inverted lookup table by tokenising every unit once and recording, for each term, which units contain it. The lists are kept sorted so membership can later be answered by binary search rather than by carrying a word set through the scoring loop. 中文：把每个单元切分一次，记录每个词项出现在哪些单元里，建成倒排表。列表保持有序，后续判断归属可用二分查找，无需在打分循环里携带词集合。"
+    },
+    "src/ragyourcode/search.py:42:_in_posting": {
+      "hash": "1cd03aa1a9dea0ee",
+      "path": "src/ragyourcode/search.py",
+      "text": "Answers whether a unit appears in one term list by binary search over the sorted entries. 中文：用二分查找判断某个单元是否出现在某词项的有序倒排列表中。"
+    },
+    "src/ragyourcode/search.py:48:search": {
+      "hash": "de569b5da10c81b5",
+      "path": "src/ragyourcode/search.py",
+      "text": "Ranks code units against a natural-language query by combining word overlap with vector similarity. Every unit sharing any query word is scored, so nothing that matches is left out: an earlier design let the vector shortlist decide who was scored at all, and units matching more query words went unranked, returning one result where eight were asked for. Full vector scoring is reserved for units reached by a selective term, since computing a dot product for everything a stopword-class term touches is pure cost. Word overlap stays dominant so an exact symbol match cannot be pushed below a noisy neighbour, and with no overlap anywhere it falls back to similarity alone. 中文：把自然语言查询与代码单元排序，结合词面重合与向量相似度。凡共享任一查询词的单元都会打分，命中的绝不遗漏——旧设计让向量候选集决定谁参与打分，导致命中词更多的单元反而未被排序，要八条只返回一条。向量打分只留给高选择性词命中的单元。词面重合保持主导，精确符号匹配不会被噪声邻居压下去；毫无重合时退回纯相似度。"
+    }
+  }
+}

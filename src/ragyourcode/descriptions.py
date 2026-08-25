@@ -95,34 +95,69 @@ class DescriptionStore:
             digest.update(str(entry.get("text", "")).encode("utf-8"))
         return digest.hexdigest()
 
+    def _relocations(self) -> dict[tuple[str, str], str | None]:
+        """Stored text addressed by file and code digest rather than by unit id.
+
+        A unit id embeds the line the declaration starts on, so inserting a
+        comment or an import near the top of a file changes the id of
+        everything below it while changing none of their code. Keyed only by
+        id, every description in that file would be orphaned by an edit that
+        did not touch a single one of the things they describe -- which is
+        what adding a seven-line comment to config.py did to nineteen of them.
+
+        The digest already answers "is this the same code?"; this uses it to
+        answer "where did that code go?" as well. Two units in one file with
+        byte-identical source and different stored text are ambiguous, and map
+        to nothing rather than to a guess.
+        """
+        table: dict[tuple[str, str], str | None] = {}
+        for entry in self.entries.values():
+            path, digest = entry.get("path"), entry.get("hash")
+            if not isinstance(path, str) or not isinstance(digest, str):
+                continue
+            text = entry.get("text")
+            key = (path, digest)
+            if key in table and table[key] != text:
+                table[key] = None
+            else:
+                table.setdefault(key, text)
+        return table
+
     def applicable(self, units: list[CodeUnit]) -> dict[str, str]:
         """Descriptions whose digest still matches the unit they describe."""
+        relocated = self._relocations()
         usable: dict[str, str] = {}
         for unit in units:
+            digest = source_key(unit)
             entry = self.entries.get(unit.id)
-            if entry and entry.get("hash") == source_key(unit):
-                text = entry.get("text")
-                if isinstance(text, str) and text.strip():
-                    usable[unit.id] = text
+            text = entry.get("text") if entry and entry.get("hash") == digest else None
+            if text is None:
+                text = relocated.get((unit.path, digest))
+            if isinstance(text, str) and text.strip():
+                usable[unit.id] = text
         return usable
 
     def classify(self, units: list[CodeUnit]) -> dict[str, list[CodeUnit]]:
         """Split units into described / superseded / missing.
 
-        ``superseded`` is the interesting one: an entry exists but describes
-        text that has since changed, so it is deliberately not applied.
+        ``superseded`` is the interesting one: something was written about this
+        declaration and the code has since changed, so it is deliberately not
+        applied. It is distinguished from ``missing`` by name rather than by
+        id, for the same reason applicability is: an id changes when the lines
+        above it do.
         """
+        usable = self.applicable(units)
+        written = {(entry.get("path"), entry.get("name")) for entry in self.entries.values()}
         described: list[CodeUnit] = []
         superseded: list[CodeUnit] = []
         missing: list[CodeUnit] = []
         for unit in units:
-            entry = self.entries.get(unit.id)
-            if not entry or not str(entry.get("text", "")).strip():
-                missing.append(unit)
-            elif entry.get("hash") == source_key(unit):
+            if unit.id in usable:
                 described.append(unit)
-            else:
+            elif self.entries.get(unit.id) or (unit.path, unit.qualified_name) in written:
                 superseded.append(unit)
+            else:
+                missing.append(unit)
         return {"described": described, "superseded": superseded, "missing": missing}
 
     def pending(self, units: list[CodeUnit], limit: int) -> list[CodeUnit]:
@@ -139,18 +174,30 @@ class DescriptionStore:
         self.entries[unit.id] = {
             "hash": source_key(unit),
             "path": unit.path,
+            "name": unit.qualified_name,
             "text": text,
         }
 
-    def save(self, known_ids: set[str] | None = None) -> None:
+    def save(self, units: list[CodeUnit] | None = None) -> None:
         """Write the store, dropping entries for units that no longer exist.
 
         Pruning needs the full unit list to be safe, so it only happens when a
         caller supplies one; a partial list would silently discard the
         descriptions of everything it omitted.
+
+        An entry is kept when its id is still live *or* its code is, since a
+        declaration that merely moved down the file has a new id and the same
+        digest. Pruning on ids alone would have deleted exactly the entries
+        the relocation lookup exists to rescue.
         """
-        if known_ids is not None:
-            self.entries = {uid: entry for uid, entry in self.entries.items() if uid in known_ids}
+        if units is not None:
+            live_ids = {unit.id for unit in units}
+            live_code = {(unit.path, source_key(unit)) for unit in units}
+            self.entries = {
+                uid: entry
+                for uid, entry in self.entries.items()
+                if uid in live_ids or (entry.get("path"), entry.get("hash")) in live_code
+            }
         payload = {
             "schema": SCHEMA,
             "descriptions": dict(sorted(self.entries.items())),
