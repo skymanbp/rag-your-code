@@ -14,12 +14,8 @@ Use this skill when repository context is broad or a symbol's implementation is 
    fails. Use `python -m pip` rather than a bare `pip` so the package lands in
    the same interpreter the later commands run under.
 
-   It is **not on PyPI**: installing it by name from a package index will fail.
-   Install from the repository, or from a wheel attached to a release.
-
    ```bash
-   python -c "import ragyourcode" || \
-     python -m pip install --user "git+https://github.com/skymanbp/rag-your-code"
+   python -c "import ragyourcode" || python -m pip install --user rag-your-code
    ```
 
 1. Build or refresh the index from the repository root:

@@ -43,9 +43,7 @@ the gap, and neither of them is a model:
 ## Quick start
 
 ```bash
-# Not on PyPI. Take the wheel from the latest release, or install the source:
-#   https://github.com/skymanbp/rag-your-code/releases
-pip install ./rag_your_code-0.4.0-py3-none-any.whl
+pip install rag-your-code
 #   ... or, from a clone:  python -m pip install -e .
 
 rag-your-code index .
