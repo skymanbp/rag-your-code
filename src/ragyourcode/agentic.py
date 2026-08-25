@@ -5,6 +5,7 @@ from __future__ import annotations
 from .graph import CodeGraph, graph_search
 from .models import CodeUnit, SearchResult
 from .search import (
+    DEFAULT_MIN_CONCENTRATION,
     DEFAULT_MIN_COVERAGE,
     DEFAULT_VECTOR_RECALL,
     DEFAULT_VECTOR_WEIGHT,
@@ -93,6 +94,7 @@ def research(
     vector_weight: float = DEFAULT_VECTOR_WEIGHT,
     vector_recall: int = DEFAULT_VECTOR_RECALL,
     min_coverage: float = DEFAULT_MIN_COVERAGE,
+    min_concentration: float = DEFAULT_MIN_CONCENTRATION,
     max_chars: int = 12000,
 ) -> dict:
     """Run at most two deterministic retrieval steps and explain the stop.
@@ -110,25 +112,26 @@ def research(
     max_steps = min(2, max(1, max_steps))
     steps: list[dict] = []
     search_index = search_index or build_search_index(units)
-    initial = search(units, query, max(limit, 1), search_index=search_index, vector_weight=vector_weight, vector_recall=vector_recall, min_coverage=min_coverage)
+    initial = search(units, query, max(limit, 1), search_index=search_index, vector_weight=vector_weight, vector_recall=vector_recall, min_coverage=min_coverage, min_concentration=min_concentration)
     steps.append({"action": "search", "query": query, "results": _trace(initial)})
     if not initial:
         # Two observable steps are worth nothing if the first one stopping is
         # reported as a bare emptiness. A second step cannot recover a query
-        # whose words are not in this index, so the reply says so instead of
-        # spending the budget to arrive at the same silence.
+        # whose words are not in this index, or whose words are never together
+        # in one of them, so the reply says so instead of spending the budget to
+        # arrive at the same silence.
         # `stop_reason` keeps its published set of values -- the specific reason
         # goes in the new `diagnosis` field beside it. Widening an enumeration
         # callers already branch on is a breaking change wearing the clothes of
         # an improvement; adding a field next to it is not.
-        report = diagnose(assess(search_index, query, min_coverage), min_coverage)
+        report = diagnose(assess(search_index, query, min_coverage, min_concentration), min_coverage, min_concentration)
         return {"query": query, "results": [], "steps": steps, "stop_reason": "no_results", "context": "", "diagnosis": report}
     unopposed = dominance(initial) >= dominance_threshold and bool(initial[0].matched_terms)
     if max_steps == 1 or unopposed:
         kept = initial[:limit]
         return {"query": query, "results": _serialize(kept), "steps": steps, "stop_reason": "high_confidence", "context": context(within_budget(kept, max_chars), max_chars)}
 
-    expanded = graph_search(units, query, limit=max(limit * 2, 8), hops=hops, graph=graph, search_index=search_index, vector_weight=vector_weight, vector_recall=vector_recall, min_coverage=min_coverage)
+    expanded = graph_search(units, query, limit=max(limit * 2, 8), hops=hops, graph=graph, search_index=search_index, vector_weight=vector_weight, vector_recall=vector_recall, min_coverage=min_coverage, min_concentration=min_concentration)
     steps.append({"action": "graph_expand", "hops": hops, "results": _trace(expanded[:limit])})
     merged = {result.unit.id: result for result in initial}
     for result in expanded:

@@ -21,6 +21,7 @@ from ragyourcode.graph import graph_search
 from ragyourcode.indexer import build_units
 from ragyourcode.search import (
     COVERAGE_FULL_STRENGTH,
+    DEFAULT_MIN_CONCENTRATION,
     DEFAULT_MIN_COVERAGE,
     assess,
     build_search_index,
@@ -56,6 +57,54 @@ def big(tmp_path_factory) -> list:
     return build_units(_repository(tmp_path_factory.mktemp("big"), COVERAGE_FULL_STRENGTH + 20))
 
 
+SCATTERED_QUERY = "the propeller gantry turbine and nacelle"
+RARE = ("propeller", "gantry", "turbine", "nacelle")
+
+
+def _with_rare_words(root: Path, together: bool) -> list:
+    """The same four rare words, once spread over four declarations and once
+    gathered into one.
+
+    Four rather than two, and that is the measure's own arithmetic rather than
+    a choice: N equally rare words spread over N units put 1/N of the query's
+    weight in the best of them, so two scattered words score 0.50 and cannot be
+    told from a real half-match. Scattering only becomes visible once a question
+    asks about several distinct things -- which is exactly when a wrong answer
+    would have looked most convincing.
+
+    Everything else about the two repositories is identical, so any difference
+    in what retrieval does is the co-occurrence and nothing else.
+    """
+    _repository(root, COVERAGE_FULL_STRENGTH + 20)
+    if together:
+        (root / "rig.py").write_text(
+            "def align_the_assembly(entry, ledger):\n"
+            f'    """Align the {" and ".join(RARE)} before posting."""\n'
+            "    return ledger\n",
+            encoding="utf-8",
+        )
+    else:
+        for word in RARE:
+            (root / f"rig_{word}.py").write_text(
+                f"def inspect_the_{word}(entry, ledger):\n"
+                f'    """Inspect the {word} before posting."""\n'
+                "    return ledger\n",
+                encoding="utf-8",
+            )
+    units = build_units(root)
+    return [units, build_search_index(units)]
+
+
+@pytest.fixture(scope="module")
+def scattered(tmp_path_factory) -> list:
+    return _with_rare_words(tmp_path_factory.mktemp("apart"), together=False)
+
+
+@pytest.fixture(scope="module")
+def gathered(tmp_path_factory) -> list:
+    return _with_rare_words(tmp_path_factory.mktemp("together"), together=True)
+
+
 def test_a_question_this_repository_cannot_answer_returns_nothing(big):
     """The whole point, stated once.
 
@@ -71,10 +120,16 @@ def test_the_same_question_is_answered_when_the_gate_is_opened(big):
     """The gate is what withholds it, not a failure to retrieve.
 
     Without this, a test asserting emptiness would also pass if retrieval had
-    simply broken -- and the two are told apart by exactly one argument.
+    simply broken -- and the two are told apart by exactly two arguments.
     """
     index = build_search_index(big)
-    guesses = search(big, "where are CUDA kernels dispatched to the device", search_index=index, min_coverage=0.0)
+    guesses = search(
+        big,
+        "where are CUDA kernels dispatched to the device",
+        search_index=index,
+        min_coverage=0.0,
+        min_concentration=0.0,
+    )
     assert guesses, "with no bar, ranking still hands back a least-bad unit"
     assert not guesses[0].matched_terms or set(guesses[0].matched_terms) <= {"to", "the", "are", "where"}
 
@@ -104,22 +159,51 @@ def test_a_query_sharing_no_word_at_all_is_named_as_such(big):
     assert evidence.reason == "no_query_term_in_index"
 
 
-def test_the_three_reasons_are_distinct_and_each_carries_a_hint(big):
+def test_the_four_reasons_are_distinct_and_each_carries_a_hint(big, scattered):
     """An empty answer is only actionable if it says which kind of empty.
 
     Each of these is recovered by a different move, so collapsing them into
     one `no_results` would throw away the only part a caller can act on.
     """
     index = build_search_index(big)
-    reasons = {
-        diagnose(assess(index, query))["reason"]
-        for query in ("renegotiating multilateral tariffs", "entry ledger", "post a reconciliation somewhere obscure")
-    }
-    assert len(reasons) == 3, reasons
-    for query in ("renegotiating multilateral tariffs", "entry ledger"):
-        report = diagnose(assess(index, query))
+    asked = [
+        (index, "renegotiating multilateral tariffs"),
+        (index, "entry ledger"),
+        (index, "post a reconciliation somewhere obscure"),
+        (scattered[1], SCATTERED_QUERY),
+    ]
+    reasons = {diagnose(assess(where, query))["reason"] for where, query in asked}
+    assert len(reasons) == 4, reasons
+    for where, query in asked:
+        report = diagnose(assess(where, query))
         assert report["hint"], f"{report['reason']} must tell the caller what to do next"
         assert report["min_coverage"] == DEFAULT_MIN_COVERAGE
+        assert report["min_concentration"] == DEFAULT_MIN_CONCENTRATION
+
+
+def test_words_that_never_occur_together_are_not_evidence(scattered):
+    """Coverage is satisfiable out of units that have nothing to do with the
+    question, and that is how a repository answers a question about a subject
+    it does not contain: every word is here, no two of them in one place.
+    """
+    units, index = scattered
+    evidence = assess(index, SCATTERED_QUERY)
+    assert set(evidence.matched) == set(RARE), "every rare word of the query is in this index"
+    assert evidence.coverage == 1.0, "coverage alone calls this perfect evidence"
+    assert evidence.concentration < DEFAULT_MIN_CONCENTRATION
+    assert evidence.reason == "matched_terms_are_scattered"
+    assert search(units, SCATTERED_QUERY, search_index=index) == []
+
+
+def test_the_same_words_are_evidence_once_one_unit_holds_them_all(gathered):
+    """The other side of the same rule, so what is measured is the
+    co-occurrence and not merely the words being unusual.
+    """
+    units, index = gathered
+    assert assess(index, SCATTERED_QUERY).coverage == 1.0, "identical coverage to the scattered case"
+    results = search(units, SCATTERED_QUERY, search_index=index)
+    assert results, "one declaration about all of them is what the bar looks for"
+    assert results[0].unit.name == "align_the_assembly"
 
 
 def test_a_small_repository_is_not_refused_its_own_questions(tmp_path):
@@ -145,10 +229,17 @@ def test_the_bar_reaches_full_strength_only_once_the_index_is_large_enough(big, 
     assert assess(small, query).sufficient is True, "a tiny index must not pretend to this much judgement"
 
 
-def test_a_semantic_embedder_is_exempt(big):
-    """With vectors that carry meaning, a paraphrase sharing no word with its
-    answer is the case a provider was configured for, so lexical coverage is
-    evidence of nothing. Reasoned rather than measured: there is no key here.
+def test_a_semantic_embedder_is_not_exempt(big):
+    """1.0.0 exempted one and this asserts the correction.
+
+    The reasoning behind the exemption was that a paraphrase sharing no word
+    with its answer is exactly what a model is for, so lexical evidence is then
+    evidence of nothing. Sound, and wrong: measured against a real multilingual
+    model, exempt and asked no other question, retrieval answered all sixty
+    questions about subjects neither graded repository implements -- the whole
+    defect the bar exists to fix, back again by the one path that skipped it.
+    Applying the bars to the model instead costs the foreign ruler nothing
+    measurable and holds silence at 0.967.
     """
 
     class Semantic:
@@ -159,7 +250,7 @@ def test_a_semantic_embedder_is_exempt(big):
 
     index = build_search_index(big)
     index.embedder = Semantic()
-    assert assess(index, "where are CUDA kernels dispatched to the device").sufficient is True
+    assert assess(index, "where are CUDA kernels dispatched to the device").sufficient is False
 
 
 def test_graph_expansion_does_not_walk_outward_from_a_withheld_seed(big):

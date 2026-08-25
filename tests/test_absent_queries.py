@@ -102,13 +102,29 @@ def test_this_repository_is_mostly_silent_on_questions_it_cannot_answer(units):
     because it moves with the corpus, and the floor is what must not rot.
     """
     report = evaluate(units, load_questions(ABSENT_PATH))
-    assert report["absent"]["silence"] >= 0.6, report["spoke"]
+    assert report["absent"]["silence"] >= 0.9, report["spoke"]
 
 
-def test_opening_the_bar_restores_the_defect_the_bar_exists_to_fix(units):
+def test_each_bar_alone_leaves_questions_the_other_one_catches(units):
+    """Two bars, and the test has to show that both are load-bearing.
+
+    Coverage asks whether the words are here; concentration asks whether they
+    are here *together*. Opening either one on its own must let some question
+    through that the pair refuses, or one of them is decoration -- and a
+    decorative bar is worse than none, because its number gets quoted.
+    """
+    questions = load_questions(ABSENT_PATH)
+    both = evaluate(units, questions)["absent"]["silence"]
+    coverage_only = evaluate(units, questions, min_concentration=0.0)["absent"]["silence"]
+    concentration_only = evaluate(units, questions, min_coverage=0.0)["absent"]["silence"]
+    assert coverage_only < both, "concentration catches nothing coverage did not already"
+    assert concentration_only <= both
+
+
+def test_opening_both_bars_restores_the_defect_they_exist_to_fix(units):
     """Without this, the assertion above would also pass if retrieval had
     simply stopped returning anything, and the two are told apart by exactly
-    one argument.
+    two arguments.
     """
-    report = evaluate(units, load_questions(ABSENT_PATH), min_coverage=0.0)
+    report = evaluate(units, load_questions(ABSENT_PATH), min_coverage=0.0, min_concentration=0.0)
     assert report["absent"]["silence"] == 0.0, "with no bar, ranking answers every question it is asked"

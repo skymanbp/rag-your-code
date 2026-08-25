@@ -123,13 +123,18 @@ SETTINGS: tuple[Setting, ...] = (
     # other value sends each unit's text to an OpenAI-compatible embeddings
     # endpoint, which may be a vendor or a model server on localhost -- one
     # request shape covers both, and the local one keeps source on the machine.
+    # Three, and the difference between them is what the vector can know.
+    # `signed-feature-hash` is a hash of the same words the lexical half already
+    # ranks, so its cosine can reorder but never reach; `sentence-transformers`
+    # runs a model on this machine, which is the only one of the three that is
+    # both semantic and offline; `openai-compatible` sends text to a service.
     Setting(
         "embedding.provider",
         "str",
         "signed-feature-hash",
         affects_build=True,
-        members=frozenset({"signed-feature-hash", "openai-compatible"}),
-        help="who computes vectors; the default never opens a socket",
+        members=frozenset({"signed-feature-hash", "sentence-transformers", "openai-compatible"}),
+        help="who computes vectors; the default never opens a socket and needs no dependency",
     ),
     Setting(
         "embedding.endpoint",
@@ -209,6 +214,24 @@ SETTINGS: tuple[Setting, ...] = (
         minimum=0.0,
         maximum=1.0,
         help="share of a query's words that must appear in the index for results to be returned",
+    ),
+    # Whether the words that did reach the index reached it *together*. Coverage
+    # alone asks whether each word occurs somewhere, and a question about a
+    # subject the repository does not implement can satisfy that entirely out of
+    # unrelated declarations -- four of six words found in four places with
+    # nothing to do with one another or with what was asked. Measured across
+    # four rulers, requiring a quarter of a query's rarity to land inside one
+    # unit leaves the two rulers over undescribed code unchanged and roughly
+    # halves the questions that get an answer they should not have. Rarity-
+    # weighted rather than counted, because a unit holding two ordinary words is
+    # not better evidence than one holding the rare word the question is about.
+    Setting(
+        "search.min_concentration",
+        "float",
+        0.28,
+        minimum=0.0,
+        maximum=1.0,
+        help="share of a query's distinctive weight that must occur within a single unit",
     ),
     Setting("search.limit", "int", 8, minimum=1, maximum=100, help="default result count"),
     Setting("search.max_chars", "int", 12000, minimum=0, maximum=100000, help="default context budget"),

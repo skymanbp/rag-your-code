@@ -17,6 +17,7 @@ from .models import CodeUnit, SearchResult
 DEFAULT_VECTOR_WEIGHT: float = BY_PATH["search.vector_weight"].default
 DEFAULT_VECTOR_RECALL: int = BY_PATH["search.vector_recall"].default
 DEFAULT_MIN_COVERAGE: float = BY_PATH["search.min_coverage"].default
+DEFAULT_MIN_CONCENTRATION: float = BY_PATH["search.min_concentration"].default
 
 # How much a word counts for, by the field the author wrote it in. A term in
 # the name is what the declaration is called; the same term inside the body is
@@ -124,12 +125,29 @@ class Evidence:
     evidence of `are`, `the`, `to` and `where`. That is not a Chinese problem
     or a ranking problem; it is a missing question.
 
+    Two numbers answer it, and they are independent:
+
     ``coverage`` is the share of the query's *discriminating* words that appear
     in the index -- see `COMMON_TERM` for why the others are dropped from both
-    sides of that fraction. A ratio inside the query, deliberately: a threshold
-    on a *score* is tied to whatever scale the ranking currently produces, and
-    this project has already had one of those stop meaning anything the moment
-    BM25F changed the scale.
+    sides of that fraction.
+
+    ``concentration`` is the share of the query's discriminating *weight* that
+    occurs inside a single unit. Coverage alone asks whether each word occurs
+    somewhere, and a question about a subject nothing here implements can pass
+    that entirely out of unrelated declarations -- four of its six words found
+    in four places that have nothing to do with one another or with what was
+    asked. Two thirds coverage, and no two of those words ever together.
+
+    The worked example that belongs here is deliberately absent, because
+    `benchmarks/absent_queries.json` grades this repository on questions whose
+    subjects it does not contain, and spelling one out here would put that
+    subject's vocabulary into the index and make the question answerable. That
+    has now happened twice; see CONTRIBUTING.md.
+
+    Both are ratios inside the query, deliberately: a threshold on a *score* is
+    tied to whatever scale the ranking currently produces, and this project has
+    already had one of those stop meaning anything the moment BM25F changed the
+    scale.
     """
 
     terms: int
@@ -137,6 +155,13 @@ class Evidence:
     matched: tuple[str, ...]
     ubiquitous: tuple[str, ...]
     coverage: float
+    concentration: float
+    # The bars actually applied, after the small-index easing. Carried rather
+    # than recomputed by whoever asks, because the setting and the bar are not
+    # the same number below `COVERAGE_FULL_STRENGTH` units, and a diagnosis
+    # quoting the setting there would name a bar that was never used.
+    required_coverage: float
+    required_concentration: float
     sufficient: bool
 
     @property
@@ -144,25 +169,52 @@ class Evidence:
         """Why an answer was withheld, as a stable token an agent can branch on."""
         if self.sufficient:
             return ""
-        if self.matched:
+        if not self.matched:
+            return "only_ubiquitous_terms_matched" if self.ubiquitous else "no_query_term_in_index"
+        if self.coverage < self.required_coverage:
             return "too_little_of_the_query_matched"
-        return "only_ubiquitous_terms_matched" if self.ubiquitous else "no_query_term_in_index"
+        return "matched_terms_are_scattered"
 
 
-def assess(search_index: SearchIndex, query: str, min_coverage: float = DEFAULT_MIN_COVERAGE) -> Evidence:
-    """How much of `query` occurs in this index at all.
+def assess(
+    search_index: SearchIndex,
+    query: str,
+    min_coverage: float = DEFAULT_MIN_COVERAGE,
+    min_concentration: float = DEFAULT_MIN_CONCENTRATION,
+) -> Evidence:
+    """How much of `query` occurs in this index, and how much of it in one place.
 
-    One dict lookup per query word, so the caller deciding whether to answer
-    and the caller explaining why it did not can both ask this rather than each
-    keeping a copy of the rule -- two copies of a rule is how the two ends of a
-    contract start disagreeing.
+    Both questions are answered here rather than at the call sites, so the
+    caller deciding whether to answer and the caller explaining why it did not
+    ask the same thing -- two copies of a rule is how the two ends of a contract
+    start disagreeing.
 
-    A semantic embedder is exempt. With vectors that carry meaning, a
-    paraphrase sharing no word with its answer is precisely the case a provider
-    was configured for, and lexical coverage is then evidence of nothing. The
-    exemption is reasoned rather than measured: the threshold was fitted on 158
-    questions across two repositories, and there is no API key here to fit its
-    counterpart.
+    Cost is bounded by what a discriminating term *is*. Concentration reads the
+    posting list of every distinctive word, and a word is only distinctive while
+    it stays under `COMMON_TERM` of the corpus, so the work is at most a few
+    percent of the index per query word and never the full scan that scoring
+    would have been. The words with the long posting lists are exactly the ones
+    excluded.
+
+    Nothing is exempt, including a semantic embedder, and that is a correction.
+    1.0.0 exempted one by the argument that a paraphrase sharing no word with
+    its answer is exactly what a model is for, so lexical evidence is then
+    evidence of nothing. The argument is sound; the conclusion was wrong, and it
+    was reasoned rather than measured because there was no model here to measure
+    with. There is now: exempt and asked no other question, a trained model
+    answered all sixty questions about subjects neither graded repository
+    implements -- the entire defect 1.0.0 existed to fix, reintroduced by the
+    one path that skipped the fix.
+
+    Two vector-space replacements were measured before this was settled. A floor
+    on the similarity is a threshold on a score, the failure this project has
+    already had once, and the distributions overlap far too much to place one:
+    answerable questions sit at a median nearest-unit cosine of 0.469 and
+    unanswerable ones at 0.418. A scale-free version -- how many standard
+    deviations the nearest unit stands above the corpus's own mean for that
+    query -- looked more promising and measured worse, taking a cold ruler from
+    0.329 hit@1 to 0.186 for two thirds of the silence. Applying these two bars
+    unchanged costs the foreign ruler nothing at all and holds silence at 0.967.
     """
     terms = set(tokenize(query))
     total = len(search_index.units) or 1
@@ -175,15 +227,46 @@ def assess(search_index: SearchIndex, query: str, min_coverage: float = DEFAULT_
     # everywhere: there is no discriminating evidence to have, so the ratio is
     # zero rather than the vacuous 1.0 that dividing nothing by nothing invites.
     coverage = (len(matched) / len(considered)) if considered else 0.0
-    required = min_coverage * min(1.0, total / COVERAGE_FULL_STRENGTH)
-    semantic = bool(getattr(search_index.embedder, "semantic", False))
+
+    # Rarity-weighted rather than counted. A unit holding two ordinary words is
+    # not better evidence than one holding the single rare word the question is
+    # about, and counting terms says it is. This is the same worth `search`
+    # ranks by, asked as a different question: not "which unit scores highest"
+    # but "did any one unit see enough of what was asked".
+    worth = {term: _inverse_document_frequency(total, len(search_index.postings[term])) for term in matched}
+    budget = sum(worth.values())
+    per_unit: dict[str, float] = defaultdict(float)
+    for term in matched:
+        for unit_id, _ in search_index.postings[term]:
+            per_unit[unit_id] += worth[term]
+    # Divided by the whole distinctive budget, not by what happened to match:
+    # normalising by the matched part alone scores a question that reached two
+    # words and found both in one unit as perfect evidence, which is precisely
+    # the shape an unanswerable question has.
+    #
+    # A word that is not here is charged what the rarest word that *is* here
+    # would be worth, never the unbounded value of occurring in zero units. The
+    # difference does not matter on a large corpus and decides everything on a
+    # small one: across nine units the zero-occurrence figure is eighteen times
+    # a real term's, against 1.2 times across five hundred, so the measure
+    # changes shape with the size of the repository -- the same degeneracy
+    # `COMMON_TERM_FLOOR` exists to stop, arrived at from a third direction.
+    absent_worth = _inverse_document_frequency(total, 1)
+    unmatched_budget = absent_worth * sum(1 for term in considered if term not in worth)
+    concentration = (max(per_unit.values(), default=0.0) / (budget + unmatched_budget)) if considered else 0.0
+
+    scale = min(1.0, total / COVERAGE_FULL_STRENGTH)
+    needed_coverage, needed_concentration = min_coverage * scale, min_concentration * scale
     return Evidence(
         len(terms),
         tuple(considered),
         matched,
         tuple(term for term in ubiquitous if search_index.postings.get(term)),
         coverage,
-        bool(terms) and (semantic or coverage >= required),
+        concentration,
+        needed_coverage,
+        needed_concentration,
+        bool(terms) and coverage >= needed_coverage and concentration >= needed_concentration,
     )
 
 
@@ -200,17 +283,27 @@ _HINTS = {
         "Too little of this question occurs in the index for a result to be evidence rather than a "
         "guess. Try the words the code uses, or lower search.min_coverage to see the guesses."
     ),
+    "matched_terms_are_scattered": (
+        "The words that matched occur in this repository, but never together in one place, so no "
+        "single declaration is about what you asked. This is usually a question about something "
+        "the repository does not implement, described in words it happens to use elsewhere."
+    ),
 }
 
 
-def diagnose(evidence: Evidence, min_coverage: float = DEFAULT_MIN_COVERAGE) -> dict[str, object]:
+def diagnose(
+    evidence: Evidence,
+    min_coverage: float = DEFAULT_MIN_COVERAGE,
+    min_concentration: float = DEFAULT_MIN_CONCENTRATION,
+) -> dict[str, object]:
     """Why nothing was returned, in a form an agent can branch on.
 
     An empty answer is only useful if it says which kind of empty it is. All
-    three of these are recoverable and each by a different move -- rephrase in
-    the code's vocabulary, add a distinctive word, or write the descriptions
-    that would give the concept words at all -- and none of them is what an
-    agent does when handed a plausible wrong unit instead.
+    four of these are recoverable and each by a different move -- rephrase in
+    the code's vocabulary, add a distinctive word, write the descriptions that
+    would give the concept words at all, or accept that the subject is not in
+    this repository -- and none of them is what an agent does when handed a
+    plausible wrong unit instead.
     """
     return {
         "reason": evidence.reason,
@@ -220,6 +313,14 @@ def diagnose(evidence: Evidence, min_coverage: float = DEFAULT_MIN_COVERAGE) -> 
         "ubiquitous_terms": list(evidence.ubiquitous),
         "coverage": round(evidence.coverage, 4),
         "min_coverage": min_coverage,
+        "concentration": round(evidence.concentration, 4),
+        "min_concentration": min_concentration,
+        # What the two settings became for an index this size. Equal to the
+        # settings above on any repository past `COVERAGE_FULL_STRENGTH` units,
+        # and lower on a small one -- where quoting the setting alone would tell
+        # a caller its query missed a bar that was never applied to it.
+        "applied_min_coverage": round(evidence.required_coverage, 4),
+        "applied_min_concentration": round(evidence.required_concentration, 4),
         "hint": _HINTS.get(evidence.reason, ""),
     }
 
@@ -299,6 +400,7 @@ def search(
     vector_weight: float = DEFAULT_VECTOR_WEIGHT,
     vector_recall: int = DEFAULT_VECTOR_RECALL,
     min_coverage: float = DEFAULT_MIN_COVERAGE,
+    min_concentration: float = DEFAULT_MIN_CONCENTRATION,
 ) -> list[SearchResult]:
     """Ranks code units against a natural-language query by combining weighted
     word overlap with vector similarity.
@@ -328,20 +430,22 @@ def search(
     alone scores at most `vector_weight`, so it surfaces where the words found
     little and yields where they found a lot.
 
-    A query too little of which occurs in the index returns nothing at all.
-    Ranking cannot express "no answer here": something is always least-bad, and
-    it is returned with a score and a rank that read exactly like an answer.
-    `assess` decides this, `search.min_coverage` sets the bar, and callers
-    report the reason -- an empty reply that explains itself is actionable,
-    where a plausible wrong one costs an agent the edit it makes on top of it.
+    A query too little of which occurs in the index, or whose words never occur
+    together, returns nothing at all. Ranking cannot express "no answer here":
+    something is always least-bad, and it is returned with a score and a rank
+    that read exactly like an answer. `assess` decides this, `search.min_coverage`
+    and `search.min_concentration` set the two bars, and callers report the
+    reason -- an empty reply that explains itself is actionable, where a
+    plausible wrong one costs an agent the edit it makes on top of it.
     """
     query_tokens = set(tokenize(query))
     if limit <= 0 or not query_tokens:
         return []
     search_index = search_index or build_search_index(units)
-    # Before any embedding or scoring: an unanswerable query now costs one dict
-    # lookup per word instead of a full pass over the corpus.
-    if not assess(search_index, query, min_coverage).sufficient:
+    # Before any embedding or scoring: an unanswerable query is turned away
+    # having touched only the posting lists of its own distinctive words, never
+    # the corpus. Which is strictly less work than answering it would have been.
+    if not assess(search_index, query, min_coverage, min_concentration).sufficient:
         return []
     # The query goes through the index's own embedder, never the module-level
     # one: a query vector from a different scheme than the units it is

@@ -189,15 +189,16 @@ def _cmd_search(args: argparse.Namespace) -> int:
     search_index = build_search_index(units, embedder(cfg))
     recall = cfg["search.vector_recall"]
     coverage = cfg["search.min_coverage"]
+    grouping = cfg["search.min_concentration"]
     results = (
-        graph_search(units, args.query, limit, args.hops, graph, search_index, vector_weight=weight, vector_recall=recall, min_coverage=coverage)
+        graph_search(units, args.query, limit, args.hops, graph, search_index, vector_weight=weight, vector_recall=recall, min_coverage=coverage, min_concentration=grouping)
         if args.graph
-        else search(units, args.query, limit, search_index=search_index, vector_weight=weight, vector_recall=recall, min_coverage=coverage)
+        else search(units, args.query, limit, search_index=search_index, vector_weight=weight, vector_recall=recall, min_coverage=coverage, min_concentration=grouping)
     )
     # An empty answer that does not say which kind of empty it is leaves the
     # caller to guess between "not in this repository", "asked in the wrong
     # words" and "the index is broken" -- three different next moves.
-    report = None if results else diagnose(assess(search_index, args.query, coverage), coverage)
+    report = None if results else diagnose(assess(search_index, args.query, coverage, grouping), coverage, grouping)
     if args.json:
         # Results are navigation and cost almost nothing, so every one that was
         # found is reported. The budget decides how many of them arrive with
@@ -417,6 +418,7 @@ def _cmd_agent(args: argparse.Namespace) -> int:
     default_chars = cfg["search.max_chars"]
     recall = cfg["search.vector_recall"]
     coverage = cfg["search.min_coverage"]
+    grouping = cfg["search.min_concentration"]
     stale_monitor = StaleMonitor(root, payload, assume_checked=True, cfg=cfg, descriptions_fingerprint=store.fingerprint)
     # Descriptions stored this session reach the live units immediately but not
     # the published index, which is a different thing from the index being
@@ -442,9 +444,9 @@ def _cmd_agent(args: argparse.Namespace) -> int:
                 hops = _request_int(request, "hops", 1, 0, 3)
                 use_graph = bool(request.get("graph", False))
                 results = (
-                    graph_search(units, query, limit, hops, graph, search_index, vector_weight=weight, vector_recall=recall, min_coverage=coverage)
+                    graph_search(units, query, limit, hops, graph, search_index, vector_weight=weight, vector_recall=recall, min_coverage=coverage, min_concentration=grouping)
                     if use_graph
-                    else search(units, query, limit, search_index=search_index, vector_weight=weight, vector_recall=recall, min_coverage=coverage)
+                    else search(units, query, limit, search_index=search_index, vector_weight=weight, vector_recall=recall, min_coverage=coverage, min_concentration=grouping)
                 )
                 budget = _request_int(request, "max_chars", default_chars, 0, 100000)
                 shown = within_budget(results, budget)
@@ -452,7 +454,7 @@ def _cmd_agent(args: argparse.Namespace) -> int:
                 # were results, so a caller reads one field rather than
                 # inferring the difference between "nothing here" and "asked
                 # in words this index does not have".
-                response = {"stale": payload.get("stale", True), "results": [result.to_dict() for result in results], "omitted_for_budget": len(results) - len(shown), "context": context(shown, budget), "diagnosis": None if results else diagnose(assess(search_index, query, coverage), coverage)}
+                response = {"stale": payload.get("stale", True), "results": [result.to_dict() for result in results], "omitted_for_budget": len(results) - len(shown), "context": context(shown, budget), "diagnosis": None if results else diagnose(assess(search_index, query, coverage, grouping), coverage, grouping)}
             elif action == "research":
                 response = research(
                     units,
@@ -466,6 +468,7 @@ def _cmd_agent(args: argparse.Namespace) -> int:
                     vector_weight=weight,
                     vector_recall=recall,
                     min_coverage=coverage,
+                    min_concentration=grouping,
                     max_chars=_request_int(request, "max_chars", default_chars, 0, 100000),
                 )
                 response["stale"] = payload.get("stale", True)

@@ -12,7 +12,14 @@ from dataclasses import dataclass
 from typing import Iterable
 
 from .models import CodeUnit, SearchResult
-from .search import DEFAULT_MIN_COVERAGE, DEFAULT_VECTOR_RECALL, DEFAULT_VECTOR_WEIGHT, SearchIndex, search
+from .search import (
+    DEFAULT_MIN_CONCENTRATION,
+    DEFAULT_MIN_COVERAGE,
+    DEFAULT_VECTOR_RECALL,
+    DEFAULT_VECTOR_WEIGHT,
+    SearchIndex,
+    search,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -215,6 +222,7 @@ def graph_search(
     vector_weight: float = DEFAULT_VECTOR_WEIGHT,
     vector_recall: int = DEFAULT_VECTOR_RECALL,
     min_coverage: float = DEFAULT_MIN_COVERAGE,
+    min_concentration: float = DEFAULT_MIN_CONCENTRATION,
 ) -> list[SearchResult]:
     """Search seeds and add bounded graph neighbors with explicit evidence.
 
@@ -226,7 +234,7 @@ def graph_search(
         return []
     hops = min(3, max(0, hops))
     graph = graph or build_graph(units)
-    seeds = search(units, query, max(limit * 2, 8), search_index=search_index, vector_weight=vector_weight, vector_recall=vector_recall, min_coverage=min_coverage)
+    seeds = search(units, query, max(limit * 2, 8), search_index=search_index, vector_weight=vector_weight, vector_recall=vector_recall, min_coverage=min_coverage, min_concentration=min_concentration)
     ranked: dict[str, SearchResult] = {seed.unit.id: seed for seed in seeds}
     if hops <= 0:
         return seeds[:limit]
