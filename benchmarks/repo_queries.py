@@ -24,6 +24,16 @@ Both rulers are needed and neither substitutes for the other: this one measures
 the warmest case the project supports, and that one measures what a first-time
 user actually gets. A change that helps one and hurts the other is a trade, not
 an improvement, and it cannot be seen at all from a single ruler.
+
+It also grades `absent_queries.json`, which measures the failure the other two
+are structurally blind to. Both of them ask questions that have an answer, so
+both can only score whether it was found; neither can see a query that had no
+answer anywhere being handed a confident-looking result regardless. Those
+questions are marked `absent`, carry no acceptable answer by construction, and
+are scored on silence rather than on hit@k -- there is nothing to hit. They are
+kept apart from the aggregate for the same reason: averaging a question that
+should return something with one that should return nothing produces a number
+that improves when either half gets worse.
 """
 
 from __future__ import annotations
@@ -54,6 +64,13 @@ def check_ruler(questions: dict, units) -> list[str]:
     Run before scoring, not after: a renamed declaration would otherwise make
     its question unanswerable and read as a retrieval regression, or -- worse,
     if the question were then quietly dropped -- as an improvement.
+
+    A question marked ``absent`` asserts the opposite claim: that nothing in
+    this index answers it, so naming an acceptable answer would contradict the
+    mark. Absence itself is not checkable from the question -- that is done
+    against the vocabulary in tests/test_absent_queries.py -- but the two
+    halves of the claim are held consistent here, because a set that drifted
+    into a mix of the two would be graded by whichever branch it fell down.
     """
     present = {(unit.path, unit.qualified_name) for unit in units}
     problems: list[str] = []
@@ -62,6 +79,10 @@ def check_ruler(questions: dict, units) -> list[str]:
         if entry["id"] in seen:
             problems.append(f"{entry['id']}: duplicate question id")
         seen.add(entry["id"])
+        if entry.get("absent"):
+            if entry["acceptable"]:
+                problems.append(f"{entry['id']}: marked absent yet lists an acceptable answer")
+            continue
         if not entry["acceptable"]:
             problems.append(f"{entry['id']}: no acceptable answer listed")
         for path, name in entry["acceptable"]:
@@ -70,12 +91,28 @@ def check_ruler(questions: dict, units) -> list[str]:
     return problems
 
 
-def evaluate(units, questions: dict, k: int = 3, vector_weight: float | None = None) -> dict:
+def evaluate(
+    units,
+    questions: dict,
+    k: int = 3,
+    vector_weight: float | None = None,
+    min_coverage: float | None = None,
+) -> dict:
+    """Grades one question set. Overrides are passed to `search` rather than
+    set on the module, because a default argument is bound when the function is
+    defined: assigning `search.DEFAULT_MIN_COVERAGE` afterwards changes nothing
+    and produces a sweep in which every threshold scores identically, which is
+    indistinguishable from a setting that does not matter.
+    """
     index = build_search_index(units)
-    weight = {} if vector_weight is None else {"vector_weight": vector_weight}
+    overrides = {}
+    if vector_weight is not None:
+        overrides["vector_weight"] = vector_weight
+    if min_coverage is not None:
+        overrides["min_coverage"] = min_coverage
     rows = []
     for entry in questions["queries"]:
-        results = search(units, entry["query"], limit=k, search_index=index, **weight)
+        results = search(units, entry["query"], limit=k, search_index=index, **overrides)
         wanted = {tuple(pair) for pair in entry["acceptable"]}
         ranks = [
             position
@@ -92,9 +129,25 @@ def evaluate(units, questions: dict, k: int = 3, vector_weight: float | None = N
             "reciprocal_rank": (1.0 / ranks[0]) if ranks else 0.0,
             # A top result whose matched terms are empty came back through the
             # no-overlap cosine fallback, which means nothing actually matched.
-            "no_lexical_evidence": not (results and results[0].matched_terms),
+            # Returning nothing is a different thing entirely and must not be
+            # counted here: once the coverage gate existed, folding the two
+            # together made this number rise as the defect it names went away.
+            "no_lexical_evidence": bool(results) and not results[0].matched_terms,
+            # Which words the top result matched on, kept because for an
+            # unanswerable question that is the whole diagnosis: a set of
+            # function words is how noise passes itself off as evidence.
+            "matched_terms": list(results[0].matched_terms) if results else [],
+            "absent": bool(entry.get("absent")),
+            # For a question this index cannot answer, returning nothing is the
+            # correct reply and the only one an agent can act on safely. Scored
+            # on its own, never folded into hit@k, which measures finding a
+            # thing that in these questions does not exist.
+            "silent": not results,
             "top": results[0].unit.id if results else None,
         })
+
+    answerable = [row for row in rows if not row["absent"]]
+    unanswerable = [row for row in rows if row["absent"]]
 
     def summarise(subset: list[dict]) -> dict:
         count = len(subset) or 1
@@ -104,23 +157,48 @@ def evaluate(units, questions: dict, k: int = 3, vector_weight: float | None = N
             "hit_at_k": round(sum(row["hit_at_k"] for row in subset) / count, 4),
             "mrr": round(sum(row["reciprocal_rank"] for row in subset) / count, 4),
             "no_lexical_evidence": round(sum(row["no_lexical_evidence"] for row in subset) / count, 4),
+            # Answerable questions the coverage gate declined to answer. This is
+            # the price side of that gate and belongs beside hit@k, not folded
+            # into it: a question answered wrongly and one answered not at all
+            # are both misses, and only one of them misleads.
+            "declined": round(sum(row["silent"] for row in subset) / count, 4),
         }
 
     by_language: dict[str, list[dict]] = defaultdict(list)
     by_kind: dict[str, list[dict]] = defaultdict(list)
-    for row in rows:
+    for row in answerable:
         by_language[row["language"]].append(row)
         by_kind[row["kind"]].append(row)
 
+    def silence(subset: list[dict]) -> dict:
+        return {
+            "questions": len(subset),
+            "silence": round(sum(row["silent"] for row in subset) / (len(subset) or 1), 4),
+        }
+
+    absent_by_language: dict[str, list[dict]] = defaultdict(list)
+    for row in unanswerable:
+        absent_by_language[row["language"]].append(row)
+
     return {
         "k": k,
-        "aggregate": summarise(rows),
+        "aggregate": summarise(answerable),
         "by_language": {name: summarise(group) for name, group in sorted(by_language.items())},
         "by_kind": {name: summarise(group) for name, group in sorted(by_kind.items())},
+        "absent": silence(unanswerable),
+        "absent_by_language": {name: silence(group) for name, group in sorted(absent_by_language.items())},
         "misses": [
             {"id": row["id"], "query": row["query"], "top": row["top"]}
-            for row in rows
+            for row in answerable
             if not row["hit_at_k"]
+        ],
+        # An unanswerable question that came back with something. Named for what
+        # it is rather than counted, because the useful question about a wrong
+        # answer is always which unit it was and why that one.
+        "spoke": [
+            {"id": row["id"], "query": row["query"], "top": row["top"], "matched_terms": row.get("matched_terms", [])}
+            for row in unanswerable
+            if not row["silent"]
         ],
         "rows": rows,
     }
@@ -128,22 +206,35 @@ def evaluate(units, questions: dict, k: int = 3, vector_weight: float | None = N
 
 def _report(report: dict) -> None:
     aggregate, k = report["aggregate"], report["k"]
-    print(f"questions            {aggregate['questions']}")
-    print(f"hit@1                {aggregate['hit_at_1']:.3f}")
-    print(f"hit@{k}                {aggregate['hit_at_k']:.3f}")
-    print(f"mrr                  {aggregate['mrr']:.3f}")
-    print(f"no lexical evidence  {aggregate['no_lexical_evidence']:.3f}")
-    for label, group in (("language", report["by_language"]), ("kind", report["by_kind"])):
-        print()
-        for name, stats in group.items():
-            print(
-                f"  {label:8} {name:10} n={stats['questions']:3d}"
-                f"  hit@1={stats['hit_at_1']:.3f}  hit@{k}={stats['hit_at_k']:.3f}  mrr={stats['mrr']:.3f}"
-            )
+    if aggregate["questions"]:
+        print(f"questions            {aggregate['questions']}")
+        print(f"hit@1                {aggregate['hit_at_1']:.3f}")
+        print(f"hit@{k}                {aggregate['hit_at_k']:.3f}")
+        print(f"mrr                  {aggregate['mrr']:.3f}")
+        print(f"no lexical evidence  {aggregate['no_lexical_evidence']:.3f}")
+        print(f"declined             {aggregate['declined']:.3f}")
+        for label, group in (("language", report["by_language"]), ("kind", report["by_kind"])):
+            print()
+            for name, stats in group.items():
+                print(
+                    f"  {label:8} {name:10} n={stats['questions']:3d}"
+                    f"  hit@1={stats['hit_at_1']:.3f}  hit@{k}={stats['hit_at_k']:.3f}  mrr={stats['mrr']:.3f}"
+                )
+    absent = report["absent"]
+    if absent["questions"]:
+        print(f"\nunanswerable         {absent['questions']}")
+        print(f"silence              {absent['silence']:.3f}")
+        for name, stats in report["absent_by_language"].items():
+            print(f"  language {name:10} n={stats['questions']:3d}  silence={stats['silence']:.3f}")
     if report["misses"]:
         print(f"\nmisses ({len(report['misses'])} of {aggregate['questions']}):")
         for miss in report["misses"]:
             print(f"  {miss['id']:18} {miss['query'][:46]:48} -> {miss['top']}")
+    if report["spoke"]:
+        print(f"\nanswered anyway ({len(report['spoke'])} of {absent['questions']}):")
+        for row in report["spoke"]:
+            terms = ",".join(row["matched_terms"]) or "-"
+            print(f"  {row['id']:22} on [{terms[:28]:30}] -> {row['top']}")
 
 
 def main() -> int:
@@ -157,6 +248,12 @@ def main() -> int:
     )
     parser.add_argument("--output", help="write the full report here as JSON")
     parser.add_argument("--vector-weight", type=float, default=None)
+    parser.add_argument(
+        "--min-coverage",
+        type=float,
+        default=None,
+        help="override search.min_coverage; 0 restores answering every query, which is what the absent ruler grades against",
+    )
     parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args()
 
@@ -164,7 +261,22 @@ def main() -> int:
         print("ruler: --cold parses this repository, so it cannot also grade a prebuilt --index", file=sys.stderr)
         return 2
     if args.index:
-        _, units = read_index(Path(args.index))
+        # `--index` names the index file, and the obvious thing to type is the
+        # repository. This is the path the project points anyone with an API
+        # key at, and it answered a directory with a raw PermissionError
+        # traceback out of pathlib -- so the one instruction the docs give a
+        # stranger failed in a way that reads like a bug in the tool.
+        chosen = Path(args.index)
+        if chosen.is_dir():
+            chosen = chosen / ".rag-your-code" / "index.json"
+            if not chosen.is_file():
+                print(f"ruler: {args.index} holds no index; run `rag-your-code index {args.index}` first", file=sys.stderr)
+                return 2
+        try:
+            _, units = read_index(chosen)
+        except OSError as exc:
+            print(f"ruler: cannot read {chosen}: {exc}", file=sys.stderr)
+            return 2
     elif args.cold:
         # No description store is passed, so every unit carries only the
         # sentence the parser generated. That is the state of a repository
@@ -181,7 +293,13 @@ def main() -> int:
             print(f"ruler: {problem}", file=sys.stderr)
         return 2
 
-    report = evaluate(units, questions, k=questions.get("k", 3), vector_weight=args.vector_weight)
+    report = evaluate(
+        units,
+        questions,
+        k=questions.get("k", 3),
+        vector_weight=args.vector_weight,
+        min_coverage=args.min_coverage,
+    )
     if args.output:
         Path(args.output).write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     if not args.quiet:

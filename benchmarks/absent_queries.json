@@ -1,0 +1,428 @@
+{
+  "k": 3,
+  "repository": "any",
+  "why": "The other three rulers only ask questions that have an answer, so they can only measure the failure of missing it. They are blind to the opposite failure: returning a confident-looking result when the repository contains no answer at all. Every question here is about a subject neither this repository nor the cold ruler's repository implements, so the only correct reply is no results. A retrieval that answers these is not being helpful, it is guessing, and an agent cannot tell the guess from the real thing.",
+  "caveat": "Absence cannot be proved by asking, so it is established another way: each question carries the `subject` vocabulary that makes it the question it is, and tests/test_absent_queries.py asserts that none of those words reaches a single unit of the index being graded. Every word here was passed through that check against both repositories rather than chosen by eye -- an earlier draft named `webhook` and `hostname`, both of which this repository has had all along. The check also cost this ruler its two GPU questions: the source explains the coverage bar using `where are CUDA kernels dispatched`, which put those words in the index and made the question answerable. Documentation and ruler cannot own the same vocabulary.",
+  "queries": [
+    {
+      "id": "absent-oauth-en",
+      "language": "en",
+      "kind": "concept",
+      "absent": true,
+      "acceptable": [],
+      "query": "how is the OAuth refresh token rotated before it expires",
+      "subject": [
+        "oauth",
+        "refresh_token",
+        "rotate",
+        "credential_expiry"
+      ]
+    },
+    {
+      "id": "absent-oauth-zh",
+      "language": "zh",
+      "kind": "concept",
+      "absent": true,
+      "acceptable": [],
+      "query": "OAuth 的刷新令牌在过期前是怎么轮换的",
+      "subject": [
+        "oauth",
+        "refresh_token",
+        "rotate",
+        "credential_expiry"
+      ]
+    },
+    {
+      "id": "absent-video-en",
+      "language": "en",
+      "kind": "concept",
+      "absent": true,
+      "acceptable": [],
+      "query": "which codec is used when transcoding an uploaded video",
+      "subject": [
+        "video",
+        "codec",
+        "transcode",
+        "frame"
+      ]
+    },
+    {
+      "id": "absent-video-zh",
+      "language": "zh",
+      "kind": "concept",
+      "absent": true,
+      "acceptable": [],
+      "query": "上传的视频转码时用的是哪个编解码器",
+      "subject": [
+        "video",
+        "codec",
+        "transcode",
+        "frame"
+      ]
+    },
+    {
+      "id": "absent-k8s-en",
+      "language": "en",
+      "kind": "why",
+      "absent": true,
+      "acceptable": [],
+      "query": "why does the admission webhook reject a pod without resource limits",
+      "subject": [
+        "kubernetes",
+        "pod",
+        "cluster",
+        "deployment"
+      ]
+    },
+    {
+      "id": "absent-k8s-zh",
+      "language": "zh",
+      "kind": "why",
+      "absent": true,
+      "acceptable": [],
+      "query": "准入控制为什么会拒绝没有资源限额的容器组",
+      "subject": [
+        "kubernetes",
+        "pod",
+        "cluster",
+        "deployment"
+      ]
+    },
+    {
+      "id": "absent-dns-en",
+      "language": "en",
+      "kind": "concept",
+      "absent": true,
+      "acceptable": [],
+      "query": "how is a hostname resolved when the nameserver times out",
+      "subject": [
+        "dns",
+        "nameserver",
+        "resolve_host",
+        "zone"
+      ]
+    },
+    {
+      "id": "absent-dns-zh",
+      "language": "zh",
+      "kind": "concept",
+      "absent": true,
+      "acceptable": [],
+      "query": "域名服务器超时的时候主机名是怎么解析的",
+      "subject": [
+        "dns",
+        "nameserver",
+        "resolve_host",
+        "zone"
+      ]
+    },
+    {
+      "id": "absent-sheet-en",
+      "language": "en",
+      "kind": "concept",
+      "absent": true,
+      "acceptable": [],
+      "query": "how does a spreadsheet formula recalculate its dependent cells",
+      "subject": [
+        "spreadsheet",
+        "formula",
+        "worksheet",
+        "pivot"
+      ]
+    },
+    {
+      "id": "absent-sheet-zh",
+      "language": "zh",
+      "kind": "concept",
+      "absent": true,
+      "acceptable": [],
+      "query": "表格公式是怎么重算它依赖的单元格的",
+      "subject": [
+        "spreadsheet",
+        "formula",
+        "worksheet",
+        "pivot"
+      ]
+    },
+    {
+      "id": "absent-servo-en",
+      "language": "en",
+      "kind": "concept",
+      "absent": true,
+      "acceptable": [],
+      "query": "what limits the servo trajectory when odometry drifts",
+      "subject": [
+        "servo",
+        "odometry",
+        "actuator",
+        "trajectory"
+      ]
+    },
+    {
+      "id": "absent-servo-zh",
+      "language": "zh",
+      "kind": "concept",
+      "absent": true,
+      "acceptable": [],
+      "query": "里程计漂移时舵机轨迹是靠什么限制的",
+      "subject": [
+        "servo",
+        "odometry",
+        "actuator",
+        "trajectory"
+      ]
+    },
+    {
+      "id": "absent-weather-en",
+      "language": "en",
+      "kind": "concept",
+      "absent": true,
+      "acceptable": [],
+      "query": "how is the humidity forecast smoothed across stations",
+      "subject": [
+        "forecast",
+        "humidity",
+        "precipitation",
+        "barometric"
+      ]
+    },
+    {
+      "id": "absent-weather-zh",
+      "language": "zh",
+      "kind": "concept",
+      "absent": true,
+      "acceptable": [],
+      "query": "湿度预报是怎么在各个站点之间平滑的",
+      "subject": [
+        "forecast",
+        "humidity",
+        "precipitation",
+        "barometric"
+      ]
+    },
+    {
+      "id": "absent-midi-en",
+      "language": "en",
+      "kind": "concept",
+      "absent": true,
+      "acceptable": [],
+      "query": "where is the oscillator waveform chosen for a midi chord",
+      "subject": [
+        "midi",
+        "oscillator",
+        "waveform",
+        "chord"
+      ]
+    },
+    {
+      "id": "absent-midi-zh",
+      "language": "zh",
+      "kind": "concept",
+      "absent": true,
+      "acceptable": [],
+      "query": "midi 和弦的振荡器波形是在哪里选的",
+      "subject": [
+        "midi",
+        "oscillator",
+        "waveform",
+        "chord"
+      ]
+    },
+    {
+      "id": "absent-ocr-en",
+      "language": "en",
+      "kind": "concept",
+      "absent": true,
+      "acceptable": [],
+      "query": "how are glyph bounding boxes merged into a text line",
+      "subject": [
+        "ocr",
+        "glyph",
+        "handwriting",
+        "bounding_box"
+      ]
+    },
+    {
+      "id": "absent-ocr-zh",
+      "language": "zh",
+      "kind": "concept",
+      "absent": true,
+      "acceptable": [],
+      "query": "字形的外接框是怎么合并成一整行文字的",
+      "subject": [
+        "ocr",
+        "glyph",
+        "handwriting",
+        "bounding_box"
+      ]
+    },
+    {
+      "id": "absent-speech-en",
+      "language": "en",
+      "kind": "concept",
+      "absent": true,
+      "acceptable": [],
+      "query": "which acoustic model turns an utterance into phonemes",
+      "subject": [
+        "phoneme",
+        "utterance",
+        "acoustic",
+        "transcription"
+      ]
+    },
+    {
+      "id": "absent-speech-zh",
+      "language": "zh",
+      "kind": "concept",
+      "absent": true,
+      "acceptable": [],
+      "query": "哪个声学模型把一段话音转成音素",
+      "subject": [
+        "phoneme",
+        "utterance",
+        "acoustic",
+        "transcription"
+      ]
+    },
+    {
+      "id": "absent-mesh-en",
+      "language": "en",
+      "kind": "concept",
+      "absent": true,
+      "acceptable": [],
+      "query": "how is a vertex normal recomputed after the mesh is subdivided",
+      "subject": [
+        "vertex",
+        "shader",
+        "polygon",
+        "raytrace"
+      ]
+    },
+    {
+      "id": "absent-mesh-zh",
+      "language": "zh",
+      "kind": "concept",
+      "absent": true,
+      "acceptable": [],
+      "query": "网格细分之后顶点法线是怎么重新算的",
+      "subject": [
+        "vertex",
+        "shader",
+        "polygon",
+        "raytrace"
+      ]
+    },
+    {
+      "id": "absent-printer-en",
+      "language": "en",
+      "kind": "why",
+      "absent": true,
+      "acceptable": [],
+      "query": "why would a duplex print job stay stuck in the spool",
+      "subject": [
+        "printer",
+        "spool",
+        "duplex",
+        "toner"
+      ]
+    },
+    {
+      "id": "absent-printer-zh",
+      "language": "zh",
+      "kind": "why",
+      "absent": true,
+      "acceptable": [],
+      "query": "双面打印任务为什么会一直卡在打印队列里",
+      "subject": [
+        "printer",
+        "spool",
+        "duplex",
+        "toner"
+      ]
+    },
+    {
+      "id": "absent-gis-en",
+      "language": "en",
+      "kind": "concept",
+      "absent": true,
+      "acceptable": [],
+      "query": "how is a shapefile reprojected onto the basemap",
+      "subject": [
+        "shapefile",
+        "basemap",
+        "raster",
+        "projection"
+      ]
+    },
+    {
+      "id": "absent-gis-zh",
+      "language": "zh",
+      "kind": "concept",
+      "absent": true,
+      "acceptable": [],
+      "query": "矢量图层是怎么重投影到底图上的",
+      "subject": [
+        "shapefile",
+        "basemap",
+        "raster",
+        "projection"
+      ]
+    },
+    {
+      "id": "absent-metrics-en",
+      "language": "en",
+      "kind": "concept",
+      "absent": true,
+      "acceptable": [],
+      "query": "where is the latency histogram exported for scraping",
+      "subject": [
+        "histogram",
+        "percentile",
+        "prometheus",
+        "gauge"
+      ]
+    },
+    {
+      "id": "absent-metrics-zh",
+      "language": "zh",
+      "kind": "concept",
+      "absent": true,
+      "acceptable": [],
+      "query": "延迟直方图是在哪里导出去被采集的",
+      "subject": [
+        "histogram",
+        "percentile",
+        "prometheus",
+        "gauge"
+      ]
+    },
+    {
+      "id": "absent-blockchain-en",
+      "language": "en",
+      "kind": "concept",
+      "absent": true,
+      "acceptable": [],
+      "query": "how does the wallet sign a transaction before broadcast",
+      "subject": [
+        "blockchain",
+        "wallet",
+        "nonce",
+        "consensus"
+      ]
+    },
+    {
+      "id": "absent-blockchain-zh",
+      "language": "zh",
+      "kind": "concept",
+      "absent": true,
+      "acceptable": [],
+      "query": "钱包是怎么在广播之前给交易签名的",
+      "subject": [
+        "blockchain",
+        "wallet",
+        "nonce",
+        "consensus"
+      ]
+    }
+  ]
+}
