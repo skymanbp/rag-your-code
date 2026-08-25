@@ -14,6 +14,7 @@ from .annotate import comment_for
 from .agentic import research
 from .config import BY_PATH, SETTINGS, Config, ConfigError
 from .descriptions import DescriptionStore, guidance, index_descriptions_fingerprint
+from .document import plan as plan_documentation, render_patch, summarise as summarise_documentation
 from .embeddings import embed, embedding_metadata
 from .graph import build_graph, graph_from_dict, graph_search
 from .indexer import StaleMonitor, build_fingerprint, build_units, fingerprint, index_build_fingerprint, read_index, snapshot_repository, write_index
@@ -294,6 +295,28 @@ def _apply_descriptions(units: list, store: DescriptionStore, cfg: Config) -> in
 
 def _cmd_describe(args: argparse.Namespace) -> int:
     payload, units, _, cfg, store = _load(args)
+    if args.action == "promote":
+        # A stored description exists so text about a unit can be written
+        # without touching the file, and that independence costs a digest, a
+        # relocation lookup, a fingerprint and a pruning rule -- all of them
+        # simulating a property a docstring has for free. This offers the
+        # promotion as a patch rather than performing it: the tool still never
+        # writes source, and a person stays between an agent's prose and the
+        # repository.
+        root = Path(args.root).resolve()
+        insertions = plan_documentation(units, store, root)
+        report = summarise_documentation(units, store, insertions, root)
+        patch = render_patch(root, insertions)
+        if args.output:
+            Path(args.output).write_text(patch, encoding="utf-8", newline="")
+            report["output"] = args.output
+            print(json.dumps(report, ensure_ascii=False, indent=2))
+        else:
+            # The patch owns stdout so it can be piped straight into `git
+            # apply`; the summary goes to stderr.
+            sys.stdout.write(patch)
+            print(json.dumps(report, ensure_ascii=False), file=sys.stderr)
+        return 0
     if args.action == "status":
         groups = store.classify(units)
         print(json.dumps({
@@ -522,12 +545,12 @@ def build_parser() -> argparse.ArgumentParser:
     config_parser.add_argument("--force", action="store_true", help="with init, overwrite an existing file")
     config_parser.set_defaults(func=_cmd_config)
     describe = sub.add_parser("describe", help="inspect or supply agent-authored unit descriptions")
-    describe.add_argument("action", choices=("status", "export", "import"))
+    describe.add_argument("action", choices=("status", "export", "import", "promote"))
     describe.add_argument("file", nargs="?", help="with import, a JSON file of {id, text} objects")
     describe.add_argument("--root", default=".")
     describe.add_argument("--index")
     describe.add_argument("--limit", type=int, default=None, help=f"with export, units per batch (config describe.batch, default {BY_PATH['describe.batch'].default})")
-    describe.add_argument("--output", help="with export, write the batch here instead of stdout")
+    describe.add_argument("--output", help="with export or promote, write here instead of stdout")
     describe.set_defaults(func=_cmd_describe)
     return parser
 
