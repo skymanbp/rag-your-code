@@ -1,538 +1,192 @@
-# Improvement roadmap
+# Roadmap
 
-Status of record for the hardening pass that follows the v0.2.0 audit. Each
-phase is one commit; each phase ends with the full suite green.
-
-## Why this document exists
-
-An adversarial audit of v0.2.0 produced 94 raw findings. Reported one by one
-they read as a punch list. Grouped by cause they are **five root causes**, and
-the ordering below follows the causes, not the symptoms.
-
-## Root-cause grouping
-
-| Root cause | Symptoms it produces | Phase |
-|---|---|---|
-| **A.** `FUNCTION_RE` is one whole-file regex doing five jobs at once (locate, name, dispatch by language, delimit scope, imply the line number) | catastrophic backtracking; wrong `start_line`; empty `signature`; cross-line swallowing; TypeScript yielding zero units | P3 |
-| **B.** Line model disagrees with the tokenizer: `str.splitlines()` breaks on `\x0b \x0c \x1c-\x1e \x85    `, `ast` counts only `\n \r\n \r` | Python function bodies silently truncated or lost | P3 |
-| **C.** `write_index` trusts a path read out of the index file it is replacing | running the documented `index` command deletes an arbitrary in-tree file, exit code 0 | P1 |
-| **D.** Process I/O follows the OS locale codepage instead of the protocol's encoding | the long-lived `agent` subprocess dies on non-ASCII output; CJK queries silently mis-decode and return `[]` | P1 |
-| **E.** The vector-candidate set replaces the lexical candidate set instead of narrowing what gets a cosine score | `--limit 8` returns 1 result on this repo's own 116 units | P4 |
-
-Measured evidence for each is recorded in the phase sections below.
+What shipped, what was decided against, and what is deliberately not here. The
+v0.2.0 audit, the eight phases that closed it, and releases 0.4.0 through 0.7.0
+are in [ROADMAP-history.md](ROADMAP-history.md).
 
 ## Design principles
 
-1. **One root cause, one change.** Seven symptoms above collapse into five
-   edits, not seven patches.
-2. **Make the error structurally impossible**, do not add a check for it. A
-   line number that *is* the loop index cannot drift; no assertion required.
-3. **Data over code.** Adding a language becomes a table row, not a regex edit.
-4. **Build the ruler before reshaping the thing being measured.** The
-   multi-language golden set (P2) lands *before* the parser rewrite (P3).
-5. **The contract does not move.** `CodeUnit`, index schema 2, and the
-   JSON-lines agent protocol are unchanged throughout; every fix sits beneath
-   them.
+1. **One root cause, one change.** Seven symptoms collapse into five edits, not
+   seven patches.
+2. **Make the error structurally impossible**, do not add a check for it. A line
+   number that *is* the loop index cannot drift; no assertion required.
+3. **Data over code.** Adding a language is a table row, not a regex edit.
+4. **Build the ruler before reshaping the thing measured.** The multi-language
+   golden set landed *before* the parser rewrite; the absent ruler landed
+   *before* the evidence bars.
+5. **The contract does not move.** `CodeUnit`, index schema 2 and the JSON-lines
+   protocol are unchanged throughout; every fix sits beneath them, and new
+   information arrives in new fields rather than by widening an enumeration.
+6. **A dependency is a user's choice, never a default.** Anything needing one
+   follows the embedding provider's pattern: an optional extra, selected by a
+   setting, absent from `dependencies = []`.
 
-## Phases
+## Open list, closed
 
-### P0 — Foundation *(landed)*
+Everything the 1.0.0 roadmap listed as still open, and what happened to it.
 
-Version control, ignore rules, removal of stray run artifacts, this document.
-Not a polish item: without git, no later phase is revertible or bisectable.
-
-### P1 — Stop the bleeding (root causes C, D) *(landed)*
-
-Two edits, each deleting a wrong assumption rather than adding machinery.
-
-- **C:** the sidecar to delete is derived from this run's own naming scheme, not
-  read out of the previous index. Measured before: a repository shipping a
-  crafted `.rag-your-code/index.json` whose `vector_store.path` names any file
-  under the index directory causes `index` to delete that file and report
-  success (`exit code = 0`, `PRECIOUS.py exists = False`).
-- **D:** `main()` pins stdin/stdout/stderr to UTF-8. Measured before: on a
-  cp936 console (`sys.stdout.encoding == 'gbk'`), one non-representable
-  character in a result kills the agent subprocess; a UTF-8 CJK query is
-  mis-decoded and returns `results: []` with exit 0.
-
-### P2 — Build the ruler *(landed)*
-
-The golden set currently holds seven queries, all resolving to Python units, so
-the parser can regress arbitrarily on the seven other languages README.md names
-while the suite stays green. This phase adds per-language fixtures with expected
-unit names, line ranges, and signatures — the ground truth P3 is graded against.
-
-Ordering is deliberate: written after P3, these fixtures would encode whatever
-the new parser happens to do.
-
-### P3 — Parser: three-layer rewrite (root causes A, B) *(landed)*
-
-Replace the single whole-file regex with three separated layers:
-
-```
-Layer 1  line scanner       one match attempt per line; line number is the loop index
-Layer 2  language rule table  per-language anchored declaration patterns
-Layer 3  span closer        brace balance / `end` keyword / next-declaration fallback
-```
-
-Because a pattern now sees exactly one line, the cross-line quantifiers that
-caused four of the five symptoms (`[^;]*` consuming newlines, `(?:...|\s)+`
-consuming blank lines) cannot exist. The backtracking input size drops from
-"file" to "line".
-
-Measured before, on this machine:
-
-| Input | Result |
+| item | outcome |
 |---|---|
-| `.js`: one function + N whitespace-only lines | n=40 (230 B) 0.256 s · n=60 (330 B) 1.295 s · n=80 (430 B) 4.764 s · n=100 (530 B) **12.630 s** (~n^4.3) |
-| idiomatic TypeScript class, 3 methods + constructor | **0 units** |
-| `.js`, 4 functions separated by one blank line | 3 of 4 have a wrong `start_line` and an empty `signature` |
-| `.py` with `\x0c` inside a string literal | `alpha` source truncated mid-literal; `beta`'s entire body lost |
+| Qualified names outside Python | **Fixed** in 1.1.0, all 15 languages, from the spans the closer already produced. |
+| Descriptions cover 297 of 524 units | **Decided.** Test-function descriptions cost five real answers and six false silences; the table is under 1.0.0 in [ROADMAP-history.md](ROADMAP-history.md). Now 303 of 557. |
+| No stemming | **Measured and rejected.** Helps both own-repository rulers, costs the foreign one 3 of 35 hit@3. |
+| A test declaration outranks the code it tests | **Misdiagnosed, and corrected.** See below. |
+| English questions answered from words used here in another sense | **Fixed** by the concentration bar, 0.53 → 0.93 English silence. One residual, below. |
+| Whether the skill fires unprompted in a fresh session | **Still not verifiable from a command.** See below. |
+| Vectors are 55% of an index and earn nothing | **Diagnosed** (1.1.0) and **kept**: 65.4%, ±1 question, and the same storage is what makes the optional model work. |
+| Tree-sitter parsing | **Decided against as a default**, and the policy for it settled. See non-goals. |
+| SQLite / ANN storage layer | Same. |
 
-Layer 3 is conservative by design: brace balancing for `{}` languages, the `end`
-keyword for Ruby, and the existing next-declaration fallback where neither
-applies. Its limits are documented rather than guessed at.
+### The test-ranking item was misdiagnosed
 
-### P4 — Retrieval correctness (root cause E) *(landed)*
+"A test declaration often outranks the code it tests" had been on the list
+since 0.6.0. Three measurements retired it:
 
-- Candidate set becomes the full lexical set; the selective set decides only
-  *which candidates additionally receive a cosine score* — the intent already
-  stated in `search.py`'s own comment. Measured before: 116 units, threshold 64,
-  `search('sqlite function using json', limit=8)` returns **1** result.
-  The latency reason for the current shape is real (a naive full scan measured
-  0.49 ms -> 27.53 ms at 10k units), so the fix must keep the selective set for
-  vector work while restoring lexical recall.
-- Graph edges resolved by bare leaf name currently contradict this module's own
-  "omitted rather than guessed" contract; leaf fallback gets constrained.
-- `build_units` and `write_index` walk the tree separately, so a write landing
-  between them records a fresh hash beside stale units and every later
-  incremental run reuses them while reporting `stale: false`. One snapshot,
-  shared.
+- Across three rulers, **10 of 175** questions have a test at rank 1 with an
+  accepted answer sitting at rank 2–3. That is the real cost, and it is smaller
+  than the raw count of tests-at-rank-1 suggested, because sometimes the test
+  is a legitimate answer.
+- Inspected case by case, **seven of the eight examined** are tests with *no relationship*
+  to the code they displaced — `test_readme_badge_match` displacing an i18n
+  checker, `test_the_default_provider_opens_no_socket` displacing a path
+  guard. So no mechanism keyed on "the code it tests" can address it.
+- A callee-before-caller rerank, which is what such a mechanism would look
+  like, fires on **zero** questions.
+- Lowering the `name` field weight from 8 to 4, and raising its length
+  normalisation to b=1.0, changes **nothing at any setting** — because
+  `tokenize` keeps an underscored test name as a single token. The name field
+  never carried the test's English words.
 
-### P5 — Agent protocol robustness *(landed)*
+What is left is generic: test bodies are prose-heavy, and prose-heavy units
+win prose queries. That is ranking noise, not the stated defect.
 
-Catch-all around the request loop (a single `1e400` in a request currently kills
-the subprocess), a real output bound on `open`, and an ignore list for it.
+### The residual on the absent ruler
 
-### P6 — Release bar *(landed)*
+One English question of fifteen, on both repositories: `how is a hostname
+resolved when the nameserver times out` finds `hostname`, `resolved` and
+`times` genuinely co-occurring in one unrelated declaration. That is a real
+vocabulary collision, and no lexical rule separates it from a real answer
+without costing more than it saves — three further rules were measured and
+each cost more. Chinese sits at 1.000 silence on both repositories.
 
-`LICENSE` (pyproject declares MIT with no license text in the tree or the built
-wheel), `.claude-plugin/marketplace.json`, an install step in `SKILL.md` (which
-today tells an agent to run a module that nothing installs), pyproject
-classifiers/URLs/dev extra, `py.typed`, `requires-python` corrected to match the
-`tomllib` import in the test suite, and CI. CI lands last so it gates the fixed
-suite rather than the broken one.
+### The one thing a command cannot check
 
-## Decided since
+Whether the bundled skill fires on its own in a fresh session. Everything
+adjacent is checked — the manifest, the marketplace entry, the install line run
+verbatim by CI, the token cost from `claude plugin details` — but the trigger
+itself needs an interactive session with a model deciding, which no test in
+this repository can stand in for. It is listed here rather than quietly
+dropped.
 
-The plugin manifest and marketplace entry now carry `homepage` and `repository`
-pointing at `https://github.com/skymanbp/rag-your-code`. They were left empty
-through P6 because the repository had no remote and a URL that resolves to
-nothing is worse than an absent field; the remote now exists.
+## 1.1.0 — words that are here, but never together
 
-## Distribution, closed
+1.0.0 stopped retrieval answering questions whose words are absent. It left six
+of fifteen English questions about absent subjects still answered, and blamed
+polysemy — words occurring here in another sense. **That diagnosis was wrong.**
 
-Every path a stranger can take to this project has been walked end to end, on
-a machine other than the one that built it where that was possible.
+Inspected, the surviving failures share one shape: several of the query's rare
+words really are in the repository, in *different declarations that have
+nothing to do with one another*. Two thirds coverage, and no two of those words
+ever appear together. Coverage asks whether each word occurs somewhere; nothing
+asked whether they occur in one place.
 
-| path | verified by |
-|---|---|
-| GitHub repository, CI on 3.10-3.13 x Linux/Windows | 11 of 11 jobs green |
-| release artifacts | downloaded from the release page, installed into a clean environment, documented commands run |
-| PyPI (`pip install rag-your-code`) | installed by name into a clean environment; a CI job now runs the skill's own install line verbatim |
-| Claude Code plugin | installed via `/plugin marketplace add` + `/plugin install`; present in both local registries; `claude plugin details` reports one skill, ~39 always-on tokens |
+`search.min_concentration` asks that: what share of a query's distinctive
+rarity lands inside a single unit. Rarity-weighted rather than counted, because
+a unit holding two ordinary words is not better evidence than one holding the
+rare word the question is about.
 
-The one thing still unverified is whether the skill fires on its own in a fresh
-session, which needs an interactive session rather than a command.
-
-## Still open
-
-Qualified names for non-Python languages. `CodeUnit` carries `qualified_name`,
-and the Python path fills it (`Svc.helper`), but the line scanner sets it equal
-to `name`. A scope stack keyed on brace depth would supply it and would improve
-`contains` edges; it was outside P3's scope, which was root causes A and B.
-Tree-sitter would supply it too, which is why the two are listed together on
-the evolution plan rather than fixed separately.
-
-Descriptions exist for `src/`, the benchmark tooling and the parser fixtures —
-297 of 524 units. The test functions carry generated ones, and as of 1.0.0 that
-is a decision rather than a gap: all 227 were written, measured, and cost five
-real answers and six false silences, because a test description restates what
-the source does in the source's own words and then outranks it. The table is
-under 1.0.0 below.
-
-There is no stemming. A description saying `backtracks catastrophically` does
-not answer a query saying `catastrophic backtracking`, and that appears in the
-measured results as a miss. A conservative suffix stripper was tried and
-measured on the eight-question set: it fixed that query and broke another.
-That set could not resolve the difference, and the question is still open.
-
-Term-rarity weighting was in the same paragraph, dropped for the same stated
-reason, and that was **wrong** — see 0.6.0 below. It was measured on this
-repository, where every unit carries a hand-written bilingual description and
-the defect is masked. On a foreign repository with no descriptions the same
-mechanism tripled hit@1. The lesson is recorded in CONTRIBUTING.md.
-
-A test declaration often outranks the code it tests: 11 of 35 top-1 results on
-the cold ruler, down from 14 but not solved. Excluding `tests/` by path would
-move the number and be wrong in principle, since sometimes the test is the
-answer. No mechanism that separates them on evidence rather than on location
-has been found yet.
-
-## 0.4.0
-
-0.3.0 closed the gap between what the code claimed and what it did. 0.4.0 is
-the first pass that adds a claim, and it rests on one measured fact. Both
-phases have landed; what each turned up while being built is recorded below.
-
-### The measurement that motivates it
-
-The embedder is a signed feature hash (`embeddings.py`), so `cosine` is a
-normalised measure of *token overlap*. It carries no semantics whatever:
-
-| pair | cosine |
-|---|---|
-| `retry failed card charge` vs itself | 1.0000 |
-| `sum two numbers` vs `add a pair of integers` | **0.0000** |
-| `计算两个数的和` vs `sum two numbers` | **0.0000** |
-| `sum two numbers` vs `delete the user database table` | 0.0000 |
-
-A real embedding model scores row 2 around 0.8. Row 4 is the control: a synonym
-pair and an unrelated pair are indistinguishable, because zero shared tokens is
-zero either way.
-
-The golden set's paraphrase queries still reach top-1, but on a thin margin
-supplied by the developer's own docstring: `check whether a credential is valid
-and has not expired` matches `verify_session_token` on the single content word
-`expired` (0.3293) ahead of `retry_charge` (0.2401) — whose only matched terms
-are the stopwords `a` and `and`.
-
-### P7 — Configuration layer *(landed)*
-
-Seven classes of tunable are module constants today and can only be changed by
-editing installed source: ignore list and source suffixes and size cap
-(`indexer.py`), embedding dimensions (`embeddings.py`), the 0.15 hybrid weight
-(`search.py`), the `limit`/`max_chars` defaults and the agent `open` bounds
-(`cli.py`).
-
-Resolution order is CLI flag > `.rag-your-code/config.toml` > built-in default.
-No environment variables and no new dependencies: `tomllib` is standard library
-from 3.11, and the 3.10 leg reads the same file with a minimal parser rather
-than adding `tomli` to the runtime.
-
-One trap this phase must handle rather than discover later: changing
-`dimensions` or `suffixes` invalidates an existing index, and a dimension
-mismatch is currently *silent* — `search.py`'s guard drops the vector score to
-zero rather than raising. The index must record a fingerprint of the
-configuration that produced it and force a full rebuild when it differs.
-
-### P8 — Agent-authored descriptions *(landed)*
-
-`annotate.py` says it in its own first line: descriptions are generated
-*without an LLM*. `describe_python` humanises the identifier, lists parameter
-and callee names, and appends the docstring verbatim. It introduces no
-vocabulary that was not already in the source, which is exactly why retrieval
-cannot reach a concept the author never wrote down.
-
-The architecture already has the seam. `description` is part of
-`searchable_text` (`models.py`), the vector is computed from the description
-plus that text (`indexer.py`), and incremental reuse copies whole `CodeUnit`s
-for unchanged files, so a better description survives re-indexing untouched.
-
-So the agent already consuming this index writes the descriptions, at index
-time, through two new protocol actions (`describe_pending` / `describe_put`)
-and a `describe` subcommand for the non-protocol case. They are stored in
-`.rag-your-code/descriptions.json`, keyed by unit id **and source hash** so a
-description can never outlive the code it describes, and committed to Git so
-one person's pass benefits the team and CI.
-
-Measured on `benchmarks/fixture`, replacing one template description with an
-agent-written bilingual one:
-
-| query | template description | agent description |
-|---|---|---|
-| `exponential backoff` | not in top 3 | **#1**, 1.0175 |
-| `double billing safety` | not in top 3 | **#1**, 0.3369 |
-| `支付网关超时` | not in top 3 | **#1**, 0.8636 |
-| `resend a payment after a transient upstream error` | #1, 0.3211 | #1, **0.9178** |
-
-Three queries move from missing entirely to first. The fourth already matched;
-its margin stops depending on a stopword.
-
-**What this is, stated plainly:** it moves the semantic work from query time to
-index time. It is not semantic generalisation — matching stays lexical, so a
-description saying `retry` still cannot answer a query saying `resend` unless
-the description also says so. It is LLM-authored keyword expansion, and its
-quality is bounded by how many ways of saying the thing the agent thought to
-write down. Descriptions are bilingual by default (configurable), because the
-row above shows a Chinese query going from unreachable to first.
-
-### What building them turned up
-
-Both phases surfaced defects older than themselves, which is the usual return
-on touching every call site of something.
-
-The walker's suffix list and the parser's dispatch table were separate lists
-agreeing by coincidence. A suffix on the first and not the second is walked,
-read, parsed to nothing, and reported as a clean index of zero units --
-precisely what `suffixes = [".vue"]` produced. `index.suffixes` now takes both
-its default and its permitted values from `parser.EXTENSIONS`.
-
-`incremental` in the index report was computed from whether a previous index
-existed, not from whether its units were reused. A configuration change
-discards them, so the run that rebuilt everything was the run that claimed
-reuse.
-
-SKILL.md's step 0 named a package index this project does not publish to. The
-0.2.0 audit had already found that step telling an agent to run a module
-nothing installs; the 0.3.0 fix was equally unrunnable, and neither time did
-any gate notice, because nothing ever ran it. There is now a test asserting
-every documented `pip install` names an installable source, and a CI job that
-runs the command as written.
-
-The query benchmark was itself too coarse to be evidence: ten cold samples of a
-sub-millisecond call made an unchanged query path look like a real regression
-across three runs, and a direct 1000-sample probe put the two trees within
-noise and reversed which was faster between rounds. It now warms up, takes 200
-samples, and records the median beside the mean.
-
-Two migration traps were caught before release rather than after. An index
-predating each new fingerprint carries no such key; read as "unknown" rather
-than as "defaults" and "no descriptions", every 0.3.0 index would have reported
-itself permanently stale, or forced one pointless full rebuild, on upgrade.
-
-### What 0.4.1 turned up
-
-Describing this repository's own `src/` was meant as dogfooding, and found two
-defects a single-unit fixture could not.
-
-A description was orphaned when its code merely moved. Unit ids embed the line
-a declaration starts on, so adding a seven-line comment to `config.py` gave
-every declaration below it a new id and orphaned nineteen descriptions -- of
-code that had not changed by a byte. The digest already answered "is this the
-same code?"; it now answers "where did that code go?" as well. Pruning had the
-matching hazard and would have deleted exactly the entries that lookup exists
-to rescue.
-
-`describe.max_chars` was set inside the normal range rather than above it. Over
-the 120 descriptions written here the median is 349 characters and the 90th
-percentile is 662, so a 600 cap rejected roughly one good-faith description in
-eight -- and rejected them at the complex units retrieval most needs help with,
-since nothing is truncated to fit.
-
-A third followed in 0.4.2, from the same cause as the install line: a number
-stated in prose that nothing compared to the data. `docs/TESTING.md` claimed 96
-deliberately-excluded constructs where the fixtures hold 89, the count of
-expected units copied one line up. The counts are now asserted against
-`expected.json` itself.
-
-## 0.5.0 — the vocabulary ladder
-
-0.4.0 asked where retrieval's vocabulary comes from and answered "whatever an
-agent writes into a sidecar". That was one rung of three, and the least
-durable one.
-
-Every source of words, ordered by what it costs and by whether it survives a
-refactor:
-
-| source | who wrote it | lives in | survives a move | cost |
+| gate, varied alone on one corpus | A hit@1/3/MRR | B hit@1/3/MRR | C hit@1/3/MRR | silence own / foreign |
 |---|---|---|---|---|
-| identifier, signature, body | author | the code | by construction | free |
-| Python docstring | author | the code | by construction | free |
-| doc comment, 14 languages | author | the code | by construction | free |
-| agent description | agent | a sidecar | needs machinery | tokens |
-| promoted doc comment | agent | the code | by construction | none extra |
+| neither bar | 0.229/0.400/0.300 | 0.314/0.486/0.391 | 0.471/0.686/0.552 | 0.000 / 0.000 |
+| coverage 0.40 only | 0.229/0.400/0.300 | 0.314/0.471/0.383 | 0.471/0.671/0.548 | 0.700 / 0.767 |
+| concentration 0.28 only | 0.229/0.400/0.300 | 0.314/0.471/0.383 | 0.443/0.614/0.507 | 0.967 / 0.933 |
+| **both, shipped** | 0.229/0.400/0.300 | 0.314/0.471/0.383 | 0.443/0.614/0.507 | **0.967 / 0.933** |
 
-Read the fourth column. Text in the code needs no bookkeeping; the digest,
-the relocation lookup, the fingerprint and the pruning rule all exist to
-simulate a property it has for nothing. So the sidecar is the fallback and
-the code is the destination, and the work went in that order.
+On these four rulers concentration subsumes coverage. Both ship anyway: they
+answer different questions, they produce different diagnoses, and
+`search.min_coverage` is a published setting whose removal would be a breaking
+change for no gain.
 
-**Level 0** indexes the documentation the author already wrote. Free, and it
-was being discarded: fourteen of fifteen languages document above the
-declaration, outside the unit's span. Zero of ninety-five non-Python fixture
-declarations carried documentation into the index; sixteen now do.
+### What a real model does, measured at last
 
-**Level 1** offers to move an agent's description into the code as a patch a
-person reviews. Not performed — the tool still never writes source.
+0.8.0 shipped the endpoint seam and stated plainly that its benefit was
+unmeasured, because there was no key here and a number from a stub would be
+fiction. A model that runs locally needs no key.
 
-**Level 2** is the sidecar, unchanged in mechanism and demoted in role.
-
-### What the ladder turned up
-
-Two prerequisites, both defects older than the work.
-
-Reuse was keyed on a file's bytes, but cached units are a function of the
-bytes and of the parser. Upgrading the parser reached no existing index. That
-was the third unrecorded input after the settings and the descriptions, so the
-three became one `build_fingerprint`.
-
-The digest deciding whether a description still applies covered the unit's
-documentation, so promoting a description discarded it — the guard firing on
-its own reflection. Measured here, that cost Chinese retrieval twenty-eight
-percent of its hit rate before it was found. Documentation is now excluded
-from that digest, which also stops a hand-edited docstring from discarding a
-description of code that did not change.
-
-### The instrument came first
-
-Four candidate scoring changes measured over an eight-question set all landed
-between five and six correct. That is the resolution limit of the instrument,
-not a ranking of options, and it is the same mistake as the ten cold samples
-that made an unchanged query path look like a regression in 0.4.0. So seventy
-questions were written before anything else, and its own score is asserted
-nowhere: it falls whenever the repository gains undescribed code, which is
-ordinary development.
-
-## 0.6.0 — ranking, measured somewhere it could fail
-
-Every ruler this project had graded a repository its own authors wrote, and
-0.5.0's own summary said the score was 0.457 hit@1. Indexed cold against
-cc-enforcer — 1153 units, no descriptions, questions in a user's words — the
-same code scored **0.086**, and the reason was not the vocabulary the previous
-release worked on. It was ranking.
-
-| defect | how it showed | fix |
+| ruler | signed hash | MiniLM, local |
 |---|---|---|
-| Every query word weighed the same | `calls` reached 97% of units and `the` 49%, against `daemon` at two and `warm` at none; the score was four-sixths noise | inverse document frequency, derived from the corpus, so it needs no stopword list and works in any language |
-| Nothing corrected for size | largest declaration held 539 distinct terms against a median of 52, and led the top three for four questions of six | BM25 length normalisation, per field |
-| A word counted the same wherever it was | test declarations outranked the code they test | field weights: name 8, signature 4, description 3, relations 2, body 1 |
+| A foreign, cold (35) | 0.229 / 0.400 / 0.300 | **0.286 / 0.457 / 0.357** |
+| B own, cold (70) | 0.314 / 0.471 / 0.383 | **0.329 / 0.486 / 0.400** |
+| C own, described (70) | 0.443 / 0.614 / 0.507 | 0.443 / **0.671 / 0.540** |
+| D silence, own / foreign | 0.967 / 0.933 | 0.967 / 0.933 |
 
-Measured on identical content, all three rulers moved in the same direction. These are 0.6.0's figures and are kept as its record; the current ones are in README.md:
+Better on every positive ruler, refusal unchanged — but only after deleting a
+special case 1.0.0 had introduced.
 
-| ruler | hit@1 | hit@3 | MRR |
-|---|---|---|---|
-| cold, foreign repository (35) | 0.086 → **0.257** | 0.229 → **0.400** | 0.157 → **0.314** |
-| cold, this repository (70) | 0.200 → **0.271** | 0.357 → **0.486** | 0.271 → **0.367** |
-| described, this repository (70) | 0.457 → **0.500** | 0.657 → **0.800** | 0.545 → **0.631** |
+### The exemption that reintroduced the defect
 
-### What was measured and rejected
+1.0.0 exempted a semantic embedder from the coverage bar, reasoning that a
+paraphrase sharing no word with its answer is exactly the case a model exists
+for. The reasoning is sound. The conclusion was wrong, and it was reasoned
+rather than measured because there was no model here to measure with: exempt
+and asked no other question, the model answered **all sixty** unanswerable
+questions. The whole defect 1.0.0 existed to fix, restored by the one path that
+skipped the fix.
 
-Four changes were implemented, measured, and dropped — which is the point of
-having three rulers rather than one.
+Two vector-space replacements were measured before the exemption was deleted:
 
-- **Excluding curated text from a unit's length**, on the argument that a
-  written description is deliberate rather than incidental: one question
-  better on two rulers, three worse on the third.
-- **Counting authored words rather than tokeniser output**, so a run of
-  Chinese expanded into bigrams would not read as five times the text:
-  identical on two rulers of three.
-- **Lowering `b` to 0.5 or 0.3**: worse than the standard 0.75 on the cold
-  ruler.
-- **Splitting identifiers into words** — `retry_charge` into `retry` and
-  `charge`. This looked like the largest available win, since identifiers are
-  the densest vocabulary in code and are currently opaque. Measured with query
-  and stored vectors rebuilt together, it was equal or worse on all three
-  rulers: the pieces are `get`, `find`, `check`, `test`, which rarity
-  weighting immediately discounts, while the exact-identifier signal is
-  diluted among them.
+- **A similarity floor** is a threshold on a score — the failure this project
+  has already had once — and the distributions overlap far too much to place
+  one: median nearest-unit cosine 0.469 for answerable questions against 0.418
+  for unanswerable.
+- **A scale-free standout** — how many standard deviations the nearest unit
+  stands above the corpus's own mean for that query — is the right *shape* of
+  idea and measured worse, taking ruler B from 0.329 hit@1 to 0.186 in exchange
+  for two thirds of the silence.
 
-### What the vector turned out to be
+Applying the existing lexical bars costs ruler A nothing measurable.
 
-Ablating it used to cost 0.114 of hit@1, which read as evidence that the
-feature hash was doing something. It was: `vector[bucket] += sign` followed by
-a division by the magnitude is term frequency with length normalisation, the
-two things the lexical score lacked. Once BM25 supplied both properly, the
-same ablation costs **nothing measurable on a foreign repository**. The
-vectors are 55% of an index's size and are now earning almost none of it.
-Removing them is a schema decision, not a ranking one, and has not been taken.
+### Why the vector earns nothing, diagnosed
 
-## 0.7.0 — what a reply carries, and the end of the embedding search
+Open since 0.6.0, where it was observed and left unexplained. Measured
+first-party:
 
-Three defects of one shape, and one investigation that closed a question.
+- **Not saturation.** Median 56 distinct tokens per unit into 384 buckets;
+  13.6% expected occupancy; 0.4% of units exceed the width. Widening to 16,384
+  raises fidelity to true token overlap from r=0.40 to r=0.56 and buys no
+  ranking at all.
+- **Not redundancy.** The hashed cosine correlates only **+0.45** with the
+  BM25F score over 26,490 scored candidates, so it does carry variance of its
+  own.
+- **The variance is the wrong variance.** A signed hash counts every token
+  equally, so the part independent of BM25F is exactly the contribution of
+  words that are everywhere — precisely what rarity weighting exists to
+  discard. Independent noise, not independent signal.
+- **And it can only reorder.** Candidates come from the lexical half; six of
+  thirty-five foreign questions have an accepted answer sharing no token at all
+  with the query.
 
-**A result carried the code, and every reply carried it again.** `search
---json` served 65,025 characters against a stated budget of 12,000;
-`research` served 111,843, because reporting two retrieval steps meant
-serialising the same eight units three times with their source attached; and
-`neighbors` served 27,473 under no budget at all. Bounding each emitter would
-have left the next one free to overrun, so the source came out of
-`SearchResult.to_dict`: a result that has no source cannot carry it twice.
-Measured after: 24,403 / 24,429 / 13,848.
+A vector computed from the same words cannot know anything those words do not
+already say. That is the reason eight dependency-free replacement schemes all
+failed, and the reason the answer is a model rather than a better hash.
 
-**A constant was tied to a scale that moved.** The research loop stopped early
-when the top score passed 0.8. BM25F changed the scale, only 3% of queries
-could reach 0.8, and the early stop silently ceased to exist — no test noticed,
-because the assertion was `stop_reason in {all four values}`. It is a margin
-between the top two scores now, which is scale-free by construction.
+### Also in 1.1.0
 
-**Indexing was not the same as being searchable, and nothing said so.**
-`bootstrap` reports which rung a repository is on and hands over that rung's
-work. It reads state rather than remembering a position, so it is resumable by
-running it again. The pure operations moved to `workflow.py`, which is what
-lets the command line and the agent protocol run one implementation.
+Qualified names in all fifteen languages, from the spans the closer already
+produced rather than a second brace-depth mechanism that could disagree with
+the first. Unit ids deliberately keep the bare name, because re-keying them
+would orphan every description ever written against one.
 
-### The embedding question, closed
+The benchmark stamps the corpus it graded. Two runs of an unchanged `search.py`
+returned 0.257 and 0.229 hit@1 on the foreign ruler because that repository had
+grown by ninety units between them; both numbers were right, comparing them was
+meaningless, and nothing said so.
 
-Eight approaches were implemented and measured against all three rulers: six
-replacement embeddings (character n-grams, corpus co-occurrence via random
-indexing, truncated SVD, posting-list signatures, a rarity- and field-weighted
-hash, call-graph diffusion), lexical postings expansion, and embedding only
-the authored fields. **On the foreign-repository ruler, hit@3 never exceeded
-its no-vector value of 0.429.**
-
-The constraint is architectural. `candidate_ids = lexical_scores.keys()`: a
-vector reorders what the lexical half already found and cannot make anything
-retrievable. Postings expansion, the one change that *could*, was worse at
-every weight tried. Corpus-learned semantics need orders of magnitude more
-text — 65% of the foreign corpus's terms appear in four or fewer units. And on
-a described corpus the shipped hash helps *because* it is blunt, so every
-scheme that sharpened it lost ground there.
-
-What remains is not a better local embedding. It is either a real model as an
-optional dependency, which trades the property this project is built on, or
-accepting that retrieval reaches only what somebody wrote down.
-
-## 0.8.0 — the trade, made the only way it could be
-
-0.7.0 closed the question of whether a dependency-free scheme could give the
-vector half real semantics: eight approaches, none adopted, and the reason was
-architectural rather than representational. What remained was named there as
-two options — a real model as an optional dependency, or accepting that
-retrieval reaches only what somebody wrote down.
-
-This is the first, built as something a user turns on. `embedding.provider`
-switches between the local hash and any OpenAI-compatible embeddings endpoint,
-which covers hosted services and a model server on localhost with one request
-shape. The local case is documented first because it is the one that keeps the
-original promise: the source never leaves the machine.
-
-The default is unchanged and stays unchanged by construction. It adds no
-dependency, opens no socket, and a test asserts the second of those by making
-the transport raise before running a full index and search. Everything else in
-`tests/test_providers.py` is only worth having while that one passes.
-
-### What the settings had to get right
-
-| decision | why it went this way |
-|---|---|
-| the key is an environment variable, the file names it | every other setting is meant to be committed so everyone who clones sees what shaped the index; a credential is the one value with the opposite requirement |
-| cleartext HTTP to a non-loopback host with a key is refused | a warning about a leak that has already happened is not a safeguard |
-| provider, model and width are recorded in the index | two models behind one endpoint are two vector spaces; a cosine across them is meaningless and ranking would act on it anyway |
-| a failure ends the build | falling back would leave a mixed index, and the confident wrong answer is the one thing this index is built not to give |
-| embedding is one batched pass | eleven hundred units one round trip at a time is not a slower version of the same thing |
-
-### The candidate set opens, but only for real semantics
-
-`search.vector_recall` lets similarity *add* candidates rather than only
-reorder them — the constraint 0.7.0 identified as the reason no embedding
-change could help. It is gated on the embedder, not on a preference: under the
-feature hash the same widening measured worse, and six of thirty-five foreign
-ruler questions have no acceptable answer sharing a single token with the
-query, which is exactly what only a real model can reach.
-
-Verified against a stub whose vectors carry meaning by hand: with recall off
-the semantically-near unit is not a candidate at all; with it on the unit
-appears, found by similarity alone, ranked below the lexical hit.
-
-### What is not measured
-
-Whether any of this helps a real repository, and by how much. There is no key
-here, and a number produced by a stub would be fiction. The instrument ships
-instead: `benchmarks/repo_queries.py --index` grades any index, so the
-question is answerable by whoever has the key. The 0.15 default for
-`search.vector_weight` was tuned against a hash carrying no meaning and is
-very likely wrong for a model.
+An imputed rarity that changed shape with corpus size: an absent query word was
+charged what a word in zero units would be worth — eighteen times a real term
+across nine units, 1.2 times across five hundred. It is charged what the rarest
+*present* word is worth instead. Same degeneracy as `COMMON_TERM_FLOOR`,
+arrived at from a third direction, caught by the small-index test.
 
 ## 1.0.0 — the question a ranking cannot answer
 
@@ -679,15 +333,76 @@ table had been nine settings behind since 0.8.0 and is now asserted against
 repository instead of answering with a `PermissionError` traceback, which
 mattered because that is the one command the docs hand to a stranger.
 
+## 0.8.0 — the trade, made the only way it could be
+
+0.7.0 closed the question of whether a dependency-free scheme could give the
+vector half real semantics: eight approaches, none adopted, and the reason was
+architectural rather than representational. What remained was named there as
+two options — a real model as an optional dependency, or accepting that
+retrieval reaches only what somebody wrote down.
+
+This is the first, built as something a user turns on. `embedding.provider`
+switches between the local hash and any OpenAI-compatible embeddings endpoint,
+which covers hosted services and a model server on localhost with one request
+shape. The local case is documented first because it is the one that keeps the
+original promise: the source never leaves the machine.
+
+The default is unchanged and stays unchanged by construction. It adds no
+dependency, opens no socket, and a test asserts the second of those by making
+the transport raise before running a full index and search. Everything else in
+`tests/test_providers.py` is only worth having while that one passes.
+
+### What the settings had to get right
+
+| decision | why it went this way |
+|---|---|
+| the key is an environment variable, the file names it | every other setting is meant to be committed so everyone who clones sees what shaped the index; a credential is the one value with the opposite requirement |
+| cleartext HTTP to a non-loopback host with a key is refused | a warning about a leak that has already happened is not a safeguard |
+| provider, model and width are recorded in the index | two models behind one endpoint are two vector spaces; a cosine across them is meaningless and ranking would act on it anyway |
+| a failure ends the build | falling back would leave a mixed index, and the confident wrong answer is the one thing this index is built not to give |
+| embedding is one batched pass | eleven hundred units one round trip at a time is not a slower version of the same thing |
+
+### The candidate set opens, but only for real semantics
+
+`search.vector_recall` lets similarity *add* candidates rather than only
+reorder them — the constraint 0.7.0 identified as the reason no embedding
+change could help. It is gated on the embedder, not on a preference: under the
+feature hash the same widening measured worse, and six of thirty-five foreign
+ruler questions have no acceptable answer sharing a single token with the
+query, which is exactly what only a real model can reach.
+
+Verified against a stub whose vectors carry meaning by hand: with recall off
+the semantically-near unit is not a candidate at all; with it on the unit
+appears, found by similarity alone, ranked below the lexical hit.
+
+### What is not measured
+
+Whether any of this helps a real repository, and by how much. There is no key
+here, and a number produced by a stub would be fiction. The instrument ships
+instead: `benchmarks/repo_queries.py --index` grades any index, so the
+question is answerable by whoever has the key. The 0.15 default for
+`search.vector_weight` was tuned against a hash carrying no meaning and is
+very likely wrong for a model.
+
 ## Non-goals
 
-Tree-sitter and the SQLite/ANN storage layer stay
-on the evolution plan in ARCHITECTURE.md. P8 is deliberately the cheaper answer
-to the same problem provider embeddings solve, and it stays the default: it
-keeps `dependencies = []`, it keeps source on the machine, it needs no API key,
-and its output is text a human can read and correct rather than opaque floats.
-A provider is now available beside it, never instead of it.
+**Tree-sitter parsing** and a **SQLite/ANN storage layer** are not here, and
+the policy that governs them is now settled rather than pending: anything
+requiring a dependency follows `embedding.provider` — an optional extra,
+selected by a setting, never in a default install.
 
-`search.vector_recall` scans every unit's vector on every query, which is
-affordable at the measured envelope and is precisely the work an ANN index
-would replace.
+Neither has been built, and the reasons are specific rather than general.
+
+- Tree-sitter's headline benefit for this project was qualified names outside
+  Python, and 1.1.0 supplies those from spans the parser already computes. What
+  would remain is better recall on constructs the rule table misses, and the
+  language fixtures currently report 91/91 on found declarations, line numbers
+  and signatures — so the measured headroom is zero and there would be no way
+  to tell an improvement from a regression.
+- An ANN index replaces the full vector scan in `search.vector_recall`, which
+  runs only under a semantic embedder. That path is affordable at the measured
+  envelope (10,000 units, 3.90 ms mean query), so the work would be justified
+  by a repository size nobody has brought yet.
+
+The default stays what it is: `dependencies = []`, no socket, no key, and
+output a human can read and correct rather than opaque floats.

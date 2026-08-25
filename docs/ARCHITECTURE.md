@@ -41,7 +41,7 @@ What none of this can do is reach a concept nobody wrote down — which is what
 agent-authored descriptions exist to fix, and why they are described below as
 keyword expansion rather than as semantics.
 
-### Seven schemes measured, none adopted
+### Eight schemes measured, none adopted
 
 Six replacement embeddings were implemented and measured on all three rulers --
 character n-grams, corpus co-occurrence via random indexing, truncated SVD by
@@ -76,6 +76,27 @@ through 384 lossy buckets. That is why switching it off used to cost 0.114 of
 hit@1, and why, once BM25 did those two things properly, the same ablation
 costs **nothing at all on a foreign repository** and one question of seventy
 on this one. It carries no semantics and never did.
+
+1.1.0 finished the diagnosis, because "carries no semantics" explains why it
+cannot *help* and not why it is not merely redundant. Three measurements:
+
+- **It is not saturated.** Median 56 distinct tokens per unit into 384 buckets,
+  13.6% expected occupancy, 0.4% of units wider than the vector. Widening to
+  16,384 raises fidelity to true token overlap from r=0.40 to r=0.56 and
+  changes no ranking, so collisions were never the constraint.
+- **It is not redundant with BM25F.** Its cosine correlates only **+0.45** with
+  the lexical score over 26,490 scored candidates. It genuinely carries
+  variance of its own.
+- **The variance it carries is the wrong variance.** A signed hash counts every
+  token equally, so the part of it independent of BM25F is precisely the
+  contribution of words that occur everywhere — exactly what rarity weighting
+  exists to discard. Independent noise, not independent signal.
+
+Which is the general result, and it is why no better hash would have worked: a
+vector computed from the same words cannot know anything those words do not
+already say. Information the words lack has to come from a model, and the
+vectors are kept in the schema so that switching to one changes a setting
+rather than a format — at a measured cost of 65.4% of an index's bytes.
 
 ## Current end-to-end path
 
@@ -112,13 +133,26 @@ adapter boundary, and since 0.8.0 something else can stand at it.
 
 ### The provider boundary
 
-`embedder(cfg)` returns whichever of two objects the settings ask for, and
-both answer the same three questions: what a text's vector is, what a batch of
-texts' vectors are, and what metadata an index should record about them.
-`LocalEmbedder` hashes; `RemoteEmbedder` posts to an OpenAI-compatible
-endpoint using nothing but `urllib`. One request shape reaches a hosted
-service and a model server on localhost alike, and the local case is the one
-that keeps the original promise: the source never leaves the machine.
+`embedder(cfg)` returns whichever of three objects the settings ask for, and
+all three answer the same three questions: what a text's vector is, what a
+batch of texts' vectors are, and what metadata an index should record about
+them. `LocalEmbedder` hashes. `LocalModelEmbedder` runs a trained model here,
+through `sentence-transformers`, and is the only one that is both semantic and
+offline. `RemoteEmbedder` posts to an OpenAI-compatible endpoint using nothing
+but `urllib`; one request shape reaches a hosted service and a model server on
+localhost alike.
+
+The difference between them is what a vector is *able* to know, and it decides
+one thing structurally: `semantic` gates whether similarity may add candidates
+or only reorder them. It does **not** gate the evidence bars — 1.0.0 exempted
+semantic embedders from those and the exemption reintroduced the whole defect
+they exist to prevent.
+
+The trained model is an optional extra and stays one: `dependencies = []`
+describes a default install, the import happens inside the constructor rather
+than at module level, and a test asserts the default provider imports none of
+it. Anything that needs a dependency follows this shape — selected by a
+setting, never present by default.
 
 Four properties are structural rather than advisory:
 
@@ -229,7 +263,7 @@ reported as a clean index of zero units.
 
 ## Configuration
 
-Twenty-one settings live in one table in `config.py`. The loader, the validator,
+Twenty-two settings live in one table in `config.py`. The loader, the validator,
 the fingerprint, the `config` subcommand and the generated template all read
 that table, so a value is named, defaulted, bounded and classified exactly
 once. Resolution is CLI flag > `rag-your-code.toml` > built-in default.
@@ -410,14 +444,44 @@ occur in the index at all.
   0.731 → 0.559 → 0.410 from 1153 units to 400, 100 and 10, while coverage of
   unanswerable ones stays flat at 0.13–0.18 whatever the size. The separation
   survives; only its position moves.
-- A semantic embedder is exempt entirely. A paraphrase sharing no word with
-  its answer is the case a provider was configured for, so lexical coverage is
-  then evidence of nothing. Reasoned, not measured — there is no key here.
+Coverage alone is not enough, and 1.1.0 is why. It asks whether each word
+occurs *somewhere*, which a question about a subject the repository does not
+implement can satisfy entirely out of unrelated declarations — four of six
+words found in four places with nothing to do with one another or with what was
+asked. So `assess()` measures a second thing:
 
-A ratio inside the query rather than a threshold on a score, because a score
-threshold is tied to whatever scale the ranking currently produces. This
+**Concentration**, the share of a query's distinctive *rarity* that occurs
+inside one unit. Rarity-weighted rather than counted, because a unit holding
+two ordinary words is not better evidence than one holding the rare word the
+question is about; it is the same worth `search` ranks by, asked as a different
+question. A word the index does not have is charged what the rarest word it
+*does* have would be worth, never the unbounded value of occurring in zero
+units — that figure is eighteen times a real term's across nine units and 1.2
+times across five hundred, so using it would make the measure change shape with
+the size of the repository.
+
+Nothing is exempt, including a semantic embedder, and that is a correction.
+1.0.0 exempted one by the argument that a paraphrase sharing no word with its
+answer is exactly the case a model exists for. The argument is sound; the
+conclusion was wrong, and it was reasoned rather than measured because there
+was no model here to measure with. Exempt and asked no other question, a
+trained model answered all sixty questions about subjects neither graded
+repository implements.
+
+Both are ratios inside the query rather than thresholds on a score, because a
+score threshold is tied to whatever scale the ranking currently produces. This
 project has already lost one of those: `confidence_threshold = 0.8` stopped
 meaning anything the moment BM25F changed the scale, and did it in silence.
+The vector-space replacements measured for the semantic case failed for exactly
+this reason — a similarity floor is a threshold on a score, and the answerable
+and unanswerable distributions sit at 0.469 and 0.418.
+
+Cost is bounded by what a discriminating term *is*: concentration reads the
+posting list of every distinctive word, and a word stays distinctive only while
+it is under `COMMON_TERM` of the corpus, so the work is a few percent of the
+index per query word. Measured, refusing an unanswerable query takes 0.01 ms
+against 0.44 ms to answer one — turning a query away is forty times cheaper
+than serving it.
 
 The gate also makes the pure-cosine fallback structurally unreachable under
 the feature hash, which is where it did the most harm — a cosine over hashed
@@ -426,9 +490,15 @@ case and for a repository that sets `search.min_coverage` to zero and asks for
 the old behaviour back.
 
 `diagnose()` turns the refusal into something an agent can branch on, because
-the three ways a query can fail are recovered by three different moves:
-`no_query_term_in_index`, `only_ubiquitous_terms_matched` and
-`too_little_of_the_query_matched`. One function computes both the decision and
+the four ways a query can fail are recovered by four different moves:
+`no_query_term_in_index`, `only_ubiquitous_terms_matched`,
+`too_little_of_the_query_matched` and `matched_terms_are_scattered`. The last
+is the most actionable of them — the words are here, never together, so the
+subject is probably not in this repository at all. The report also carries the
+bars *actually applied* after the small-index easing, which below
+`COVERAGE_FULL_STRENGTH` units are not the settings themselves; quoting the
+setting there would name a bar the query was never held to. One function
+computes both the decision and
 the explanation — two copies of a rule is how the ends of a contract start to
 disagree.
 
@@ -611,24 +681,40 @@ documented install target names a source that resolves.
 
 ## Evolution plan
 
-1. **Provider adapters:** optional OpenAI/Ollama/sentence-transformer
-   embeddings selected by configuration, with a local fallback and recorded
-   provider/version. Agent-authored descriptions are the cheaper answer to the
-   same problem and land first deliberately; a provider would buy true synonym
-   matching at the cost of the no-dependency, no-network, reproducible-index
-   properties, and that trade should be made knowingly.
-2. **Richer parsing:** Tree-sitter for JavaScript/TypeScript/Go/Rust/Java/C++,
-   capturing definitions, references, tests, inheritance and configuration
-   symbols. This would also supply `qualified_name` for non-Python languages,
-   which the line scanner currently sets equal to `name`.
-3. **Persistent scale layer:** SQLite metadata and an ANN vector index once
-   repositories exceed the measured JSON envelope.
-4. **Richer GraphRAG:** `implements`, `tests`, `configures` and git co-change
-   edges, with confidence and provenance on every edge.
-5. **LLM planner:** bounded follow-up queries, preserving the current tool
+The governing rule, settled in 1.1.0: **a dependency is a user's choice, never
+a default.** Anything on this list that needs one follows `embedding.provider`
+— an optional extra, selected by a setting, absent from `dependencies = []`.
+
+1. ~~**Provider adapters**~~ — **done.** An OpenAI-compatible endpoint in
+   0.8.0, a local `sentence-transformers` model in 1.1.0. Both record provider,
+   model and width in the index; neither is installed by default.
+2. ~~**`qualified_name` outside Python**~~ — **done in 1.1.0**, from the spans
+   the closer already produces rather than from a second mechanism.
+3. **Richer parsing:** Tree-sitter, capturing references, inheritance and
+   configuration symbols. Not built, and the reason is that its headline
+   benefit here was item 2, which arrived without it. What remains is recall on
+   constructs the rule table misses — and the language fixtures report 91/91 on
+   declarations found, line numbers and signatures, so there is no measured
+   headroom against which an improvement could be told from a regression.
+   Building the ruler first would mean finding constructs the current parser
+   loses, which is the honest prerequisite.
+4. **Persistent scale layer:** SQLite metadata and an ANN vector index. The
+   work it replaces is the full vector scan in `search.vector_recall`, which
+   runs only under a semantic embedder; at the measured envelope (10,000 units,
+   3.90 ms mean query) that scan is affordable, so this waits on a repository
+   size nobody has brought yet rather than on a decision.
+5. **Richer GraphRAG:** `implements`, `tests`, `configures` and git co-change
+   edges, with confidence and provenance on every edge. A `tests` edge is the
+   one with a measured motive — though note that of eight cases where a test
+   displaced a real answer, seven involved a test that does not test the code
+   it displaced, so the edge would address less of it than it appears to.
+6. **LLM planner:** bounded follow-up queries, preserving the current tool
    budgets, privacy policy and observable stop reasons.
-6. **Evaluation:** multi-hop graph questions and real repository tasks in the
+7. **Evaluation:** multi-hop graph questions and real repository tasks in the
    golden set; recall@k, citation and edge accuracy, latency, context budget.
+   A third graded repository matters most: `search.min_coverage`,
+   `search.min_concentration`, `COMMON_TERM` and `COVERAGE_FULL_STRENGTH` are
+   fitted on two.
 
 ## Safety and privacy
 

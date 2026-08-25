@@ -125,7 +125,31 @@ matter, it was a bug that went on serving them.
 separate things falsified that within an hour of writing it: two subject words
 this repository had always contained, and two more that appeared *because the
 source explains the feature using them as an example*. Documentation and ruler
-cannot own the same vocabulary. The check is mechanical for that reason.
+cannot own the same vocabulary. The check is mechanical for that reason — and
+it caught the identical mistake again one release later, from the same author
+who had just written this paragraph. Some lessons do not stay learned by being
+written down; that is an argument for the gate, not for more care.
+
+**Patch the binding the caller resolved, not the one you imported.** A sweep
+over the `name` field weight scored identically at every setting, which is the
+same signature as the default-argument trap above. The cause was different:
+`benchmarks/repo_queries` had done `from ...search import build_search_index`
+at import time, so rebinding it on `search` reached nothing. Third confounded
+measurement in four releases, and the tell is always the same — **a table whose
+rows are all equal is a broken experiment until proven otherwise**, never a
+finding.
+
+**Check the instrument before believing what it says about the subject.** A
+first stemming run looked mixed, and the stemmer turned out to map `classes` to
+`clas` while `class` kept its `s` — splitting the commonest word in code
+instead of merging it. The measurement was fine; the thing being measured was
+broken. Fix it and re-measure before drawing anything from a surprising result.
+
+**A reasoned exemption is a claim, and claims get measured.** 1.0.0 exempted
+semantic embedders from the evidence bar with an argument that was entirely
+sound and a conclusion that was wrong, and it shipped because there was no
+model here to check it against. When you cannot measure something, say so at
+the point of the code and treat it as debt — not as settled.
 
 ## Adding a setting
 
@@ -147,13 +171,17 @@ yet: Tree-sitter parsing, and a SQLite/ANN storage layer for repositories past
 the measured JSON operating envelope. Work toward those is welcome; silently
 making one of them a hard requirement is not.
 
-Provider-backed embeddings arrived in 0.8.0 and the trade was made the only
-way it could be: **as something a user turns on.** The default opens no
-socket, adds no dependency, and produces the same reproducible index it always
-did, and a test asserts that by making the transport raise. If you touch the
-provider path, that test is the one that matters — everything else in
-`tests/test_providers.py` is only worth having if the default still works with
-the network switched off.
+**A dependency is a user's choice, never a default.** That rule is settled, and
+it has two implementations to copy. Provider-backed embeddings arrived in 0.8.0
+and a local `sentence-transformers` model in 1.1.0; both are selected by
+`embedding.provider`, both are absent from `dependencies = []`, and both import
+their package inside a constructor rather than at module level. The default
+opens no socket, adds no dependency, and produces the same reproducible index
+it always did — and two tests assert exactly that, one by making the transport
+raise and one by making the optional import raise. If you touch either path,
+those are the tests that matter; everything else in `tests/test_providers.py`
+and `tests/test_local_model.py` is only worth having while the default still
+works with the network switched off and nothing extra installed.
 
 Agent-authored descriptions remain the cheaper answer to the same problem, and
 they are not made redundant by a model: they put missing vocabulary into the

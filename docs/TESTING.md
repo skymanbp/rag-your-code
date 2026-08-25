@@ -140,6 +140,13 @@ ruler by eye rather than by the check, and `cuda`/`kernels` became present
 questions were retired for it. Documentation and ruler cannot own the same
 vocabulary.
 
+It fired again in 1.1.0, for the same reason and against the same author: a
+docstring explaining the new concentration bar spelled out a worked example
+using an absent question's own words, and that question promptly became
+answerable. The example was removed and the docstring now says why it is
+missing. **This is not a lesson that stays learned by being written down once**
+— which is the argument for the mechanical check rather than for care.
+
 `benchmarks/cold_queries.json` grades thirty-five questions about
 **cc-enforcer**, a repository nobody here wrote, indexed with no descriptions
 at all. It exists because the other two cannot see what a first-time user
@@ -156,7 +163,21 @@ A change that helps one ruler and hurts another is a trade, not an
 improvement, and that is not visible from a single one. Three variations on
 length normalisation were measured across all three before 0.6.0 settled, and
 two were dropped because they moved one to four questions in both directions
-at once — this instrument's noise.
+at once — this instrument's noise. **Stemming is the clearest case of the
+trade**: it improves both own-repository rulers and costs the foreign one 3 of
+35 hit@3, which is precisely why 0.5.0's eight-question set could not settle it
+and why it is rejected rather than shipped.
+
+**Every report stamps the corpus it graded** — unit count and a fingerprint of
+every unit's id and searchable text. A score from these rulers means nothing
+without one: two runs of an unchanged `search.py` against the foreign
+repository returned 0.257 and 0.229 hit@1, because that repository had grown by
+ninety units in between. Both numbers were right and comparing them was
+worthless, and nothing in the output said so. Two of the four rulers read this
+repository's live working tree, so **editing the source moves the corpus and
+the change at the same time**; the only sound comparison is one corpus with the
+setting varied, which is why every knob `search` takes is reachable from
+`evaluate()` and from a command-line flag.
 
 `tests/test_repo_queries.py` guards the rulers rather than the score. Every
 acceptable answer must name a unit that exists, both languages must be

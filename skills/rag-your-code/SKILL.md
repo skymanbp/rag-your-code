@@ -62,17 +62,23 @@ Use this skill when repository context is broad or a symbol's implementation is 
      repository uses throughout. Add a term specific to what you want.
    - `too_little_of_the_query_matched` — ask something narrower, or say the
      concept in the words the code uses.
+   - `matched_terms_are_scattered` — the words *are* here, but never together
+     in one declaration. This is the strongest of the four: it usually means
+     the subject is not in this repository and its words are being borrowed
+     from unrelated code. Rephrasing rarely helps; say so and move on.
 
-   Do not respond to any of these by lowering `search.min_coverage`; that
-   restores the guessing. If two or three rephrasings all come back empty,
-   that is evidence the repository does not contain it — report that, rather
-   than continuing until something is returned.
+   Do not respond to any of these by lowering `search.min_coverage` or
+   `search.min_concentration`; that restores the guessing. If two or three
+   rephrasings all come back empty, that is evidence the repository does not
+   contain it — report that, rather than continuing until something is
+   returned.
 
    A repository's owner may have set `embedding.provider` to
-   `openai-compatible`, in which case similarity carries real meaning and can
-   reach units the words miss. `config list` says which is in force. Do not
-   turn it on for them: it can send their source to a third party, and that is
-   theirs to decide.
+   `sentence-transformers` (a model on their machine) or `openai-compatible`
+   (a service), in which case similarity carries real meaning and can reach
+   units the words miss. `config list` says which is in force. Do not turn
+   either on for them: one adds a dependency and downloads weights, the other
+   can send their source to a third party, and both are theirs to decide.
 
 3. Read the returned file and line locations directly before editing. Treat
    retrieved snippets as navigation and context, not as permission to change

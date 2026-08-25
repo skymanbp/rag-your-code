@@ -113,6 +113,13 @@
       "name": "main",
       "text": "Measures one existing index rather than a generated one, for when the question is about a real repository. 中文：测量一个已存在的索引而不是生成的索引，用于问题针对真实仓库的场合。"
     },
+    "benchmarks/repo_queries.py:102:evaluate": {
+      "hash": "ca4e43676c78a142",
+      "code_hash": "efdb010292fced6c",
+      "path": "benchmarks/repo_queries.py",
+      "name": "evaluate",
+      "text": "Grades one question set against one corpus, reporting first-place accuracy, top-k accuracy, mean reciprocal rank, how many answerable questions were declined, and separately how often questions with no answer were correctly met with silence. Every knob retrieval takes is passed in as an argument rather than set on the module, because a default argument is bound when a function is defined: assigning the module attribute between runs changes nothing and yields a sweep where every setting scores identically, which is indistinguishable from a setting that does not matter. 中文：用一份语料给一组问题打分，报告首位命中率、前 k 命中率、平均倒数排名、有答案却被拒答的比例，并单独统计没有答案的问题有多少次被正确地以沉默回应。检索的每一个旋钮都作为参数传入，而不是设在模块上——因为默认参数在函数定义时就绑定了：两次运行之间改模块属性什么也不会发生，扫描出来每个取值得分完全相同，这跟「这个设置根本没用」看起来一模一样。"
+    },
     "benchmarks/repo_queries.py:152:evaluate.summarise": {
       "hash": "51e572d9db9ad139",
       "code_hash": "51e572d9db9ad139",
@@ -127,19 +134,26 @@
       "name": "evaluate.silence",
       "text": "Averages the unanswerable questions into the one figure that describes them: how often nothing was returned, which is the only correct reply. 中文：把不可回答的题平均成描述它们的唯一一个数字：有多大比例什么都没返回——那是唯一正确的答复。"
     },
-    "benchmarks/repo_queries.py:207:_report": {
-      "hash": "ab980527104bcece",
-      "code_hash": "ab980527104bcece",
+    "benchmarks/repo_queries.py:227:corpus_stamp": {
+      "hash": "5ba5051affa96de6",
+      "code_hash": "87c1eb5f1e18059d",
+      "path": "benchmarks/repo_queries.py",
+      "name": "corpus_stamp",
+      "text": "Fingerprints the corpus a score was taken against, so two numbers can be told apart from two different bodies of code. A benchmark figure is only reproducible against the code it graded, and one graded repository is one nobody here controls: two runs of unchanged retrieval returned different accuracy purely because that repository had grown, both numbers correct and the comparison worthless, with nothing in the output saying so. 中文：为得出某个分数时所用的语料留下指纹，好把「两个数字」和「两份不同的代码」区分开。基准数字只有对照它所评测的那份代码才可复现，而其中一个被评测的仓库并不受这里控制：检索代码没有任何改动的两次运行给出了不同的准确率，纯粹因为那个仓库长大了——两个数字都没错，比较却毫无意义，而输出里没有任何东西说明这一点。"
+    },
+    "benchmarks/repo_queries.py:245:_report": {
+      "hash": "2c3ce652d7977ec3",
+      "code_hash": "2c3ce652d7977ec3",
       "path": "benchmarks/repo_queries.py",
       "name": "_report",
-      "text": "Prints the report for a person, including which questions were missed and which unanswerable ones were answered anyway, since the useful thing about a wrong answer is always which unit it was and on what evidence. 中文：给人打印报告，包括哪些题错过了、哪些不可回答的题还是被回答了——一个错误答案里有用的部分，永远是「它是哪个单元」和「凭什么证据」。"
+      "text": "Prints a graded run as a human reads it: which corpus was measured, the headline accuracy figures, a breakdown by question language and kind, how often unanswerable questions were correctly met with silence, every question whose answer was missed, and every unanswerable one that was answered anyway together with the words it matched on. Naming the failures rather than only counting them is what makes the next change diagnosable. 中文：把一次评测按人读的方式打印出来：测的是哪份语料、总体准确率、按提问语言与类型的分项、没有答案的问题有多少次被正确地以沉默回应、每一道答错的题，以及每一道本不该作答却作了答的题连同它命中的词。把失败逐条点名而不只是计数，才使下一次改动可被诊断。"
     },
-    "benchmarks/repo_queries.py:240:main": {
-      "hash": "92d91868a48b0aef",
-      "code_hash": "92d91868a48b0aef",
+    "benchmarks/repo_queries.py:281:main": {
+      "hash": "863e111c0d1ec8e3",
+      "code_hash": "863e111c0d1ec8e3",
       "path": "benchmarks/repo_queries.py",
       "name": "main",
-      "text": "The command line: chooses which index and which question set to grade, accepts a repository where an index file is expected, and lets a caller override the thresholds it is measuring. 中文：命令行：选择评判哪个索引、哪个题集，在期待索引文件的地方也接受一个仓库目录，并允许调用方覆盖它正在测量的那些阈值。"
+      "text": "Command-line entry point for grading retrieval: chooses which corpus to measure — this repository warm, this repository with no written descriptions, or any existing index including one built for a different project — checks the question set is well formed before scoring anything, applies any overridden thresholds, and writes the full report as JSON when asked. Pointing it at a repository directory works as well as at an index file, because that is the one command the documentation hands to a stranger and it used to answer a directory with a raw traceback. 中文：评测检索的命令行入口：选择要测的语料——本仓库带写好的描述、本仓库不带任何描述、或任何已存在的索引（包括为别的项目建的），在打分之前先检查题库本身是否良构，套用被覆盖的门槛，并在需要时把完整报告写成 JSON。指向一个仓库目录和指向一个索引文件一样可用——因为这正是文档递给陌生人的那条命令，而它过去面对一个目录会抛出一段原始堆栈。"
     },
     "benchmarks/repo_queries.py:57:load_questions": {
       "hash": "cc508f7f96c74f99",
@@ -154,13 +168,6 @@
       "path": "benchmarks/repo_queries.py",
       "name": "check_ruler",
       "text": "Checks the ruler before anything is scored: every listed answer must name a unit that exists, and a question claiming its subject is absent must not also list one. A ruler that quietly stopped referring to real code would report improvement by losing its own questions. 中文：在打分之前先检查尺子：每个列出的答案都必须指向真实存在的单元；而一道声称其主题不存在的题，不能同时列出答案。一把悄悄不再指向真实代码的尺子，会靠丢掉自己的题目来报告进步。"
-    },
-    "benchmarks/repo_queries.py:94:evaluate": {
-      "hash": "24a0ac8807f9abdf",
-      "code_hash": "ee291d49999673f4",
-      "path": "benchmarks/repo_queries.py",
-      "name": "evaluate",
-      "text": "Grades one question set, keeping answerable and unanswerable questions apart. Overrides are passed to the search call rather than set on the module: a default argument is bound when the function is defined, so assigning the module attribute afterwards changes nothing and produces a sweep in which every threshold scores identically. 中文：给一个题集打分，并把「可回答」与「不可回答」的题分开。覆盖项是传给检索调用的，而不是设在模块上：默认参数在函数定义时就已绑定，事后改模块属性什么也改不了，只会产出一份「每个阈值得分都一样」的扫描结果。"
     },
     "benchmarks/run_benchmark.py:104:run.optimized_search": {
       "hash": "486e51df6ec7b5c9",
@@ -237,12 +244,12 @@
       "name": "dominance",
       "text": "How far the best answer leads the second-best, as a fraction of the best. A ratio between two numbers produced by the same query under the same scoring rule, so scaling every score changes nothing -- which is the entire point. The absolute threshold it replaced was tied to a scoring scale; when ranking changed, the scale moved out from under it and the decision it guarded silently stopped happening. 中文：最好的答案领先第二名多少，按最好者的比例计。它是同一次查询、同一套打分下两个数的比值，因此整体缩放分数不改变结果——这正是要点。它取代的绝对阈值绑在打分量纲上，排序一改量纲就移走了，它守护的判断于是悄无声息地不再发生。"
     },
-    "src/ragyourcode/agentic.py:84:research": {
-      "hash": "6aebf36912d61460",
-      "code_hash": "34f810495614a677",
+    "src/ragyourcode/agentic.py:85:research": {
+      "hash": "ba71db331156f7a6",
+      "code_hash": "185ab947018ddb3f",
       "path": "src/ragyourcode/agentic.py",
       "name": "research",
-      "text": "Answers an ambiguous question in at most two observable retrieval rounds and says why it stopped. When the first round returns nothing, it reports which kind of nothing and stops there: a second round cannot recover a question whose words are not in this index, so spending the budget to arrive at the same silence helps no one. The published set of stop reasons is unchanged and the detail arrives in a field beside it, because widening an enumeration callers already branch on is a breaking change wearing the clothes of an improvement. 中文：用至多两轮可观察的检索回答一个含糊的问题，并说明为何停下。第一轮什么都没有时，它报告这是哪一种「什么都没有」并就此停住：第二轮救不了一个词汇根本不在索引里的问题，花掉预算走到同样的沉默对谁都没有好处。已发布的停止原因取值集合保持不变，细节放在旁边一个新字段里——扩大一个调用方已经在据以分支的枚举，是一次穿着改进外衣的破坏性变更。"
+      "text": "Runs a deliberately bounded investigation of a question: retrieve once, and expand over the graph at most one further time when the leading result is not clearly ahead of the runner-up. Reports every step taken and why it stopped, so the work is observable rather than open-ended. When the first retrieval is refused for lack of evidence it says so immediately with the diagnosis attached, instead of spending the remaining budget arriving at the same silence. The source is carried once, in a trimmed context block, because reporting two steps used to mean serialising the same declarations three times over. 中文：对一个提问做一次刻意设限的调查：检索一次，并且只有当领先结果没有明显甩开第二名时，才沿图再扩展一次。报告走过的每一步以及停下来的原因，使整个过程可观察而非无止境。当第一次检索因证据不足被拒时立刻如实说明并附上诊断，而不是把剩下的预算花光后到达同样的沉默。源码只随裁剪过的上下文块携带一次——过去报告两个步骤意味着把同一批声明连同源码序列化三遍。"
     },
     "src/ragyourcode/annotate.py:14:describe_python": {
       "hash": "7a20909be9ec39b5",
@@ -281,12 +288,12 @@
       "text": "The config command: creates a commented settings file, lists every setting with its effective value and whether it was customised, reads one value, changes one value in place, or reports where the file lives. Changing a value refuses anything out of range before writing, so a rejected change leaves the file exactly as it was, and the reply says whether the change forces a full rebuild. Creating refuses to overwrite an existing file unless told to. 中文：config 命令——生成带注释的配置文件、列出每项设置的生效值与是否被改过、读取单项、就地修改单项、或报告文件位置。修改前先校验越界并在写盘前拒绝，因此被拒的修改不会改动文件分毫；应答会说明该改动是否强制全量重建。创建时除非明确要求，否则拒绝覆盖已有文件。",
       "code_hash": "5e9525fddea54644"
     },
-    "src/ragyourcode/cli.py:172:_cmd_search": {
-      "hash": "88c7ffe64fed6d81",
-      "code_hash": "4680c9dbc6fa4cdc",
+    "src/ragyourcode/cli.py:177:_cmd_search": {
+      "hash": "f496262cdfe8cc12",
+      "code_hash": "fe11b5f564f3c0b8",
       "path": "src/ragyourcode/cli.py",
       "name": "_cmd_search",
-      "text": "Answers one question from the published index and prints it, as a readable block for a person or machine-readable output for an agent. When nothing comes back it prints why rather than a bare 'no matching code units', because 'not in this repository', 'asked in the wrong words' and 'the index is broken' are three different next moves and the caller cannot tell them apart from silence. Result count, context budget, the balance between word overlap and similarity, how far similarity may widen the candidate set, and how much of a question must occur before it is answered all fall back to the repository settings. 中文：从已发布的索引回答一个问题并输出——给人是可读块，给 agent 是机器可读格式。什么都没有时它打印原因，而不是一句干巴巴的「没有匹配的代码单元」，因为「本仓库没有这东西」「问法不对」「索引坏了」是三个完全不同的下一步，而调用方从沉默里分辨不出是哪一个。返回条数、上下文预算、词面与相似度的配比、相似度可把候选集放宽多少、以及一个问题要有多少落在索引里才作答，都回落到仓库设置。"
+      "text": "Serves the search subcommand: loads the index, runs plain or graph retrieval with the repository's configured evidence bars, and prints either ranked results or an explanation of the silence. When nothing comes back it always attaches a diagnosis, because an empty answer that does not say which kind of empty it is leaves the caller guessing between the subject being absent, the question being phrased in the wrong words, and the index being broken — three situations with three different next moves. 中文：负责 search 子命令：加载索引，按仓库配置的证据门槛执行普通检索或图检索，然后打印排好序的结果，或者打印这次沉默的解释。没有结果时一定附上诊断——一个不说明「是哪一种空」的空回复，会让调用方在「主题根本不存在」「问法用错了词」「索引坏了」之间瞎猜，而这三种情况对应三种不同的下一步。"
     },
     "src/ragyourcode/cli.py:270:_cmd_describe": {
       "hash": "bc80c3de23167e73",
@@ -320,12 +327,12 @@
       "name": "_refresh_index",
       "text": "Builds or rebuilds a repository index and publishes it, reusing what it can. It settles up front whether the rules deciding what a unit is have changed, and whether the authored descriptions moved — the third input no content fingerprint can see, and the only one where an edit in one direction used to be lost: a deleted description went on being served out of the reused unit that still carried it. One embedder is built here and handed to every stage, so the vectors stored and the queries later asked come from the same scheme by construction. 中文：构建或重建仓库索引并发布，尽可能复用。它先行判定「什么算一个单元」的规则是否变过，以及人写的描述有没有变动——那是内容指纹看不见的第三个输入，也是唯一一个曾在某个方向上会丢失编辑的输入：被删除的描述会继续从那个仍带着它的复用单元里被端出来。嵌入器在此建一次并交给各阶段，因此存下的向量与之后的查询由构造保证同源。"
     },
-    "src/ragyourcode/cli.py:405:_cmd_agent": {
-      "hash": "9bf8a4a80acddcd9",
-      "code_hash": "2c1645bc9c085785",
+    "src/ragyourcode/cli.py:411:_cmd_agent": {
+      "hash": "2f7f7786573e6757",
+      "code_hash": "ea74ddd37adfbf0c",
       "path": "src/ragyourcode/cli.py",
       "name": "_cmd_agent",
-      "text": "Serves one JSON request per line for as long as an agent keeps the process alive, so a session pays the parse-and-embed cost once instead of per question. Every reply carries the same shape whether or not it found anything: the diagnosis field is null when there were results, so a caller reads one field rather than inferring from an empty list which of several quite different situations it is in. Every failure is reported in-band and the loop survives it. 中文：只要 agent 让进程活着，就按行服务 JSON 请求，使一次会话只付一次解析与嵌入的代价，而不是每问一次付一次。无论有没有找到东西，每个回复的形状都一样：有结果时诊断字段为空，因此调用方读一个字段就够了，不必从一个空列表去推断自己身处几种截然不同情形中的哪一种。所有失败都在带内回报且循环存活。"
+      "text": "Runs the long-lived agent subprocess: one JSON request per line in, one reply per line out, over search, research, neighbour walks, file opening, description exchange, refresh and statistics. Built so no single request can end the session — numbers saturate at their bounds, file reading is capped in both lines and bytes, malformed input is answered in band, and anything unanticipated is reported with its exception type rather than killing the loop. Streams are pinned to UTF-8 instead of following the console codepage, which used to make one non-ASCII character fatal. 中文：运行常驻的 agent 子进程：每行读入一个 JSON 请求、每行写出一个回复，覆盖检索、调研、邻居游走、打开文件、描述交换、刷新与统计。设计成任何单个请求都无法终结会话——数值在边界处饱和、读文件同时受行数与字节数限制、畸形输入在同一通道内如实答复、意料之外的错误连同异常类型一起报告而不是打断循环。输入输出流固定为 UTF-8 而不跟随控制台代码页，过去一个非 ASCII 字符就足以致命。"
     },
     "src/ragyourcode/cli.py:514:build_parser": {
       "hash": "90796b536516e0a4",
@@ -723,12 +730,40 @@
       "name": "RemoteEmbedder.metadata",
       "text": "What an index records about vectors that came from a model somebody else runs: the provider, the version, the width and the model name. The model name is there for the same reason the provider is — two models behind one endpoint are two vector spaces, and a change to either has to discard the stored vectors rather than mix them. 中文：索引对来自他人所运行模型的向量所记录的信息：provider、版本、宽度、模型名。模型名在内的理由与 provider 相同——同一端点后面的两个模型是两个向量空间，任一改变都必须丢弃已存向量而不是把它们混在一起。"
     },
-    "src/ragyourcode/embeddings.py:171:embedder": {
-      "hash": "ae4281b10c3154f4",
-      "code_hash": "a4e680f5149c4428",
+    "src/ragyourcode/embeddings.py:171:LocalModelEmbedder": {
+      "hash": "1d9bd5adb3003d5b",
+      "code_hash": "f0d4411639300760",
+      "path": "src/ragyourcode/embeddings.py",
+      "name": "LocalModelEmbedder",
+      "text": "Computes vectors with a trained sentence-transformer model running on this machine, the only embedder here that is both semantic and offline. Unlike the default hash it carries meaning: a paraphrase, a synonym, or the same request written in another language score far apart from unrelated text instead of all scoring zero. An optional extra rather than a dependency — the library is imported inside the constructor, so a default install never loads it and the package keeps its no-dependency promise. 中文：用一个在本机运行的 sentence-transformer 训练模型来计算向量，是这里唯一既有语义又完全离线的嵌入器。与默认的哈希不同，它真的带含义：换一种说法、同义词、或者用另一种语言写的同一个请求，都会与不相干的文本明显拉开分数，而不是统统得零分。它是可选附加项而非依赖——库在构造函数内部才导入，所以默认安装永远不会加载它，包也就保住了零依赖的承诺。"
+    },
+    "src/ragyourcode/embeddings.py:200:LocalModelEmbedder.__init__": {
+      "hash": "a762931aca819deb",
+      "code_hash": "a762931aca819deb",
+      "path": "src/ragyourcode/embeddings.py",
+      "name": "LocalModelEmbedder.__init__",
+      "text": "Loads the model and refuses anything that would produce a quietly broken index. A missing optional package is reported with the exact install command rather than an import traceback, an empty model name is named as the setting to fill in, and a model whose vector width disagrees with the recorded setting is rejected outright — because mismatched widths make cosine return zero silently, which loses the entire vector half while looking merely mediocre. 中文：加载模型，并拒绝任何会悄悄产出坏索引的情况。缺少可选依赖时给出确切的安装命令，而不是一段导入报错；模型名为空时直接点名该填哪个设置；模型的向量宽度与已记录的设置不一致时当场拒绝——因为宽度不匹配会让余弦静默返回零，整个向量部分就此失效，而表面上只是看起来平平无奇。"
+    },
+    "src/ragyourcode/embeddings.py:234:LocalModelEmbedder.many": {
+      "hash": "dae36335b7bd3ebc",
+      "code_hash": "dae36335b7bd3ebc",
+      "path": "src/ragyourcode/embeddings.py",
+      "name": "LocalModelEmbedder.many",
+      "text": "Encodes many texts in batches rather than one call per unit, because a thousand declarations handed to a model one at a time is not a slower version of the same thing but an unusable one. Returns plain lists of floats, already normalised, so the rest of the pipeline never has to know a tensor library was involved. 中文：分批编码多段文本，而不是每个单元调用一次——把上千个声明一个一个喂给模型，不是同一件事的慢速版本，而是根本没法用。返回的是已经归一化的普通浮点列表，因此管线的其余部分完全不需要知道曾经用过张量库。"
+    },
+    "src/ragyourcode/embeddings.py:242:LocalModelEmbedder.metadata": {
+      "hash": "901e3395ec64ab98",
+      "code_hash": "901e3395ec64ab98",
+      "path": "src/ragyourcode/embeddings.py",
+      "name": "LocalModelEmbedder.metadata",
+      "text": "Reports which model, which scheme and which vector width produced an index, so a later run can tell whether the stored vectors are still comparable. Two models behind one setting are two different vector spaces, and a similarity computed across them is a meaningless number that ranking would act on with full confidence. 中文：报告是哪一个模型、哪一种方案、多宽的向量产出了这份索引，好让后续运行能判断已存的向量是否仍然可比。同一个设置背后换了模型，就是两个不同的向量空间，跨空间算出的相似度是个毫无意义的数字，而排序会满怀信心地照它行事。"
+    },
+    "src/ragyourcode/embeddings.py:246:embedder": {
+      "hash": "8d0fd32df5813d26",
+      "code_hash": "528b7afadec899ee",
       "path": "src/ragyourcode/embeddings.py",
       "name": "embedder",
-      "text": "Returns whichever embedder a repository's settings ask for. The credential is read from the environment and the settings file holds only the variable's name, because every other setting is meant to be committed so that everyone who clones can see what shaped the index, and a credential is the one value with exactly the opposite requirement. That is why this is not the environment-variable layer the configuration module deliberately does not have. 中文：按仓库设置返回相应的嵌入器。凭证从环境变量读取，配置文件里只存变量名——因为其余每一项设置都意在提交，好让所有克隆者看清是什么塑造了这个索引，而凭证恰恰是唯一要求相反的值。这也正是它并非配置模块刻意不设的那个环境变量层的原因。"
+      "text": "Picks which of the three vector schemes a repository's settings ask for: the offline hash that needs nothing installed, a trained model running locally, or a remote OpenAI-compatible service. The credential is read from an environment variable whose name is the setting, never from the settings file itself, because that file is meant to be committed so everyone who clones can see what shaped the index while a secret has exactly the opposite requirement. 中文：按仓库设置挑选三种向量方案中的哪一种：不需要安装任何东西的离线哈希、在本机运行的训练模型，或远端 OpenAI 兼容服务。凭证从环境变量里读取，设置里存的只是那个变量的名字，绝不是密钥本身——因为设置文件本就是要提交进版本库、让所有克隆的人都看得到索引是怎么来的，而密钥的要求恰好相反。"
     },
     "src/ragyourcode/embeddings.py:25:embedding_metadata": {
       "hash": "f01bf406aac28a35",
@@ -786,12 +821,12 @@
       "text": "One directed relationship between two code units, carrying its kind and a human-readable label. Kinds are deliberately few and conservative: one unit calls another, imports it, or contains it. 中文：两个代码单元之间的一条有向关系，带类型与可读标签。类型刻意保持极少且保守：调用、导入、包含。",
       "code_hash": "804c47f5528089da"
     },
-    "src/ragyourcode/graph.py:208:graph_search": {
-      "hash": "3b03712d66159aed",
-      "code_hash": "aed612a3aa1ef072",
+    "src/ragyourcode/graph.py:215:graph_search": {
+      "hash": "6730b8f7d5d716a8",
+      "code_hash": "0e5bf7687d7d805d",
       "path": "src/ragyourcode/graph.py",
       "name": "graph_search",
-      "text": "Retrieves by words first, then follows calls, imports and containment outward from what was found. When the seeds were withheld for want of evidence there is nothing to expand, and that matters more than it sounds: walking outward from a guess turns one unsupported result into a whole connected neighbourhood of them, each carrying an edge chain that makes it look better evidenced than the guess it came from. 中文：先按词面检索，再从命中项沿调用、导入与包含关系向外走。当种子因证据不足而被扣下时，就没有东西可扩展了——这件事比听起来重要：从一个猜测向外走，会把一个没有依据的结果变成一整片彼此相连的结果，而且每一个都带着边链，看上去比它出身的那个猜测更有据可依。"
+      "text": "Retrieves seed declarations for a question and then walks a bounded number of hops outward over call, import and containment relations, carrying the exact edge path back as evidence for every neighbour it adds. Expansion is skipped entirely when the seeds were withheld for lack of evidence, because walking outward from a guess turns one unsupported result into a whole connected neighbourhood of them. 中文：先为提问检索种子声明，再沿调用、导入、包含关系向外走有限的跳数，并把确切的边路径作为证据随每个新增的邻居一起带回。当种子因证据不足被扣下时完全跳过扩展——因为从一个猜测向外走，会把一个没有依据的结果变成一整片彼此相连的没有依据的结果。"
     },
     "src/ragyourcode/graph.py:25:CodeEdge.to_dict": {
       "hash": "8cab8c6fc49a0500",
@@ -1090,12 +1125,12 @@
       "text": "Walks the syntax tree and records every function, method and class as a unit, building the dotted qualified name from the enclosing scope, gathering what it calls and imports, and recursing so nested definitions are indexed in their own right. 中文：遍历语法树，把每个函数、方法与类记为一个单元，按外层作用域拼出带点的限定名，收集其调用与导入，并递归下去让嵌套定义各自成为独立单元。",
       "code_hash": "732a298734732d4c"
     },
-    "src/ragyourcode/parser.py:443:_generic_units": {
-      "hash": "e718e8f30688048c",
+    "src/ragyourcode/parser.py:451:_generic_units": {
+      "hash": "631141e1f3568708",
+      "code_hash": "47533de8dfc8e5cd",
       "path": "src/ragyourcode/parser.py",
       "name": "_generic_units",
-      "text": "Extracts declarations from any non-Python language by scanning one line at a time against that language's rule table, then closing each body by nesting depth or by the closing keyword, and attaching the documentation block written above it. Because a pattern never sees a second line, the reported line number is the loop position and cannot drift, and no declaration can swallow the ones after it. Blank lines, comments and statement continuations are skipped, and shell here-document text is treated as data so documentation inside it is never indexed as code. 中文：对任何非 Python 语言，逐行对照该语言的规则表提取声明，按嵌套深度或结束关键字闭合主体，并把写在其上方的文档块一并附上。由于模式永远看不到第二行，报告的行号就是循环位置、不会漂移，声明也无法吞掉它后面的内容。空行、注释与续行被跳过；shell 的 here-document 内容按数据处理，其中的说明文字绝不会被当成代码索引。",
-      "code_hash": "e718e8f30688048c"
+      "text": "Extracts declarations from any non-Python language by scanning one line at a time against that language's rule table, closing each body by brace depth or by a closing keyword, attaching the documentation written above it, and naming each declaration by whatever encloses it. Because a pattern never sees a second line, the reported line number is the loop position and cannot drift, and no declaration can swallow the ones after it. Enclosing scope is read from the spans already computed rather than from a second brace counter, so there is no rival mechanism to disagree with the first. Blank lines, comments, statement continuations and shell here-document text are skipped so prose inside them is never indexed as code. 中文：对任何非 Python 语言逐行扫描该语言的规则表来提取声明，按花括号深度或结束关键字收束每个函数体，附上写在它上方的文档，并用包含它的外层声明为它命名。因为一个模式永远看不到第二行，报告出来的行号就是循环位置、不可能漂移，任何声明也吞不掉它后面的声明。外层作用域直接取自已经算出的跨度，而不是另起一个花括号计数器，所以不存在第二套机制来跟第一套打架。空行、注释、语句续行以及 shell here-document 里的文本都会跳过，里面的散文永远不会被当作代码索引。"
     },
     "src/ragyourcode/parser.py:466:_humanize_name": {
       "hash": "55cd6bdc65956688",
@@ -1156,19 +1191,19 @@
       "name": "embed_batch",
       "text": "Fetches vectors for one batch of texts from an OpenAI-compatible endpoint, in the order they were given. Rate limits and transport failures are retried with growing backoff; a rejected key or an unknown model is not, because the answer will not change and on a metered service each attempt costs the caller something. When the attempts run out the exception propagates: a build either uses one vector space or does not finish. 中文：从 OpenAI 兼容端点取一批文本的向量，按给定顺序返回。限流与传输失败按递增退避重试；密钥被拒或模型名错误则不重试，因为答案不会变，而在计费服务上每次尝试都要花钱。重试用尽后异常向上抛出：一次构建要么使用单一向量空间，要么不完成。"
     },
-    "src/ragyourcode/search.py:115:Evidence": {
-      "hash": "e5c8b6522c1f495a",
-      "code_hash": "867747e577238b48",
-      "path": "src/ragyourcode/search.py",
-      "name": "Evidence",
-      "text": "Whether a query reached the index at all, kept as a separate answer from how its results rank. Ranking says which candidate is best and can never say that none of them is an answer, because there is always a least-bad one and it comes back with a score and a rank that read exactly like a real result. Carries the words that were considered, the ones that matched, the ones the repository uses everywhere, and the resulting share. 中文：一个查询究竟有没有够到索引，作为与「结果如何排序」相互独立的一个答案保存。排序只能说出哪个候选最好，永远说不出「没有一个是答案」——因为总有一个最不差的，而它带着分数和名次回来，读起来和真结果一模一样。它记录参与判定的词、命中的词、仓库里到处都是的词，以及由此得到的比例。"
-    },
     "src/ragyourcode/search.py:115:_in_posting": {
       "hash": "68ba487a020c6d72",
       "code_hash": "4ef3996ff36e802f",
       "path": "src/ragyourcode/search.py",
       "name": "_in_posting",
       "text": "Asks whether one unit appears in a term posting list, by binary search over a list kept sorted by unit id. A one-element tuple sorts before every pair sharing its id, which locates the entry without needing the weight that follows it. Used only for the handful of results actually returned, so recovering which words matched costs a few lookups rather than a per-unit word set carried through the whole scoring loop. 中文：用二分查找在按单元标识排好序的倒排表里判断某个单元是否在列。单元素元组排在所有同标识的二元组之前，因此无需知道其后的权重就能定位。它只对真正返回的那几条结果调用，于是还原命中了哪些词只需几次查找，而不必让每个单元的词集合贯穿整个打分循环。"
+    },
+    "src/ragyourcode/search.py:116:Evidence": {
+      "hash": "9243905deb605308",
+      "code_hash": "419e9620baed39a1",
+      "path": "src/ragyourcode/search.py",
+      "name": "Evidence",
+      "text": "The verdict on whether a question reached this index at all, kept separate from how results rank. Holds the query words that count, which of them the repository actually contains, which are so common they single nothing out, the resulting coverage share, the concentration share saying whether those words ever occur together in one declaration, and the bars each was judged against. Ranking cannot express \"there is no answer here\" because something is always least bad; this is the record of asking that question instead. 中文：判定一个提问究竟有没有够到索引的结论，与「结果如何排序」分开保存。记录参与判定的查询词、仓库真正含有的词、到处都是因而区分不了任何东西的词、由此得到的覆盖率、以及说明这些词是否曾出现在同一个声明里的集中度，还有各自被对照的门槛。排序永远说不出「这里没有答案」，因为总有一个最不差的候选；这就是改为提出那个问题之后留下的记录。"
     },
     "src/ragyourcode/search.py:124:_inverse_document_frequency": {
       "hash": "dfe1038adc6bdfcf",
@@ -1177,26 +1212,19 @@
       "name": "_inverse_document_frequency",
       "text": "How much evidence one word carries, derived from how rare it is in the corpus being searched. A word in nearly every unit says nothing about which unit is wanted; a word in two says a great deal. Deriving this from the corpus instead of from a list of stopwords is what makes it work on a repository in any language -- the and calls earn their low weight the same way a Chinese bigram does, by being everywhere, and no list has to be maintained. Measured on a foreign repository, calls reached 97 percent of units while daemon reached two. 中文：一个词携带多少证据，由它在被检索语料中的稀有程度推出。出现在几乎所有单元里的词，说不出想要哪个单元；只出现在两个单元里的词则说得很多。从语料推导而非依赖停用词表，正是它能在任何语言的仓库上生效的原因——the 与 calls 靠遍地都是拿到低权重，中文二元组也一样，且无需维护任何词表。在一个外部仓库实测：calls 覆盖 97% 的单元，而 daemon 只有两个。"
     },
-    "src/ragyourcode/search.py:143:Evidence.reason": {
-      "hash": "c13b511d474e41e6",
-      "code_hash": "2a27b4b13676f8c3",
+    "src/ragyourcode/search.py:168:Evidence.reason": {
+      "hash": "a07639bfa1758e5f",
+      "code_hash": "e2e877348896ccae",
       "path": "src/ragyourcode/search.py",
       "name": "Evidence.reason",
-      "text": "Why an answer was withheld, as a stable token a caller can branch on rather than a sentence it would have to parse. Three cases, because each is recovered by a different move: no word of the question is here at all, the only words that matched are ones this repository uses throughout, or some distinctive words matched but too few. 中文：为什么没有给出答案，以一个稳定的标识返回，供调用方分支判断，而不是一句需要它去解析的话。分三种，因为每一种的补救动作都不同：问题里没有一个词在这里、命中的全是本仓库到处都在用的词、或者确实命中了有区分度的词但太少。"
+      "text": "Names why an answer was withheld, as a stable token a caller can branch on rather than a sentence it would have to parse. Four outcomes: not one query word is in the index, only words the repository uses everywhere matched, too little of the question is present, or the words are present but never together in one declaration. Each is recovered by a different move, so collapsing them into a single empty reply throws away the only part an agent can act on. 中文：说明为什么没有给出答案，返回一个调用方可以直接分支的稳定标记，而不是一句需要解析的话。四种结果：没有任何一个查询词在索引里、只命中了仓库到处都在用的词、提问中存在的部分太少、以及词确实存在但从未同时出现在一个声明里。每一种都要用不同的办法补救，所以把它们合并成一个空回复，就丢掉了 agent 唯一能据以行动的信息。"
     },
-    "src/ragyourcode/search.py:152:assess": {
-      "hash": "af4f23a2ac45af52",
-      "code_hash": "9638d89a974cbc6a",
+    "src/ragyourcode/search.py:179:assess": {
+      "hash": "914c0343d22a71da",
+      "code_hash": "49f3d1146c200d67",
       "path": "src/ragyourcode/search.py",
       "name": "assess",
-      "text": "Works out how much of a question actually occurs in this index, counting only the words that tell units apart. A word the repository uses everywhere is dropped from both the numerator and the denominator, which is the part that does the work: half of a question can match and still be nothing but the words every file contains. The bar is eased on a small index, because a repository too small to hold the vocabulary of a sentence would otherwise be refused its own questions, and it is lifted entirely for a semantic embedder, where a paraphrase sharing no word with its answer is the case that was configured for. 中文：算出一个问题究竟有多少落在这个索引里，且只数那些能把单元区分开的词。仓库里到处都是的词同时从分子和分母中剔除——关键正在这里：一个问题可以有一半命中，而命中的那一半全是每个文件都有的词。索引很小时门槛按比例放宽，否则一个小到装不下一句话词汇量的仓库会被拒答自己的问题；面对语义嵌入器则完全不设门槛，因为「与答案不共享任何词的转述」正是它被配置来处理的情形。"
-    },
-    "src/ragyourcode/search.py:206:diagnose": {
-      "hash": "2f0818046540c47d",
-      "code_hash": "1ce2c8139f5e2b63",
-      "path": "src/ragyourcode/search.py",
-      "name": "diagnose",
-      "text": "Turns a withheld answer into something an agent can act on. An empty reply is only useful if it says which kind of empty it is: rephrase in the code's vocabulary, add a word specific to what you want, or write the descriptions that would give the concept words at all. None of those is what an agent does when it is handed a plausible wrong unit instead. 中文：把「不作答」变成 agent 可以据以行动的东西。空回复只有在说明「是哪一种空」时才有用：换成代码自己的词汇重问、补一个针对性的词、或者去写那些能让这个概念第一次拥有词汇的描述。而当它拿到的是一个看似合理的错误单元时，这三件事它一件都不会做。"
+      "text": "Decides whether a question has enough evidence in this index to deserve any answer, before a single vector or score is computed. Measures two independent things: how much of the query's distinctive vocabulary occurs here at all, and how much of its rarity lands inside one declaration rather than being collected from unrelated places. Words the corpus uses everywhere are excluded from both sides so half a sentence of function words cannot pass as proof. Eases both bars on a small repository, which cannot hold the vocabulary of a whole sentence, and exempts nothing — a trained embedding model is judged by the same rule after exempting one silently restored the entire defect. 中文：在计算任何向量或分数之前，先判断一个提问在这个索引里是否有足够证据值得作答。衡量两件互相独立的事：查询中有区分度的词有多少确实出现在这里，以及其稀有度有多少落在同一个声明内、而不是从毫不相干的地方东拼西凑。语料里到处都是的词从分子分母中一并剔除，使半句虚词无法冒充证据。索引很小时按比例放宽——小仓库装不下一整句话的词汇——并且不豁免任何嵌入器：曾经悄悄豁免语义模型，结果把整个缺陷原样放了回来。"
     },
     "src/ragyourcode/search.py:240:_block": {
       "hash": "afacfcda8888ea5b",
@@ -1219,12 +1247,19 @@
       "name": "context",
       "text": "Packs ranked results into one block an agent can paste straight into a prompt, stopping before the caller character budget is exceeded. This is where the code arrives -- once -- so results beside it need carry none. 中文：把排好序的结果打包成一整块，agent 可以直接贴进提示词，并在超出调用方字符预算前停下。代码就在这里出现，且只出现一次，因此旁边的结果无需再带。"
     },
-    "src/ragyourcode/search.py:294:search": {
-      "hash": "c322a4afedbcc5df",
-      "code_hash": "08fff2b21102582a",
+    "src/ragyourcode/search.py:294:diagnose": {
+      "hash": "f67a49bd16a07ef7",
+      "code_hash": "1af07037df354004",
+      "path": "src/ragyourcode/search.py",
+      "name": "diagnose",
+      "text": "Turns a refusal into a machine-readable explanation an agent can act on: which words were considered distinctive, which matched, which were too common to count, the coverage and concentration actually achieved, the bars applied after any small-index easing, and a plain-language hint naming the next move. An empty result is only useful when it says which kind of empty it is, because rephrasing, adding a distinctive term, writing descriptions and accepting that the subject is absent are four different remedies. 中文：把一次拒答变成 agent 可以据以行动的机读说明：哪些词被认定有区分度、哪些命中、哪些因为太常见而不计入、实际达到的覆盖率与集中度、在小索引放宽之后真正生效的门槛，以及一句点明下一步该做什么的提示。空结果只有在说清「是哪一种空」时才有用，因为换个说法、补一个有区分度的词、去写描述、以及接受这个主题根本不在仓库里，是四种完全不同的补救。"
+    },
+    "src/ragyourcode/search.py:395:search": {
+      "hash": "cd3b4a7b764b0789",
+      "code_hash": "59dcb67ea0aceeb3",
       "path": "src/ragyourcode/search.py",
       "name": "search",
-      "text": "Ranks code units against a natural-language question by combining weighted word overlap with vector similarity, and returns nothing when too little of the question occurs in the index to call any result evidence. That refusal comes first, before any embedding or scoring, so an unanswerable query costs one dictionary lookup per word instead of a pass over the corpus. The lexical half is BM25 over weighted fields; similarity may additionally add candidates the words never reached, but only when the vectors carry real meaning. 中文：把代码单元按自然语言问题排序，做法是加权词面重叠与向量相似度的结合；当问题落在索引里的部分太少、任何结果都称不上证据时，返回空。这个拒答发生在最前面，早于任何嵌入与打分，因此一个无法回答的查询只花每个词一次字典查找，而不是遍历整个语料。词面部分是按字段加权的 BM25；相似度还可以额外引入词面从未够到的候选，但仅限于向量真的携带语义时。"
+      "text": "Answers a natural-language question with the declarations most likely to be about it, combining rarity-weighted word overlap across weighted fields with vector similarity as a tie-break. Refuses outright when too little of the question reaches the index or its words never occur together, returning nothing rather than the least-bad guess, and that refusal costs one dictionary lookup per distinctive word instead of a pass over the corpus. Every unit sharing any query word is scored so nothing that matches is dropped; full vector work is reserved for candidates a selective term reached, and only a genuinely semantic embedder may widen the candidate set. 中文：用最可能与提问相关的声明来作答，把按稀有度加权、分字段计分的词面重合与向量相似度结合起来，后者只用于打破平局。当提问够到索引的部分太少、或它的词从不同时出现时直接拒答，返回空而不是最不差的猜测；这次拒答的代价只是每个有区分度的词查一次字典，而不是遍历整个语料。任何与查询共享词的单元都会被打分，命中的东西不会被丢掉；完整的向量计算只留给由选择性词触及的候选，而且只有真正带语义的嵌入器才被允许扩大候选集合。"
     },
     "src/ragyourcode/search.py:51:SearchIndex": {
       "hash": "9ca2694300e2612b",

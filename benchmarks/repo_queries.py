@@ -34,11 +34,19 @@ are scored on silence rather than on hit@k -- there is nothing to hit. They are
 kept apart from the aggregate for the same reason: averaging a question that
 should return something with one that should return nothing produces a number
 that improves when either half gets worse.
+
+Every report carries a fingerprint of the corpus it graded. A score from this
+ruler means nothing without one: two runs of an unchanged `search.py` against
+the foreign repository returned 0.257 and 0.229 hit@1, because that repository
+had grown by ninety units in between. Both numbers were right and comparing
+them was meaningless, and nothing in the output said which corpus each came
+from.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from collections import defaultdict
@@ -97,12 +105,18 @@ def evaluate(
     k: int = 3,
     vector_weight: float | None = None,
     min_coverage: float | None = None,
+    min_concentration: float | None = None,
 ) -> dict:
     """Grades one question set. Overrides are passed to `search` rather than
     set on the module, because a default argument is bound when the function is
     defined: assigning `search.DEFAULT_MIN_COVERAGE` afterwards changes nothing
     and produces a sweep in which every threshold scores identically, which is
     indistinguishable from a setting that does not matter.
+
+    Every knob `search` takes has to be reachable from here, and that is not
+    tidiness. A knob this cannot vary can only be measured by editing the source
+    between runs, which moves the corpus and the setting at the same time -- and
+    this repository's own source is one of the graded corpora.
     """
     index = build_search_index(units)
     overrides = {}
@@ -110,6 +124,8 @@ def evaluate(
         overrides["vector_weight"] = vector_weight
     if min_coverage is not None:
         overrides["min_coverage"] = min_coverage
+    if min_concentration is not None:
+        overrides["min_concentration"] = min_concentration
     rows = []
     for entry in questions["queries"]:
         results = search(units, entry["query"], limit=k, search_index=index, **overrides)
@@ -182,6 +198,10 @@ def evaluate(
 
     return {
         "k": k,
+        # Stamped into every report rather than printed only for a human, so a
+        # score kept in a file can still be told apart from one taken against a
+        # different corpus months later.
+        "corpus": corpus_stamp(units),
         "aggregate": summarise(answerable),
         "by_language": {name: summarise(group) for name, group in sorted(by_language.items())},
         "by_kind": {name: summarise(group) for name, group in sorted(by_kind.items())},
@@ -204,7 +224,28 @@ def evaluate(
     }
 
 
+def corpus_stamp(units) -> dict:
+    """Which corpus produced a score, as something a reader can compare.
+
+    A number from this ruler is only reproducible against the code it graded,
+    and one of the graded corpora is a repository nobody here controls. Between
+    two runs of an unchanged `search.py` the foreign ruler moved from 0.257
+    hit@1 to 0.229 -- entirely because that repository had grown from 1153 units
+    to 1241. The score was right both times and the comparison was worthless,
+    and nothing in the output said so. Published figures carry this stamp now,
+    so a mismatch is visible instead of being read as a regression.
+    """
+    digest = hashlib.sha256()
+    for unit in sorted(units, key=lambda item: item.id):
+        digest.update(unit.id.encode("utf-8"))
+        digest.update(unit.searchable_text.encode("utf-8"))
+    return {"units": len(units), "fingerprint": digest.hexdigest()[:12]}
+
+
 def _report(report: dict) -> None:
+    stamp = report.get("corpus")
+    if stamp:
+        print(f"corpus               {stamp['units']} units, fingerprint {stamp['fingerprint']}")
     aggregate, k = report["aggregate"], report["k"]
     if aggregate["questions"]:
         print(f"questions            {aggregate['questions']}")
@@ -254,6 +295,12 @@ def main() -> int:
         default=None,
         help="override search.min_coverage; 0 restores answering every query, which is what the absent ruler grades against",
     )
+    parser.add_argument(
+        "--min-concentration",
+        type=float,
+        default=None,
+        help="override search.min_concentration; 0 stops requiring the matched words to occur together",
+    )
     parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args()
 
@@ -299,6 +346,7 @@ def main() -> int:
         k=questions.get("k", 3),
         vector_weight=args.vector_weight,
         min_coverage=args.min_coverage,
+        min_concentration=args.min_concentration,
     )
     if args.output:
         Path(args.output).write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
