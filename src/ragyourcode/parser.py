@@ -102,10 +102,15 @@ RULES: dict[str, tuple[Declaration, ...]] = {}
 
 
 def _rule(kind: str, body: str) -> Declaration:
+    """Compiles one declaration-recognising pattern into a table entry."""
     return Declaration(kind, re.compile(body))
 
 
 def _register(languages: tuple[str, ...], rules: tuple[Declaration, ...]) -> None:
+    """Registers one shared set of rules for several languages at once, since
+    families such as Java, Kotlin, C-sharp and Scala declare things the same
+    way.
+    """
     for language in languages:
         RULES[language] = rules
 
@@ -304,6 +309,9 @@ def _line_offsets(source: str) -> list[int]:
 
 
 def _snippet(source: str, start: int, end: int) -> str:
+    """Extracts the source text between two character positions and trims
+    surrounding blank space.
+    """
     return source[start:end].strip()
 
 
@@ -441,6 +449,15 @@ def _close_end_span(lines: list[str], start: int, limit: int) -> int:
 
 
 def _generic_units(path: Path, source: str, relative: str, language: str) -> list[CodeUnit]:
+    """Extracts declarations from any non-Python language by scanning one line
+    at a time against that language's rule table, then closing each body by
+    nesting depth or by the closing keyword, and attaching the documentation
+    block written above it. Because a pattern never sees a second line, the
+    reported line number is the loop position and cannot drift, and no
+    declaration can swallow the ones after it. Blank lines, comments and
+    statement continuations are skipped, and shell here-document text is
+    treated as data so documentation inside it is never indexed as code.
+    """
     del path  # the relative path is what identifies a unit
     lines = source.split("\n")
     if lines and lines[-1] == "":
@@ -510,6 +527,12 @@ def _generic_units(path: Path, source: str, relative: str, language: str) -> lis
 
 
 def _python_units(path: Path, source: str, relative: str, diagnostics: list[dict] | None = None) -> list[CodeUnit]:
+    """Extracts Python functions, methods and classes using the language own
+    syntax tree, so nesting, qualified names, argument lists, called
+    functions, imported modules and exact line ranges are precise rather
+    than inferred. A file that will not parse is reported as a diagnostic
+    and contributes nothing, instead of failing the whole run.
+    """
     try:
         tree = ast.parse(source, filename=str(path))
     except SyntaxError as exc:
@@ -530,6 +553,11 @@ def _python_units(path: Path, source: str, relative: str, diagnostics: list[dict
     )
 
     def visit(node: ast.AST, parent: str | None = None) -> None:
+        """Walks the syntax tree and records every function, method and class
+        as a unit, building the dotted qualified name from the enclosing
+        scope, gathering what it calls and imports, and recursing so nested
+        definitions are indexed in their own right.
+        """
         nonlocal serial
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
             serial += 1
@@ -575,10 +603,19 @@ def _python_units(path: Path, source: str, relative: str, diagnostics: list[dict
 
 
 def _humanize_name(name: str) -> str:
+    """Turns a declaration identifier into ordinary words for the generated
+    description.
+    """
     return re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", name).replace("_", " ").lower()
 
 
 def parse_file(path: Path, root: Path, diagnostics: list[dict] | None = None) -> list[CodeUnit]:
+    """Reads one source file and returns the code units in it, choosing the
+    syntax-tree route for Python and the line-scanner route for every other
+    supported language. A suffix with no rules yields nothing. A file that
+    cannot be decoded as text or cannot be read is reported as a diagnostic
+    rather than raising, so one unreadable file cannot stop an indexing run.
+    """
     language = EXTENSIONS.get(path.suffix.lower())
     if not language:
         return []

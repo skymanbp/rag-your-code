@@ -17,12 +17,19 @@ from .search import DEFAULT_VECTOR_WEIGHT, SearchIndex, search
 
 @dataclass(frozen=True, slots=True)
 class CodeEdge:
+    """One directed relationship between two code units, carrying its kind and
+    a human-readable label. Kinds are deliberately few and conservative: one
+    unit calls another, imports it, or contains it.
+    """
     source: str
     target: str
     kind: str
     label: str = ""
 
     def to_dict(self) -> dict[str, str]:
+        """Serialises one relationship for storage inside the index or for an
+        agent reply.
+        """
         return {"source": self.source, "target": self.target, "kind": self.kind, "label": self.label}
 
 
@@ -30,6 +37,11 @@ class CodeGraph:
     """Directed code relationship graph with bounded neighborhood traversal."""
 
     def __init__(self, units: Iterable[CodeUnit], edges: Iterable[CodeEdge] = ()):
+        """Builds the forward and backward adjacency tables, keeping only
+        relationships whose two endpoints both exist in this index. An edge
+        pointing at something that is not indexed is dropped rather than
+        kept as a dangling reference.
+        """
         self.units = {unit.id: unit for unit in units}
         self.edges = sorted(set(edges), key=lambda edge: (edge.source, edge.kind, edge.target))
         self._out: dict[str, list[CodeEdge]] = defaultdict(list)
@@ -40,6 +52,12 @@ class CodeGraph:
                 self._in[edge.target].append(edge)
 
     def neighbors(self, unit_id: str, hops: int = 1, direction: str = "both") -> list[tuple[CodeUnit, list[str]]]:
+        """Walks outward from one unit to find related code within a hop limit,
+        following relationships forward, backward or both. Each unit is
+        visited once, and every result comes back with the full chain of
+        edges that reached it so the connection can be checked rather than
+        trusted.
+        """
         if unit_id not in self.units or hops <= 0:
             return []
         directions = {"out"} if direction == "out" else {"in"} if direction == "in" else {"out", "in"}
@@ -67,10 +85,18 @@ class CodeGraph:
         return found
 
     def to_dict(self) -> dict[str, object]:
+        """Serialises the whole relationship graph for storage inside the
+        index.
+        """
         return {"edges": [edge.to_dict() for edge in self.edges]}
 
 
 def _name_indexes(units: Iterable[CodeUnit]):
+    """Builds two lookup tables used to resolve references: identifier to the
+    units declaring it, and module filename to the units it defines. The
+    second is what lets a reference be recognised as belonging to this
+    repository rather than to an installed library.
+    """
     by_name: dict[str, list[str]] = defaultdict(list)
     by_module: dict[str, list[str]] = defaultdict(list)
     for unit in units:
@@ -110,6 +136,15 @@ def _call_targets(call: str, by_name: dict[str, list[str]], local_modules: set[s
 
 
 def build_graph(units: Iterable[CodeUnit], max_edges_per_unit: int = 64) -> CodeGraph:
+    """Derives the whole relationship graph from parsed units: containment from
+    declared parents, calls from recorded references, imports from module
+    names. Every edge is capped and conservative. An ambiguous reference
+    that could mean several units produces no edge at all, a per-unit budget
+    stops one heavily-connected function from flooding the graph, and a
+    module reference only becomes an edge when the target has a small
+    unambiguous surface. Omitting an uncertain relationship is preferred to
+    inventing one.
+    """
     units = list(units)
     unit_by_id = {unit.id: unit for unit in units}
     by_name, by_module = _name_indexes(units)
@@ -153,6 +188,11 @@ def build_graph(units: Iterable[CodeUnit], max_edges_per_unit: int = 64) -> Code
 
 
 def graph_from_dict(units: Iterable[CodeUnit], data: dict[str, object] | None) -> CodeGraph:
+    """Rebuilds the relationship graph from what an index stored, skipping any
+    entry whose shape it does not recognise. A scanned repository can ship
+    its own index file, so a malformed entry must be ignored rather than
+    trusted.
+    """
     raw_edges = (data or {}).get("edges", [])
     edges: list[CodeEdge] = []
     for edge in raw_edges if isinstance(raw_edges, list) else []:

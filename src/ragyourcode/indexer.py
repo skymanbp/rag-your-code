@@ -50,6 +50,16 @@ class StaleMonitor:
         cfg: Config | None = None,
         descriptions_fingerprint: str | None = None,
     ):
+        """Prepares the freshness check and settles up front whether the rules
+        that built the index have changed since it was published. Neither
+        the settings file, nor the written descriptions, nor the parser is
+        itself an indexed source file, so no amount of walking the tree
+        could notice a change in any of them: different suffixes or size
+        caps mean the index describes a different set of files, a different
+        parser means its units were carved out differently, and different
+        descriptions mean it serves wording nobody wrote any more. All of
+        them make it out of date regardless of what the file scan reports.
+        """
         self.root = root
         self.payload = payload
         self.cfg = _resolve(root, cfg)
@@ -67,6 +77,13 @@ class StaleMonitor:
         self.value = self.inputs_changed or bool(payload.get("stale", True))
 
     def check(self, force: bool = False) -> bool:
+        """Reports whether anything has changed, comparing recorded file sizes
+        and modification times against the repository as it now is, and
+        answering from the previous result when asked again within the
+        rate-limit window. A changed authored input short-circuits to out of
+        date immediately. A directory that cannot be read is treated as
+        changed, since not knowing is not the same as knowing nothing moved.
+        """
         if self.inputs_changed:
             self.payload["stale"] = True
             return True
@@ -121,6 +138,12 @@ def index_build_fingerprint(payload: dict) -> str:
 
 
 def iter_source_files(root: Path, cfg: Config | None = None):
+    """Walks a repository and yields the files that count as source, skipping
+    configured directories, hidden ones, unsupported suffixes, anything
+    above the size cap, and symbolic links. Links are skipped so a link
+    pointing outside the repository cannot pull foreign files into the
+    index.
+    """
     cfg = _resolve(root, cfg)
     ignored = set(cfg["index.ignore"])
     suffixes = {suffix.lower() for suffix in cfg["index.suffixes"]}
@@ -157,6 +180,9 @@ class RepositorySnapshot:
 
     @property
     def fingerprint(self) -> str:
+        """A single digest standing for the whole repository content at the
+        moment it was read.
+        """
         return _fingerprint_files(self.fingerprints)
 
 
@@ -183,6 +209,9 @@ def snapshot_repository(root: Path, cfg: Config | None = None) -> RepositorySnap
 
 
 def file_fingerprints(root: Path, cfg: Config | None = None) -> dict[str, str]:
+    """The content hash of every source file, used to decide which files can be
+    reused unchanged on the next run.
+    """
     return snapshot_repository(root, cfg).fingerprints
 
 
@@ -207,6 +236,11 @@ def file_stats(root: Path, cfg: Config | None = None) -> dict[str, list[int]]:
 
 
 def _assign_global_serials(units: list[CodeUnit], previous: dict[str, int] | None = None) -> None:
+    """Gives every unit a repository-wide number, keeping the number a unit
+    already had so that references written down in an earlier session still
+    point at the same code. New units take the lowest numbers not already in
+    use.
+    """
     previous = previous or {}
     used: set[int] = set()
     assigned: set[str] = set()
@@ -289,10 +323,16 @@ def build_units(
 
 
 def fingerprint(root: Path, cfg: Config | None = None) -> str:
+    """A single digest standing for the whole repository content right now,
+    used to tell a published index apart from the current state.
+    """
     return _fingerprint_files(file_fingerprints(root, cfg))
 
 
 def _fingerprint_files(files: dict[str, str]) -> str:
+    """Combines per-file hashes into one repository-wide digest in a fixed
+    order, so the same content always yields the same value.
+    """
     digest = hashlib.sha256()
     for relative, file_hash in sorted(files.items()):
         digest.update(relative.encode())
@@ -311,6 +351,15 @@ def write_index(
     cfg: Config | None = None,
     descriptions_fingerprint: str | None = None,
 ) -> None:
+    """Publishes the index atomically: vector data goes to a content-addressed
+    side file first, then the readable metadata is swapped into place in one
+    step, so a reader never sees a half-written index. Alongside the content
+    hashes it records digests of the two authored inputs, the settings and
+    the descriptions, and of the rules that built the units, because none of
+    those is an indexed file and a change in any of them would otherwise be
+    invisible. Compact storage moves vectors out of verbose text numbers
+    into a binary side file while the metadata stays readable.
+    """
     cfg = _resolve(root, cfg)
     path.parent.mkdir(parents=True, exist_ok=True)
     snapshot = snapshot or snapshot_repository(root, cfg)
@@ -395,6 +444,14 @@ def _remove_superseded_vectors(path: Path, active_name: str | None) -> None:
 
 
 def read_index(path: Path) -> tuple[dict, list[CodeUnit]]:
+    """Loads a published index back into memory, attaching vectors from the
+    compact side file when one is used. Everything about that side file is
+    verified before it is trusted: it must sit inside the index directory,
+    its declared width must be within bounds, and its length must match the
+    number of units. Any failure degrades to metadata without vectors and
+    says so explicitly, rather than raising, so a damaged side file costs
+    ranking quality instead of availability.
+    """
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise ValueError("index root must be a JSON object")

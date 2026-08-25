@@ -314,7 +314,11 @@ def test_pending_offers_undescribed_units_before_superseded_ones(tmp_path):
     store = DescriptionStore(tmp_path / "s.json", {})
     described = next(unit for unit in units if unit.id == UNIT_ID)
     store.put(described, AUTHORED)
-    store.entries[UNIT_ID]["hash"] = "0" * 16  # now superseded
+    # Both digests, because either one matching keeps the entry applicable:
+    # the full-source one for an unchanged unit, the code-only one for a unit
+    # whose documentation changed but whose code did not.
+    store.entries[UNIT_ID]["hash"] = "0" * 16
+    store.entries[UNIT_ID]["code_hash"] = "0" * 16
 
     pending = store.pending(units, limit=5)
     assert [unit.id for unit in pending][0] != UNIT_ID, "a unit with no description at all comes first"

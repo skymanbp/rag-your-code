@@ -28,8 +28,10 @@ rather than a restatement of the code.
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
+import textwrap
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -42,6 +44,60 @@ SCHEMA = 1
 def source_key(unit: CodeUnit) -> str:
     """Digest of the exact text a description was written about."""
     return hashlib.sha256(unit.source.encode("utf-8")).hexdigest()[:16]
+
+
+def code_only(source: str, language: str) -> str:
+    """A unit's source with its own leading documentation removed.
+
+    The digest above exists to stop a description outliving the code it
+    describes. Documentation is not code: adding or rewriting a docstring
+    changes nothing about what the function does, so invalidating a
+    description over it is the guard firing on a change that cannot make the
+    description wrong.
+
+    It fired hardest on the one operation meant to help. Promoting a
+    description into the source inserts that very description as a docstring,
+    the digest changes, and the entry is dropped -- taking with it whatever
+    part of the text was not promoted. Measured on this repository, promoting
+    the English half of every bilingual description cost Chinese retrieval
+    twenty-eight percent of its hit rate, because the Chinese half had nowhere
+    left to live.
+
+    Only Python needs this. Every other supported language writes its
+    documentation above the declaration, outside the unit's span, so its
+    digest never saw it in the first place -- this makes Python consistent
+    with the other fourteen rather than special.
+    """
+    if language != "python" or ('"""' not in source and "'''" not in source):
+        return source
+    try:
+        # Dedented, because a method's source starts indented and would not
+        # parse as a module on its own.
+        tree = ast.parse(textwrap.dedent(source))
+    except SyntaxError:
+        return source
+    # Every docstring in the span, not only the leading one. A class's source
+    # contains its methods, so a docstring added to a method changed the
+    # class's digest and superseded its description -- four of them here, all
+    # classes, all for documentation added to something nested inside them.
+    drop: set[int] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Module)):
+            continue
+        if not node.body:
+            continue
+        first = node.body[0]
+        if isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant) and isinstance(first.value.value, str):
+            drop.update(range(first.lineno, (first.end_lineno or first.lineno) + 1))
+    if not drop:
+        return source
+    lines = source.split(chr(10))
+    return chr(10).join(line for number, line in enumerate(lines, 1) if number not in drop)
+
+
+def code_key(unit: CodeUnit) -> str:
+    """Digest of a unit's code with its own documentation excluded."""
+    return hashlib.sha256(code_only(unit.source, unit.language).encode("utf-8")).hexdigest()[:16]
 
 
 def guidance(languages: tuple[str, ...] | list[str], max_chars: int) -> str:
@@ -112,15 +168,21 @@ class DescriptionStore:
         """
         table: dict[tuple[str, str], str | None] = {}
         for entry in self.entries.values():
-            path, digest = entry.get("path"), entry.get("hash")
-            if not isinstance(path, str) or not isinstance(digest, str):
+            path = entry.get("path")
+            if not isinstance(path, str):
                 continue
             text = entry.get("text")
-            key = (path, digest)
-            if key in table and table[key] != text:
-                table[key] = None
-            else:
-                table.setdefault(key, text)
+            # Indexed under both digests, so a unit that both moved and gained
+            # a docstring is still found. An entry written before the
+            # documentation-excluded digest existed simply has one of them.
+            for digest in (entry.get("hash"), entry.get("code_hash")):
+                if not isinstance(digest, str):
+                    continue
+                key = (path, digest)
+                if key in table and table[key] != text:
+                    table[key] = None
+                else:
+                    table.setdefault(key, text)
         return table
 
     def applicable(self, units: list[CodeUnit]) -> dict[str, str]:
@@ -128,11 +190,23 @@ class DescriptionStore:
         relocated = self._relocations()
         usable: dict[str, str] = {}
         for unit in units:
-            digest = source_key(unit)
+            # The full-source digest first, because it is one hash and it hits
+            # for every unit whose file did not change -- which, with
+            # incremental indexing, is nearly all of them. The
+            # documentation-excluded digest costs a parse and is computed only
+            # when the cheap one has already missed, so the parse is paid once
+            # per genuinely changed unit rather than once per unit per run.
             entry = self.entries.get(unit.id)
-            text = entry.get("text") if entry and entry.get("hash") == digest else None
+            plain = source_key(unit)
+            text = entry.get("text") if entry and entry.get("hash") == plain else None
             if text is None:
-                text = relocated.get((unit.path, digest))
+                text = relocated.get((unit.path, plain))
+            if text is None:
+                stripped = code_key(unit)
+                if entry and entry.get("code_hash") == stripped:
+                    text = entry.get("text")
+                else:
+                    text = relocated.get((unit.path, stripped))
             if isinstance(text, str) and text.strip():
                 usable[unit.id] = text
         return usable
@@ -171,8 +245,21 @@ class DescriptionStore:
         return (groups["missing"] + groups["superseded"])[: max(0, limit)]
 
     def put(self, unit: CodeUnit, text: str) -> None:
+        """Saves one written description together with the file it came from,
+        its qualified name, and two digests of the code: the whole source,
+        and the source with documentation excluded. The second is what keeps
+        the entry alive when a docstring is added, including one promoted
+        from this very description. An entry written before that field
+        existed keeps working through the first alone, so no store needs
+        migrating.
+        """
         self.entries[unit.id] = {
             "hash": source_key(unit),
+            # Recorded alongside so that adding a docstring -- including one
+            # promoted from this very description -- does not discard the
+            # entry. An entry written before this field existed keeps working
+            # through `hash` alone, so no store needs migrating.
+            "code_hash": code_key(unit),
             "path": unit.path,
             "name": unit.qualified_name,
             "text": text,
@@ -191,12 +278,34 @@ class DescriptionStore:
         the relocation lookup exists to rescue.
         """
         if units is not None:
+            # Entries written before the documentation-excluded digest existed
+            # carry only the full-source one. Filling it in here costs one
+            # parse per entry, once, and only for entries that currently match
+            # -- which means the source is unchanged and the derived digest is
+            # certainly the right one. The store upgrades itself on any write
+            # rather than needing a migration somebody has to remember.
+            by_id = {unit.id: unit for unit in units}
+            # Also by file and digest, because an entry whose declaration moved
+            # applies through the relocation lookup and is no longer findable
+            # by its stored id -- which was two thirds of them here.
+            by_code = {(unit.path, source_key(unit)): unit for unit in units}
+            for uid, entry in self.entries.items():
+                if "code_hash" in entry:
+                    continue
+                unit = by_id.get(uid)
+                if unit is None or entry.get("hash") != source_key(unit):
+                    unit = by_code.get((entry.get("path"), entry.get("hash")))
+                if unit is not None:
+                    entry["code_hash"] = code_key(unit)
             live_ids = {unit.id for unit in units}
             live_code = {(unit.path, source_key(unit)) for unit in units}
+            live_code |= {(unit.path, code_key(unit)) for unit in units}
             self.entries = {
                 uid: entry
                 for uid, entry in self.entries.items()
-                if uid in live_ids or (entry.get("path"), entry.get("hash")) in live_code
+                if uid in live_ids
+                or (entry.get("path"), entry.get("hash")) in live_code
+                or (entry.get("path"), entry.get("code_hash")) in live_code
             }
         payload = {
             "schema": SCHEMA,
@@ -221,6 +330,11 @@ def index_descriptions_fingerprint(payload: dict) -> str:
 
 
 def store_path(root: Path) -> Path:
+    """Where the written descriptions live: at the repository root beside the
+    settings file, not inside the generated artifacts directory, because
+    they are authored work that must survive a cache clear and must be
+    committable.
+    """
     return root / STORE_FILENAME
 
 

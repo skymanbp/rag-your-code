@@ -30,6 +30,13 @@ class CodeUnit:
 
     @property
     def searchable_text(self) -> str:
+        """Assembles everything about a unit that retrieval is allowed to match
+        against: qualified name, kind and signature, the description, the
+        names it calls and imports, and the full source. Because the
+        description is part of this text, replacing a generated description
+        with a better one immediately widens the set of queries that can
+        reach this unit.
+        """
         return "\n".join(
             (
                 f"{self.qualified_name} {self.kind} {self.signature}",
@@ -41,6 +48,11 @@ class CodeUnit:
         )
 
     def to_dict(self, include_vector: bool = True) -> dict[str, Any]:
+        """Serialises a unit to a plain dictionary for storage or for an agent
+        reply, optionally leaving the vector out. Vectors are an internal
+        ranking detail; sending them to an agent would consume context and
+        explain nothing.
+        """
         data = {
             "id": self.id,
             "path": self.path,
@@ -64,11 +76,19 @@ class CodeUnit:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "CodeUnit":
+        """Rebuilds a unit from its stored dictionary form when an index is
+        loaded back from disk.
+        """
         return cls(**data)
 
 
 @dataclass(slots=True)
 class SearchResult:
+    """One retrieved unit together with why it was retrieved: its relevance
+    score, the query words that actually matched, and for graph expansion
+    the chain of edges that led to it. The evidence is the point: a result
+    you cannot explain is a result you should not act on.
+    """
     unit: CodeUnit
     score: float
     matched_terms: list[str] = field(default_factory=list)
@@ -77,6 +97,9 @@ class SearchResult:
     def to_dict(self) -> dict[str, Any]:
         # Vectors are persisted for ranking but are an internal detail of the
         # index; returning them would needlessly consume an agent's context.
+        """Serialises a result for an agent reply, rounding the score and
+        stripping the vector.
+        """
         unit = self.unit.to_dict(include_vector=False)
         return {
             "score": round(self.score, 6),

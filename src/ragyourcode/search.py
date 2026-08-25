@@ -32,6 +32,11 @@ class SearchIndex:
 
 
 def build_search_index(units: list[CodeUnit]) -> SearchIndex:
+    """Builds the inverted lookup table by tokenising every unit once and
+    recording, for each term, which units contain it. The lists are kept
+    sorted so membership can later be answered by binary search rather than
+    by carrying a word set through the scoring loop.
+    """
     postings: dict[str, set[str]] = defaultdict(set)
     for unit in units:
         for term in set(tokenize(unit.searchable_text)):
@@ -52,6 +57,17 @@ def search(
     search_index: SearchIndex | None = None,
     vector_weight: float = DEFAULT_VECTOR_WEIGHT,
 ) -> list[SearchResult]:
+    """Ranks code units against a natural-language query by combining word
+    overlap with vector similarity. Every unit sharing any query word is
+    scored, so nothing that matches is left out: an earlier design let the
+    vector shortlist decide who was scored at all, and units matching more
+    query words went unranked, returning one result where eight were asked
+    for. Full vector scoring is reserved for units reached by a selective
+    term, since computing a dot product for everything a stopword-class term
+    touches is pure cost. Word overlap stays dominant so an exact symbol
+    match cannot be pushed below a noisy neighbour, and with no overlap
+    anywhere it falls back to similarity alone.
+    """
     query_tokens = set(tokenize(query))
     if limit <= 0 or not query_tokens:
         return []
@@ -118,6 +134,10 @@ def search(
 
 
 def context(results: list[SearchResult], max_chars: int = 12000) -> str:
+    """Packs ranked results into one readable block for an agent prompt, each
+    carrying identifier, score, matching evidence, description and source,
+    and stops before exceeding the caller character budget.
+    """
     blocks: list[str] = []
     used = 0
     for result in results:

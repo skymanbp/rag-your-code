@@ -95,6 +95,9 @@ def source_half(text: str) -> str:
 
 
 def _wrap(text: str, width: int) -> list[str]:
+    """Breaks a paragraph into lines that fit a comment's available width,
+    accounting for the indentation and the marker each line carries.
+    """
     words, lines, current = text.split(), [], ""
     for word in words:
         candidate = f"{current} {word}".strip()
@@ -109,6 +112,11 @@ def _wrap(text: str, width: int) -> list[str]:
 
 
 def render_comment(text: str, indent: str, language: str) -> tuple[str, ...]:
+    """Renders text as a documentation comment in one language's own
+    convention: a block opened and closed for the C family, a repeated line
+    prefix for Rust, Go, Ruby and shell. Indentation matches the declaration
+    it will sit above.
+    """
     opening, prefix, closing = DOC_STYLE[language]
     body = _wrap(text, WRAP_WIDTH - len(indent) - len(prefix))
     rendered = []
@@ -227,6 +235,11 @@ def render_patch(root: Path, insertions: list[Insertion]) -> str:
 
 
 def summarise(units: list[CodeUnit], store: DescriptionStore, insertions: list[Insertion], root: Path) -> dict:
+    """Counts what a promotion run would do: how many declarations already
+    carry the author's own documentation, how many have a stored
+    description, how many insertions the patch contains, and whether any
+    supported language lacks a documentation convention here.
+    """
     already = 0
     for path in sorted({unit.path for unit in units}):
         for fresh in parse_file(root / path, root):

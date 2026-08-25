@@ -8,10 +8,17 @@ from .search import DEFAULT_VECTOR_WEIGHT, SearchIndex, search
 
 
 def _result_ids(results: list[SearchResult]) -> set[str]:
+    """Collects the unit identifiers out of a list of search results, so two
+    result sets can be compared for overlap or novelty. Used to decide
+    whether a second retrieval round actually surfaced anything new.
+    """
     return {result.unit.id for result in results}
 
 
 def _serialize(results: list[SearchResult]) -> list[dict]:
+    """Converts search results into plain JSON-ready dictionaries for the agent
+    protocol reply.
+    """
     return [result.to_dict() for result in results]
 
 

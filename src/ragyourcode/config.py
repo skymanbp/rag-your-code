@@ -66,10 +66,16 @@ class Setting:
 
     @property
     def table(self) -> str:
+        """The section a setting belongs to, taken from the part of its name
+        before the dot.
+        """
         return self.path.split(".", 1)[0]
 
     @property
     def key(self) -> str:
+        """The bare key of a setting within its section, taken from the part of
+        its name after the dot.
+        """
         return self.path.split(".", 1)[1]
 
 
@@ -207,6 +213,7 @@ class Config:
     source: Path | None = None
 
     def __getitem__(self, path: str) -> Any:
+        """Reads one resolved setting by its dotted name."""
         return self.values[path]
 
     @property
@@ -244,10 +251,21 @@ class Config:
 
 
 def defaults() -> Config:
+    """The built-in settings, used when a repository supplies no file of its
+    own. They reproduce the previously hardcoded constants exactly, so a
+    repository with no configuration behaves identically to before the
+    settings layer existed.
+    """
     return Config({setting.path: setting.default for setting in SETTINGS})
 
 
 def config_path(root: Path) -> Path:
+    """Where a repository settings file lives: at the repository root, not
+    inside the generated artifacts directory. That directory is ignored by
+    version control and is what people delete to clear the cache, so
+    anything authored there would be both uncommittable and destroyed by the
+    obvious cleanup.
+    """
     return root / CONFIG_FILENAME
 
 
@@ -264,6 +282,12 @@ def load(root: Path) -> Config:
 
 
 def from_text(text: str, source: Path | None = None) -> Config:
+    """Parses settings text and validates every entry against the table,
+    starting from the defaults. An unrecognised section or key is refused
+    with a message listing what that section actually accepts, so a
+    misspelling is caught at load time instead of appearing as a setting
+    that mysteriously does nothing.
+    """
     parsed = parse_toml(text)
     values: dict[str, Any] = {setting.path: setting.default for setting in SETTINGS}
     for table, entries in parsed.items():
@@ -301,6 +325,12 @@ _NON_FINITE = {
 
 
 def parse_toml(text: str) -> dict[str, Any]:
+    """Reads settings text, using the standard library parser where it exists
+    and the built-in fallback reader below it. The fallback exists so that
+    supporting older interpreters does not require adding a runtime
+    dependency, which would contradict what this package claims about having
+    none.
+    """
     if sys.version_info >= (3, 11):
         import tomllib
 
@@ -330,6 +360,11 @@ def _strip_comment(line: str) -> str:
 
 
 def _parse_string(token: str, line_number: int) -> str:
+    """Reads a quoted text value, expanding the standard escape sequences
+    including Unicode ones in the escaping form, and leaving the literal
+    form untouched as its own rules require. An unsupported or truncated
+    escape is refused with its line number rather than guessed at.
+    """
     body = token[1:-1]
     if token[0] == "'":
         return body  # A TOML literal string performs no escape processing.
@@ -364,6 +399,15 @@ def _parse_string(token: str, line_number: int) -> str:
 
 
 def _parse_scalar(raw: str, line_number: int) -> Any:
+    """Reads one single value: quoted text, a boolean, an integer in any
+    supported base, a decimal or exponential number, or the non-finite float
+    names. Anything else this reader cannot handle, such as a date or a
+    multi-line form, is refused with its line number and a note of what is
+    supported, rather than being misread. Recognising the non-finite names
+    matters for agreement: omitting them once made this reader refuse a
+    value the standard parser accepted, so the same file produced two
+    different errors on two interpreters.
+    """
     token = raw.strip()
     if not token:
         raise ConfigError(f"line {line_number}: missing value")
@@ -397,6 +441,10 @@ def _parse_scalar(raw: str, line_number: int) -> Any:
 
 
 def _split_array(body: str, line_number: int) -> list[str]:
+    """Splits a bracketed list into its entries, respecting quotes and nesting
+    so that a separator inside a quoted value or an inner list does not
+    split it. An unclosed quote or bracket is refused with its line number.
+    """
     items: list[str] = []
     current: list[str] = []
     quote = ""
@@ -509,6 +557,9 @@ def render_template() -> str:
 
 
 def render_value(value: Any) -> str:
+    """Formats one value back into the settings file syntax, for the generated
+    template and for writing a changed value back.
+    """
     if isinstance(value, (tuple, list)):
         return "[" + ", ".join(json.dumps(item, ensure_ascii=False) for item in value) + "]"
     if isinstance(value, bool):

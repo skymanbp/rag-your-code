@@ -127,17 +127,15 @@ def test_the_patch_applies_with_git(tmp_path, name, body):
     assert ENGLISH.split(",")[0] in (tmp_path / name).read_text(encoding="utf-8")
 
 
-def test_promotion_hands_python_over_and_leaves_the_rest_alongside(tmp_path):
-    """The ladder is clean for Python and merely additive for the other fourteen.
+def test_promoting_a_description_does_not_discard_it(tmp_path):
+    """Promotion must not cost the half of the text it did not promote.
 
-    A Python docstring goes inside the body, so promoting changes the unit's
-    own text: its stored entry stops applying and the words are served from
-    the source instead -- the handover the ladder describes. Everywhere else
-    the comment sits *above* the declaration, outside the unit's span, so the
-    unit's digest is untouched and the entry still applies. The words are then
-    in both places. That is duplication on disk but not in the index, because
-    an authored description replaces the generated one rather than joining it,
-    and the entry can simply be dropped once the patch is applied.
+    A Python docstring goes inside the body, so promoting used to change the
+    unit's own digest and supersede its entry -- discarding whatever was not
+    promoted. Measured on this repository, that cost Chinese retrieval
+    twenty-eight percent of its hit rate. Documentation is now excluded from
+    the digest, because documentation is not code and cannot make a
+    description wrong.
     """
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
     (tmp_path / "a.py").write_text("def charge(amount):\n    return amount\n", encoding="utf-8")
@@ -151,15 +149,14 @@ def test_promotion_hands_python_over_and_leaves_the_rest_alongside(tmp_path):
     still = descriptions_module.load(tmp_path).applicable(after)
     by_language = {unit.language: unit for unit in after}
 
-    python_unit = by_language["python"]
-    assert python_unit.id not in still, "a docstring is inside the body, so the entry is superseded"
-    assert "Documented intent: Retries a failed charge" in python_unit.description
-
-    javascript_unit = by_language["javascript"]
-    assert javascript_unit.id in still, "the comment is above the span, so the digest is unchanged"
-    # Either way the words reach the index exactly once.
+    # Both survive, for different reasons, and that is the point: a promoted
+    # docstring is documentation, and documentation is excluded from the digest
+    # that decides whether a description still applies. Before that, promoting
+    # discarded the entry and took the un-promoted half of the text with it.
     for unit in after:
+        assert unit.id in still, f"{unit.language}: promoting its own text must not discard the entry"
         assert "gateway times out" in unit.description
+        assert "支付网关超时" in still[unit.id], "the half that stayed behind is still served"
 
 
 def test_crlf_line_endings_are_preserved(tmp_path):

@@ -27,10 +27,24 @@ MAX_OPEN_CHARS = BY_PATH["agent.max_open_chars"].default
 
 
 def _default_index(root: Path) -> Path:
+    """Where a repository index file is kept when the caller names no other
+    location.
+    """
     return root / ".rag-your-code" / "index.json"
 
 
 def _refresh_index(root: Path, output: Path, full: bool = False, compact: bool | None = None, cfg: Config | None = None) -> dict:
+    """Builds or rebuilds a repository index and publishes it, reusing the
+    previous one where it can. It works out up front whether the rules that
+    decide what a unit is have changed — the indexing settings, the vector
+    width, or the parser itself — and when they have it discards the
+    previous work rather than reusing it, so the report can honestly say
+    whether reuse happened. That report previously claimed reuse on exactly
+    the runs that had rebuilt everything, because it was computed from
+    whether a previous index existed rather than from whether its units were
+    kept. It also applies the written descriptions and reports how many
+    units still have none.
+    """
     cfg = cfg if cfg is not None else config_module.load(root)
     previous_payload: dict = {}
     previous_units = []
@@ -87,6 +101,10 @@ def _refresh_index(root: Path, output: Path, full: bool = False, compact: bool |
 
 
 def _cmd_index(args: argparse.Namespace) -> int:
+    """The index command: scans a repository and writes its index, reporting
+    how many units and relationships were found and how many descriptions
+    are still pending.
+    """
     root = Path(args.root).resolve()
     cfg = config_module.load(root)
     output = Path(args.output) if args.output else _default_index(root)
@@ -95,6 +113,13 @@ def _cmd_index(args: argparse.Namespace) -> int:
 
 
 def _load(args: argparse.Namespace):
+    """Opens a published index for a read-only command and settles whether it
+    is still current. Three things can make it out of date and only one of
+    them is a file edit: the repository content can have moved, the rules
+    that decide what a unit is can have changed, or the written descriptions
+    can have changed. Neither authored input nor the parser is an indexed
+    file, so each has to report itself.
+    """
     root = Path(args.root).resolve()
     cfg = config_module.load(root)
     store = descriptions_module.load(root)
@@ -114,6 +139,13 @@ def _load(args: argparse.Namespace):
 
 
 def _cmd_search(args: argparse.Namespace) -> int:
+    """The search command: retrieves the code units most relevant to a
+    question, optionally following relationships outward, and prints either
+    a readable context block or machine-readable output for an agent. Result
+    count, context budget and the balance between word overlap and vector
+    similarity all fall back to the repository settings when no flag
+    overrides them. Warns when the index no longer describes the repository.
+    """
     payload, units, graph, cfg, _ = _load(args)
     limit = args.limit if args.limit is not None else cfg["search.limit"]
     max_chars = args.max_chars if args.max_chars is not None else cfg["search.max_chars"]
@@ -134,6 +166,12 @@ def _cmd_search(args: argparse.Namespace) -> int:
 
 
 def _cmd_annotate(args: argparse.Namespace) -> int:
+    """The annotate command: writes a numbered inventory of every indexed unit
+    to a separate document, with its location, kind and description. Source
+    files are never touched. Refuses to run against an index that no longer
+    describes the repository, since a numbered inventory of stale code is
+    worse than none.
+    """
     payload, units, _, _, _ = _load(args)
     if payload.get("stale"):
         print("Index is stale; run `rag-your-code index` before annotating.", file=sys.stderr)
@@ -149,6 +187,14 @@ def _cmd_annotate(args: argparse.Namespace) -> int:
 
 
 def _cmd_config(args: argparse.Namespace) -> int:
+    """The config command: creates a commented settings file, lists every
+    setting with its effective value and whether it was customised, reads
+    one value, changes one value in place, or reports where the file lives.
+    Changing a value refuses anything out of range before writing, so a
+    rejected change leaves the file exactly as it was, and the reply says
+    whether the change forces a full rebuild. Creating refuses to overwrite
+    an existing file unless told to.
+    """
     root = Path(args.root).resolve()
     path = config_module.config_path(root)
     if args.action == "path":
@@ -294,6 +340,15 @@ def _apply_descriptions(units: list, store: DescriptionStore, cfg: Config) -> in
 
 
 def _cmd_describe(args: argparse.Namespace) -> int:
+    """The describe command: reports how many units have a usable description,
+    how many have one the code has since outgrown and how many have none;
+    exports a batch of pending work with source and brief; imports written
+    descriptions back; or emits a patch that moves a description into the
+    source as a doc comment. Importing says explicitly that a rebuild is
+    needed, because the published index still holds the previous wording and
+    no source file moved to signal it. The patch owns standard output so it
+    can be piped straight into git apply.
+    """
     payload, units, _, cfg, store = _load(args)
     if args.action == "promote":
         # A stored description exists so text about a unit can be written
@@ -507,6 +562,13 @@ def _cmd_agent(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Declares the whole command-line surface: indexing, retrieval,
+    annotation, the long-running agent, settings, and descriptions including
+    the promotion patch, with their options and help text. Options that have
+    a configurable counterpart default to nothing rather than to a literal,
+    so an unset flag means whatever the repository configured instead of a
+    number frozen into the program.
+    """
     parser = argparse.ArgumentParser(prog="rag-your-code", description="Index and retrieve explainable code units locally.")
     sub = parser.add_subparsers(dest="command", required=True)
     index = sub.add_parser("index", help="scan a repository and build its local index")
@@ -580,6 +642,12 @@ def _use_utf8_streams() -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """The program entry point: pins the streams, parses the command line, runs
+    the chosen command, and turns an expected failure into a message and a
+    non-zero exit code instead of a stack trace. A settings problem is
+    reported separately and names the file, because that fix is always in
+    one known place.
+    """
     _use_utf8_streams()
     args = build_parser().parse_args(argv)
     try:

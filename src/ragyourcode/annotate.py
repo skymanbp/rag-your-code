@@ -7,11 +7,22 @@ import re
 
 
 def _humanize(name: str) -> str:
+    """Turns a programmer identifier into ordinary words: splits camelCase
+    apart, replaces underscores with spaces, lowercases the result. Empty
+    input becomes a placeholder rather than an empty string.
+    """
     words = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", name).replace("_", " ").split()
     return " ".join(words).strip().lower() or "anonymous unit"
 
 
 def describe_python(node: ast.AST, source: str, calls: list[str], imports: list[str]) -> str:
+    """Builds a readable sentence about a Python function or class without
+    using a language model: the humanised name, the arguments it accepts,
+    the functions it calls, the modules it uses, and the docstring appended
+    verbatim as stated intent. Because it only rearranges words already in
+    the source, it adds no vocabulary the code did not have, which is why
+    retrieval cannot reach a concept nobody wrote down.
+    """
     name = getattr(node, "name", "anonymous")
     kind = "method" if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) else "class"
     args = []
