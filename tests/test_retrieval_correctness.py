@@ -17,31 +17,13 @@ from ragyourcode.indexer import build_units, fingerprint, read_index, snapshot_r
 from ragyourcode.search import build_search_index, search
 
 
-def _corpus(tmp_path: Path, count: int = 80) -> Path:
-    """More units than the selective threshold's 64 floor, with skewed terms."""
-    for index in range(count):
-        (tmp_path / f"mod_{index}.py").write_text(
-            f"def handler_{index}(request, response):\n"
-            f'    """Handle request and return response."""\n'
-            f"    return response\n",
-            encoding="utf-8",
-        )
-    (tmp_path / "special.py").write_text(
-        "def retry_request_with_backoff(request, response):\n"
-        '    """Retry a failed request and return response."""\n'
-        "    return response\n",
-        encoding="utf-8",
-    )
-    return tmp_path
-
-
-def test_limit_is_filled_when_a_rare_term_joins_common_ones(tmp_path: Path):
+def test_limit_is_filled_when_a_rare_term_joins_common_ones(tmp_path: Path, skewed_corpus):
     """A rare token must not shrink the candidate set to itself.
 
     `backoff` reaches one unit; `request` and `response` reach all 81. Scoring
     only what the rare term reached returned a single result for `--limit 8`.
     """
-    units = build_units(_corpus(tmp_path))
+    units = build_units(skewed_corpus(tmp_path))
     assert len(units) > 64, "the corpus must exceed the selective threshold's floor"
     index = build_search_index(units)
     results = search(units, "backoff request response", limit=8, search_index=index)
@@ -50,8 +32,8 @@ def test_limit_is_filled_when_a_rare_term_joins_common_ones(tmp_path: Path):
     assert all(result.matched_terms for result in results), "every returned unit must carry its evidence"
 
 
-def test_every_lexically_matching_unit_can_be_returned(tmp_path: Path):
-    units = build_units(_corpus(tmp_path, count=70))
+def test_every_lexically_matching_unit_can_be_returned(tmp_path: Path, skewed_corpus):
+    units = build_units(skewed_corpus(tmp_path, count=70))
     index = build_search_index(units)
     results = search(units, "handler_7 request", limit=100, search_index=index)
     returned = {result.unit.id for result in results}

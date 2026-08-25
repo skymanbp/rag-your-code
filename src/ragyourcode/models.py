@@ -29,23 +29,37 @@ class CodeUnit:
     vector: Sequence[float] = field(default_factory=list)
 
     @property
-    def searchable_text(self) -> str:
-        """Assembles everything about a unit that retrieval is allowed to match
-        against: qualified name, kind and signature, the description, the
-        names it calls and imports, and the full source. Because the
-        description is part of this text, replacing a generated description
-        with a better one immediately widens the set of queries that can
-        reach this unit.
+    def searchable_fields(self) -> dict[str, str]:
+        """Everything retrieval may match, kept apart by where the author
+        wrote it. Where a word appears is itself evidence of how much it
+        means: a term in a declaration's name is what the author decided to
+        call the thing, while the same term two hundred lines into a body is
+        a passing mention. Ranking weights those differently, so they cannot
+        arrive as one undifferentiated blob -- flattened, a long function
+        outranks the function that is actually named after the query, purely
+        by owning more words.
+
+        Because the description is one of these fields, replacing a generated
+        description with a better one immediately widens the set of queries
+        that can reach this unit.
         """
-        return "\n".join(
-            (
-                f"{self.qualified_name} {self.kind} {self.signature}",
-                self.description,
-                "calls: " + " ".join(self.calls),
-                "imports: " + " ".join(self.imports),
-                self.source,
-            )
-        )
+        return {
+            "name": f"{self.qualified_name} {self.kind}",
+            "signature": self.signature,
+            "description": self.description,
+            "relations": "calls: " + " ".join(self.calls) + "\nimports: " + " ".join(self.imports),
+            "body": self.source,
+        }
+
+    @property
+    def searchable_text(self) -> str:
+        """Every searchable field as one block, for callers that want the
+        words without caring where they came from -- the unit's own embedding
+        is built from this. Derived from ``searchable_fields`` rather than
+        rebuilt beside it, so a field added for ranking cannot go missing
+        from the text that gets embedded.
+        """
+        return "\n".join(self.searchable_fields.values())
 
     def to_dict(self, include_vector: bool = True) -> dict[str, Any]:
         """Serialises a unit to a plain dictionary for storage or for an agent

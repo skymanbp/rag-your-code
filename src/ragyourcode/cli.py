@@ -18,7 +18,7 @@ from .document import plan as plan_documentation, render_patch, summarise as sum
 from .embeddings import embed, embedding_metadata
 from .graph import build_graph, graph_from_dict, graph_search
 from .indexer import StaleMonitor, build_fingerprint, build_units, fingerprint, index_build_fingerprint, read_index, snapshot_repository, write_index
-from .search import build_search_index, context, search
+from .search import build_search_index, context, search, within_budget
 
 # Derived from the settings table so the default is written down once.
 # `tests/test_agent_protocol.py` imports these to assert the bound it enforces.
@@ -157,7 +157,10 @@ def _cmd_search(args: argparse.Namespace) -> int:
         else search(units, args.query, limit, search_index=search_index, vector_weight=weight)
     )
     if args.json:
-        print(json.dumps({"query": args.query, "mode": "graph" if args.graph else "hybrid", "stale": payload.get("stale", True), "degraded": payload.get("degraded"), "results": [result.to_dict() for result in results], "context": context(results, max_chars)}, ensure_ascii=False))
+        # One budget decision, applied once: the results an agent reads and the
+        # context beside them are the same set, so they cannot disagree.
+        shown = within_budget(results, max_chars)
+        print(json.dumps({"query": args.query, "mode": "graph" if args.graph else "hybrid", "stale": payload.get("stale", True), "degraded": payload.get("degraded"), "results": [result.to_dict() for result in shown], "omitted_for_budget": len(results) - len(shown), "context": context(shown, max_chars)}, ensure_ascii=False))
     else:
         if payload.get("stale"):
             print("Warning: index is stale; run `rag-your-code index` to refresh.", file=sys.stderr)
@@ -496,7 +499,9 @@ def _cmd_agent(args: argparse.Namespace) -> int:
                     if use_graph
                     else search(units, query, limit, search_index=search_index, vector_weight=weight)
                 )
-                response = {"stale": payload.get("stale", True), "results": [result.to_dict() for result in results], "context": context(results, _request_int(request, "max_chars", default_chars, 0, 100000))}
+                budget = _request_int(request, "max_chars", default_chars, 0, 100000)
+                shown = within_budget(results, budget)
+                response = {"stale": payload.get("stale", True), "results": [result.to_dict() for result in shown], "omitted_for_budget": len(results) - len(shown), "context": context(shown, budget)}
             elif action == "research":
                 response = research(
                     units,
