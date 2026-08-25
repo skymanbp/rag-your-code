@@ -467,8 +467,8 @@
       "query": "how is a batch of units handed to the agent to describe",
       "acceptable": [
         [
-          "src/ragyourcode/cli.py",
-          "_describe_batch"
+          "src/ragyourcode/workflow.py",
+          "describe_batch"
         ],
         [
           "src/ragyourcode/descriptions.py",
@@ -483,8 +483,8 @@
       "query": "what happens when a written description exceeds the length limit",
       "acceptable": [
         [
-          "src/ragyourcode/cli.py",
-          "_store_descriptions"
+          "src/ragyourcode/workflow.py",
+          "store_descriptions"
         ]
       ]
     },
@@ -495,8 +495,8 @@
       "query": "does a newly written description take effect without re-indexing",
       "acceptable": [
         [
-          "src/ragyourcode/cli.py",
-          "_apply_descriptions"
+          "src/ragyourcode/workflow.py",
+          "apply_descriptions"
         ]
       ]
     },

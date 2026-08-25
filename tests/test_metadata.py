@@ -60,9 +60,14 @@ def _subcommands() -> set[str]:
 
 
 def _protocol_actions() -> set[str]:
-    """Actions the agent loop actually dispatches on."""
+    """Actions the agent loop actually dispatches on.
+
+    `args.action` is a subcommand's own verb -- `config set`, `describe
+    export` -- and matching it here quietly folded eight of those into the
+    protocol's roster. Nothing noticed while the only assertion ran one way.
+    """
     source = (ROOT / "src" / "ragyourcode" / "cli.py").read_text(encoding="utf-8")
-    return set(re.findall(r'action == "([a-z_]+)"', source)) | {"search"}
+    return set(re.findall(r'(?<!args\.)action == "([a-z_]+)"', source)) | {"search"}
 
 
 def test_every_documented_subcommand_exists():
@@ -82,6 +87,25 @@ def test_every_documented_protocol_action_is_handled():
         unknown = used - known
         assert not unknown, f"{name} documents actions the agent loop ignores: {sorted(unknown)}"
         assert used, f"{name} should show at least one protocol action"
+
+
+def test_the_documented_list_of_actions_is_the_real_list():
+    """The prose roster, not just the JSON examples.
+
+    Only actions written as `{"action":"..."}` were checked, so the sentence
+    that enumerates them could name one the loop had never heard of and
+    nothing would notice -- the same defect as an install line nobody ran.
+    Both directions are asserted: a documented action must exist, and an
+    implemented one must be documented, because an action nobody is told about
+    is not a feature.
+    """
+    known = _protocol_actions()
+    text = (ROOT / "skills" / "rag-your-code" / "SKILL.md").read_text(encoding="utf-8")
+    roster = re.search(r"Supported actions are(.+?)\.", text, re.S)
+    assert roster, "SKILL.md must enumerate the protocol actions"
+    listed = set(re.findall(r"`([a-z_]+)`", roster.group(1)))
+    assert listed - known == set(), f"SKILL.md lists actions the agent loop ignores: {sorted(listed - known)}"
+    assert known - listed == set(), f"the agent loop handles actions SKILL.md never mentions: {sorted(known - listed)}"
 
 
 def _publishes_to_pypi() -> bool:

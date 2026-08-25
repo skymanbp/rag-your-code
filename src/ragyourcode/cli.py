@@ -11,14 +11,16 @@ from pathlib import Path
 from . import config as config_module
 from . import descriptions as descriptions_module
 from .annotate import comment_for
-from .agentic import research
+from .agentic import DEFAULT_DOMINANCE, research
 from .config import BY_PATH, SETTINGS, Config, ConfigError
-from .descriptions import DescriptionStore, guidance, index_descriptions_fingerprint
+from .descriptions import index_descriptions_fingerprint
 from .document import plan as plan_documentation, render_patch, summarise as summarise_documentation
 from .embeddings import embed, embedding_metadata
 from .graph import build_graph, graph_from_dict, graph_search
 from .indexer import StaleMonitor, build_fingerprint, build_units, fingerprint, index_build_fingerprint, read_index, snapshot_repository, write_index
+from .models import SearchResult
 from .search import build_search_index, context, search, within_budget
+from .workflow import apply_descriptions, bootstrap, describe_batch, store_descriptions
 
 # Derived from the settings table so the default is written down once.
 # `tests/test_agent_protocol.py` imports these to assert the bound it enforces.
@@ -100,6 +102,29 @@ def _refresh_index(root: Path, output: Path, full: bool = False, compact: bool |
     }
 
 
+def _cmd_bootstrap(args: argparse.Namespace) -> int:
+    """The bootstrap command: index, say how far this repository is from being
+    searchable, and hand over the next step's work packet.
+    """
+    root = Path(args.root).resolve()
+    cfg = config_module.load(root)
+    output = Path(args.output) if args.output else _default_index(root)
+    index_report = _refresh_index(root, output, args.full, None, cfg)
+    _, units = read_index(output)
+    report = bootstrap(units, descriptions_module.load(root), cfg, root, index_report, args.limit)
+    if args.json:
+        print(json.dumps(report, ensure_ascii=False))
+        return 0
+    step = report["next"]
+    print(f"indexed   {report['index']['indexed_units']} units, {report['index']['graph_edges']} edges")
+    print(f"described {report['described']} written, {report['superseded']} outgrown by the code, {report['missing']} never written")
+    print(f"in source {report['already_documented']} declarations carry the author's own documentation")
+    print(f"\nnext: {step['action']}\n  {step['why']}")
+    for line in step["how"]:
+        print(f"  - {line}")
+    return 0
+
+
 def _cmd_index(args: argparse.Namespace) -> int:
     """The index command: scans a repository and writes its index, reporting
     how many units and relationships were found and how many descriptions
@@ -157,10 +182,11 @@ def _cmd_search(args: argparse.Namespace) -> int:
         else search(units, args.query, limit, search_index=search_index, vector_weight=weight)
     )
     if args.json:
-        # One budget decision, applied once: the results an agent reads and the
-        # context beside them are the same set, so they cannot disagree.
+        # Results are navigation and cost almost nothing, so every one that was
+        # found is reported. The budget decides how many of them arrive with
+        # their code attached, and says how many did not.
         shown = within_budget(results, max_chars)
-        print(json.dumps({"query": args.query, "mode": "graph" if args.graph else "hybrid", "stale": payload.get("stale", True), "degraded": payload.get("degraded"), "results": [result.to_dict() for result in shown], "omitted_for_budget": len(results) - len(shown), "context": context(shown, max_chars)}, ensure_ascii=False))
+        print(json.dumps({"query": args.query, "mode": "graph" if args.graph else "hybrid", "stale": payload.get("stale", True), "degraded": payload.get("degraded"), "results": [result.to_dict() for result in results], "omitted_for_budget": len(results) - len(shown), "context": context(shown, max_chars)}, ensure_ascii=False))
     else:
         if payload.get("stale"):
             print("Warning: index is stale; run `rag-your-code index` to refresh.", file=sys.stderr)
@@ -241,107 +267,6 @@ def _cmd_config(args: argparse.Namespace) -> int:
     return 0
 
 
-def _describe_batch(units: list, store: DescriptionStore, cfg: Config, limit: int) -> dict:
-    """The work packet handed to an agent: what to describe, and how.
-
-    The source is included because the brief forbids describing behaviour the
-    source does not show, and an agent cannot honour that without seeing it.
-    The generated description goes along so the agent can tell what retrieval
-    already has and add what it lacks rather than paraphrasing it.
-    """
-    groups = store.classify(units)
-    pending = store.pending(units, limit)
-    languages = cfg["describe.languages"]
-    return {
-        "languages": list(languages),
-        "max_chars": cfg["describe.max_chars"],
-        "guidance": guidance(languages, cfg["describe.max_chars"]),
-        "described": len(groups["described"]),
-        "superseded": len(groups["superseded"]),
-        "missing": len(groups["missing"]),
-        "remaining": len(groups["missing"]) + len(groups["superseded"]),
-        "units": [
-            {
-                "id": unit.id,
-                "path": unit.path,
-                "language": unit.language,
-                "kind": unit.kind,
-                "qualified_name": unit.qualified_name,
-                "signature": unit.signature,
-                "start_line": unit.start_line,
-                "end_line": unit.end_line,
-                "generated_description": unit.description,
-                "source": unit.source,
-            }
-            for unit in pending
-        ],
-    }
-
-
-def _store_descriptions(units: list, store: DescriptionStore, cfg: Config, items) -> dict:
-    """Validate and persist a batch, reporting every rejection with a reason.
-
-    Nothing is truncated to fit. A description silently cut at the limit would
-    lose exactly the trailing synonyms that make it worth writing, and the
-    agent would have no way to learn that it had happened.
-    """
-    if not isinstance(items, list):
-        raise ValueError("descriptions must be a list of {id, text} objects")
-    by_id = {unit.id: unit for unit in units}
-    max_chars = cfg["describe.max_chars"]
-    stored: list[str] = []
-    rejected: list[dict] = []
-    for item in items:
-        if not isinstance(item, dict):
-            rejected.append({"id": None, "reason": "not_an_object"})
-            continue
-        unit_id = str(item.get("id", ""))
-        text = str(item.get("text", "")).strip()
-        unit = by_id.get(unit_id)
-        if unit is None:
-            rejected.append({"id": unit_id, "reason": "unknown_unit"})
-        elif not text:
-            rejected.append({"id": unit_id, "reason": "empty"})
-        elif len(text) > max_chars:
-            rejected.append({"id": unit_id, "reason": "too_long", "length": len(text), "limit": max_chars})
-        else:
-            store.put(unit, text)
-            stored.append(unit_id)
-    if stored:
-        store.save(units)
-    groups = store.classify(units)
-    return {
-        "stored": len(stored),
-        "stored_ids": stored,
-        "rejected": rejected,
-        "remaining": len(groups["missing"]) + len(groups["superseded"]),
-        # The store is written but the published index still holds the previous
-        # text. Said as its own field rather than folded into `stale`, which
-        # answers a different question -- whether the index still describes the
-        # repository -- and is correctly False here.
-        "reindex_required": len(stored) > 0,
-        "path": str(store.path),
-    }
-
-
-def _apply_descriptions(units: list, store: DescriptionStore, cfg: Config) -> int:
-    """Push newly stored text into the in-memory units, re-embedding as needed.
-
-    Without this an agent would describe a unit and keep retrieving against the
-    sentence it replaced until the next `refresh`, which is the slowest way to
-    discover that the work had an effect.
-    """
-    authored = store.applicable(units)
-    changed = 0
-    for unit in units:
-        text = authored.get(unit.id)
-        if text and unit.description != text:
-            unit.description = text
-            unit.vector = embed(comment_for(text, unit.serial, unit.id) + "\n" + unit.searchable_text, cfg["embedding.dimensions"])
-            changed += 1
-    return changed
-
-
 def _cmd_describe(args: argparse.Namespace) -> int:
     """The describe command: reports how many units have a usable description,
     how many have one the code has since outgrown and how many have none;
@@ -390,7 +315,7 @@ def _cmd_describe(args: argparse.Namespace) -> int:
         return 0
     if args.action == "export":
         limit = args.limit if args.limit is not None else cfg["describe.batch"]
-        batch = _describe_batch(units, store, cfg, limit)
+        batch = describe_batch(units, store, cfg, limit)
         text = json.dumps(batch, ensure_ascii=False, indent=2)
         if args.output:
             Path(args.output).write_text(text + "\n", encoding="utf-8", newline="\n")
@@ -401,7 +326,7 @@ def _cmd_describe(args: argparse.Namespace) -> int:
     incoming = json.loads(Path(args.file).read_text(encoding="utf-8"))
     if isinstance(incoming, dict):
         incoming = incoming.get("descriptions", [])
-    report = _store_descriptions(units, store, cfg, incoming)
+    report = store_descriptions(units, store, cfg, incoming)
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0 if not report["rejected"] else 1
 
@@ -501,7 +426,7 @@ def _cmd_agent(args: argparse.Namespace) -> int:
                 )
                 budget = _request_int(request, "max_chars", default_chars, 0, 100000)
                 shown = within_budget(results, budget)
-                response = {"stale": payload.get("stale", True), "results": [result.to_dict() for result in shown], "omitted_for_budget": len(results) - len(shown), "context": context(shown, budget)}
+                response = {"stale": payload.get("stale", True), "results": [result.to_dict() for result in results], "omitted_for_budget": len(results) - len(shown), "context": context(shown, budget)}
             elif action == "research":
                 response = research(
                     units,
@@ -509,30 +434,50 @@ def _cmd_agent(args: argparse.Namespace) -> int:
                     _request_int(request, "limit", default_limit, 0, 100),
                     _request_int(request, "hops", 1, 0, 3),
                     _request_int(request, "max_steps", 2, 1, 2),
-                    float(request.get("confidence_threshold", 0.8)),
+                    float(request.get("dominance_threshold", DEFAULT_DOMINANCE)),
                     graph,
                     search_index,
                     vector_weight=weight,
+                    max_chars=_request_int(request, "max_chars", default_chars, 0, 100000),
                 )
                 response["stale"] = payload.get("stale", True)
             elif action == "neighbors":
                 unit_id = str(request.get("id", ""))
                 neighbors = graph.neighbors(unit_id, hops=_request_int(request, "hops", 1, 0, 3), direction=str(request.get("direction", "both")))
-                response_neighbors = []
-                for unit, path in neighbors[: _request_int(request, "limit", default_limit, 0, 100)]:
-                    data = unit.to_dict(include_vector=False)
-                    response_neighbors.append({"path": path, "unit": data})
-                response = {"stale": payload.get("stale", True), "id": unit_id, "neighbors": response_neighbors}
+                reached = neighbors[: _request_int(request, "limit", default_limit, 0, 100)]
+                # Same rule as every other reply: the entries say where to look
+                # and how they were reached, and the code arrives once, under
+                # the budget. Carrying a full source per neighbour made walking
+                # a graph the most expensive thing an agent could ask for.
+                neighbor_budget = _request_int(request, "max_chars", default_chars, 0, 100000)
+                # `path` is already the chain of unit ids that reached this
+                # neighbour, which is exactly what a context block renders as
+                # evidence.
+                as_results = [SearchResult(unit, 0.0, [], path) for unit, path in reached]
+                response = {
+                    "stale": payload.get("stale", True),
+                    "id": unit_id,
+                    "neighbors": [{"path": path, "unit": unit.to_dict(include_vector=False, include_source=False)} for unit, path in reached],
+                    "context": context(within_budget(as_results, neighbor_budget), neighbor_budget),
+                }
             elif action == "open":
                 response = _open_source(root, str(request.get("path", "")), request.get("start_line"), request.get("end_line"), cfg)
+            elif action == "bootstrap":
+                # The same rung report the command line prints, so an agent
+                # meeting a repository for the first time learns what it is
+                # missing in one request instead of from the documentation.
+                # No index is written here: this session already holds the
+                # units, and a serving process should not rewrite the file
+                # underneath itself.
+                response = bootstrap(units, store, cfg, root, {"indexed_units": len(units), "graph_edges": len(graph.edges)}, _request_int(request, "limit", cfg["describe.batch"], 0, 200))
             elif action == "describe_pending":
-                response = _describe_batch(units, store, cfg, _request_int(request, "limit", cfg["describe.batch"], 0, 200))
+                response = describe_batch(units, store, cfg, _request_int(request, "limit", cfg["describe.batch"], 0, 200))
             elif action == "describe_put":
-                response = _store_descriptions(units, store, cfg, request.get("descriptions", []))
+                response = store_descriptions(units, store, cfg, request.get("descriptions", []))
                 # Applied to the live units immediately, so the next search in
                 # this session already retrieves on the new words rather than
                 # waiting for a refresh the agent has no reason to expect.
-                response["applied"] = _apply_descriptions(units, store, cfg)
+                response["applied"] = apply_descriptions(units, store, cfg)
                 if response["applied"]:
                     search_index = build_search_index(units)
                 index_behind = index_behind or response["reindex_required"]
@@ -576,6 +521,13 @@ def build_parser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(prog="rag-your-code", description="Index and retrieve explainable code units locally.")
     sub = parser.add_subparsers(dest="command", required=True)
+    boot = sub.add_parser("bootstrap", help="index, then say what this repository still needs to be searchable")
+    boot.add_argument("root", nargs="?", default=".")
+    boot.add_argument("--output")
+    boot.add_argument("--full", action="store_true", help="ignore an existing index and rebuild every file")
+    boot.add_argument("--limit", type=int, default=None, help=f"units per batch (config describe.batch, default {BY_PATH['describe.batch'].default})")
+    boot.add_argument("--json", action="store_true")
+    boot.set_defaults(func=_cmd_bootstrap)
     index = sub.add_parser("index", help="scan a repository and build its local index")
     index.add_argument("root", nargs="?", default=".")
     index.add_argument("--output")

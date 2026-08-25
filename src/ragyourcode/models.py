@@ -61,11 +61,15 @@ class CodeUnit:
         """
         return "\n".join(self.searchable_fields.values())
 
-    def to_dict(self, include_vector: bool = True) -> dict[str, Any]:
+    def to_dict(self, include_vector: bool = True, include_source: bool = True) -> dict[str, Any]:
         """Serialises a unit to a plain dictionary for storage or for an agent
-        reply, optionally leaving the vector out. Vectors are an internal
-        ranking detail; sending them to an agent would consume context and
-        explain nothing.
+        reply, optionally leaving out the vector or the source.
+
+        Vectors are an internal ranking detail; sending them to an agent would
+        consume context and explain nothing. The source is left out of a
+        *result* for a different reason: a reply carries it once already, in
+        the budgeted context block, and repeating it per result is what let a
+        search answer run to five times its stated budget.
         """
         data = {
             "id": self.id,
@@ -77,13 +81,14 @@ class CodeUnit:
             "signature": self.signature,
             "start_line": self.start_line,
             "end_line": self.end_line,
-            "source": self.source,
             "description": self.description,
             "serial": self.serial,
             "parent": self.parent,
             "calls": self.calls,
             "imports": self.imports,
         }
+        if include_source:
+            data["source"] = self.source
         if include_vector:
             data["vector"] = list(self.vector)
         return data
@@ -109,15 +114,22 @@ class SearchResult:
     evidence: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
-        # Vectors are persisted for ranking but are an internal detail of the
-        # index; returning them would needlessly consume an agent's context.
-        """Serialises a result for an agent reply, rounding the score and
-        stripping the vector.
+        """Serialises a result for an agent reply: where the unit is, what it
+        is called, why it matched, and how well -- but not its source.
+
+        A result is navigation evidence. The code itself arrives once, in the
+        reply's budgeted context block, and an agent that wants more opens the
+        cited file. Carrying it here as well is what let one `search --json`
+        answer reach 65,025 characters against a stated budget of 12,000, and
+        one `research` answer reach 111,843 by serialising the same eight
+        units three times over. Bounding the emitters one at a time would have
+        left the next one free to overrun; a result that has no source cannot.
         """
-        unit = self.unit.to_dict(include_vector=False)
         return {
             "score": round(self.score, 6),
             "matched_terms": self.matched_terms,
             "evidence": self.evidence,
-            "unit": unit,
+            # Vectors are persisted for ranking but are an internal detail of
+            # the index; returning them would needlessly consume context.
+            "unit": self.unit.to_dict(include_vector=False, include_source=False),
         }
