@@ -271,7 +271,26 @@ TOML_CASES = [
     '[a.b]\nx = 1\n',
     "[search]\nlimit = +7\n",
     '[describe]\nlanguages = []\n',
+    # TOML's non-finite float literals. Their absence from this corpus is how
+    # the two readers came to disagree about the grammar: one refused `nan` as
+    # unparseable while the other accepted it and let the range check reject it,
+    # so the same file produced two different errors depending on the version.
+    "[search]\nvector_weight = nan\n",
+    "[search]\nvector_weight = inf\n",
+    "[search]\nvector_weight = -inf\n",
+    "[search]\nvector_weight = +nan\n",
 ]
+
+
+def _same(left, right) -> bool:
+    """Structural equality that treats NaN as equal to itself."""
+    if isinstance(left, dict) and isinstance(right, dict):
+        return set(left) == set(right) and all(_same(left[k], right[k]) for k in left)
+    if isinstance(left, list) and isinstance(right, list):
+        return len(left) == len(right) and all(_same(a, b) for a, b in zip(left, right))
+    if isinstance(left, float) and isinstance(right, float):
+        return (left != left and right != right) or left == right
+    return type(left) is type(right) and left == right
 
 
 @pytest.mark.skipif(sys.version_info < (3, 11), reason="tomllib is the reference and only exists from 3.11")
@@ -285,7 +304,7 @@ def test_the_fallback_reader_agrees_with_tomllib(text):
     """
     import tomllib
 
-    assert parse_toml_subset(text) == tomllib.loads(text)
+    assert _same(parse_toml_subset(text), tomllib.loads(text))
 
 
 @pytest.mark.parametrize(
@@ -303,3 +322,15 @@ def test_the_fallback_reader_refuses_what_it_cannot_read(text, fragment):
     with pytest.raises(ConfigError) as caught:
         parse_toml_subset(text)
     assert fragment in str(caught.value)
+
+
+@pytest.mark.parametrize("literal", ["nan", "inf", "-inf", "+nan"])
+def test_non_finite_values_are_refused_the_same_way_on_every_version(literal):
+    """The rejection message must not depend on which reader parsed the file.
+
+    Deliberately without the skipif above, so it runs on 3.10 -- which is
+    where the divergence was, and where CI found it.
+    """
+    with pytest.raises(ConfigError) as caught:
+        from_text(f"[search]\nvector_weight = {literal}\n")
+    assert "must be finite" in str(caught.value)

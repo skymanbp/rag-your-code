@@ -287,6 +287,10 @@ def from_text(text: str, source: Path | None = None) -> Config:
 # ---------------------------------------------------------------------------
 
 _ESCAPES = {"n": "\n", "t": "\t", "r": "\r", "f": "\f", "b": "\b", '"': '"', "\\": "\\"}
+_NON_FINITE = {
+    "inf": float("inf"), "+inf": float("inf"), "-inf": float("-inf"),
+    "nan": float("nan"), "+nan": float("nan"), "-nan": float("nan"),
+}
 
 
 def parse_toml(text: str) -> dict[str, Any]:
@@ -362,6 +366,13 @@ def _parse_scalar(raw: str, line_number: int) -> Any:
         return _parse_string(token, line_number)
     if token in ("true", "false"):
         return token == "true"
+    # TOML floats include the non-finite literals. Omitting them made this
+    # reader refuse `nan` as unparseable while `tomllib` accepted it and let
+    # the range check reject it, so the two disagreed about the grammar and
+    # gave different errors for the same file -- caught only by the 3.10 leg
+    # of CI, which is the whole reason that leg exists.
+    if token in _NON_FINITE:
+        return _NON_FINITE[token]
     cleaned = token.replace("_", "")
     try:
         if any(character in cleaned for character in ".eE") and not cleaned.lower().startswith("0x"):
