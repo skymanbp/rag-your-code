@@ -4,6 +4,8 @@ import re
 import sys
 from pathlib import Path
 
+import pytest
+
 if sys.version_info >= (3, 11):
     import tomllib
 else:
@@ -136,14 +138,23 @@ def test_no_document_claims_this_package_is_on_an_index_it_is_not_on():
     # is the documented form, and a target class that excluded the quote made
     # the flag itself look like the target.
     pattern = re.compile(r"""pip install\s+(?:(?:--user|-q|--upgrade|--no-deps)\s+)*["']?(?P<target>[^\s`"']+)""")
+    declared_extras = set(tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"].get("optional-dependencies", {}))
     seen = 0
     for name in DOCS:
         for target in pattern.findall((ROOT / name).read_text(encoding="utf-8")):
             seen += 1
+            # `rag-your-code[sentence-transformers]` is an installable source and
+            # the bracket is part of what makes it one, so the extras are split
+            # off and checked against the extras pyproject actually declares --
+            # a documented extra that does not exist is the same defect as a
+            # documented index this project does not publish to.
+            base, _, extras = target.partition("[")
+            named = {piece.strip() for piece in extras.rstrip("]").split(",") if piece.strip()}
+            assert named <= declared_extras, f"{name}: `pip install {target}` names undeclared extras: {sorted(named - declared_extras)}"
             assert (
-                target.startswith(("git+", "http", ".", "/", "-e"))
-                or target.endswith((".whl", ".tar.gz"))
-                or target in allowed_names
+                base.startswith(("git+", "http", ".", "/", "-e"))
+                or base.endswith((".whl", ".tar.gz"))
+                or base in allowed_names
             ), f"{name}: `pip install {target}` names no installable source"
     assert seen, "the install instructions vanished; this guard would then pass vacuously"
 
@@ -216,28 +227,53 @@ def test_the_documented_settings_are_the_settings_that_exist():
     assert int(stated.group(1)) == len(real), f"README says {stated.group(1)} settings, there are {len(real)}"
 
 
-def test_the_documented_provider_settings_actually_configure_a_provider(tmp_path: Path):
-    """The README's configuration block, executed rather than trusted.
+def test_every_documented_provider_block_actually_configures_that_provider(tmp_path: Path):
+    """The README's configuration blocks, executed rather than trusted.
 
     An install line naming an index this project did not publish to, and a
     count copied from the line above it, both shipped because nothing ran
     them. A settings example is the same kind of claim: it looks right until
     somebody pastes it.
+
+    Every documented block is run, not the first one found. The README grew a
+    second provider and the old single-block form went on passing against the
+    block that happened to match first, which would have let the new one ship
+    untested -- the same shape of gap as a roster checked in one direction.
     """
     from ragyourcode import config as config_module
-    from ragyourcode.embeddings import RemoteEmbedder, embedder
+    from ragyourcode.embeddings import embedder
+    from ragyourcode.providers import ProviderError
 
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    block = re.search(r"```toml\n(# rag-your-code\.toml\n.*?)```", readme, re.S)
-    assert block, "the README must show how to configure a provider"
-    key_line = re.search(r'```toml\n(api_key_env = "[^"]+")', readme)
-    assert key_line, "the README must show that the key is named, not pasted"
+    blocks = re.findall(r"```toml\n(.*?)```", readme, re.S)
+    configured = [block for block in blocks if "provider" in block]
+    assert configured, "the README must show how to configure a provider"
+    assert 'api_key_env = "' in readme, "the README must show that the key is named, not pasted"
 
-    settings = block.group(1).split("\n", 1)[1].rstrip() + "\n" + key_line.group(1) + "\n"
-    (tmp_path / "rag-your-code.toml").write_text(settings, encoding="utf-8")
-    resolved = embedder(config_module.load(tmp_path))
-    assert isinstance(resolved, RemoteEmbedder)
-    assert resolved.semantic is True
-    # The documented block names a variable; a key pasted into it would be the
-    # defect this whole arrangement exists to prevent.
-    assert "sk-" not in settings
+    seen: set[str] = set()
+    for block in configured:
+        settings = "\n".join(line for line in block.splitlines() if not line.startswith("#"))
+        if "[embedding]" not in settings:
+            settings = "[embedding]\n" + settings
+        (tmp_path / "rag-your-code.toml").write_text(settings + "\n", encoding="utf-8")
+        cfg = config_module.load(tmp_path)
+        name = cfg["embedding.provider"]
+        seen.add(name)
+        try:
+            resolved = embedder(cfg)
+        except ProviderError as exc:
+            # The optional extra may legitimately be absent here; anything else
+            # means the documented settings do not describe a usable provider.
+            assert "pip install" in str(exc), f"documented block for {name} is not configurable: {exc}"
+            continue
+        except OSError as exc:
+            # Installed but the weights are neither cached nor reachable. That
+            # is the environment failing, not the documentation, and asserting
+            # on it would make this test depend on a network it does not need.
+            pytest.skip(f"{name}: model weights unavailable here ({exc})")
+        assert resolved.provider == name
+        assert resolved.semantic is (name != "signed-feature-hash")
+        # A key pasted into a documented block would be the defect this whole
+        # arrangement exists to prevent.
+        assert "sk-" not in settings
+    assert {"sentence-transformers", "openai-compatible"} <= seen, f"undocumented providers; README shows {sorted(seen)}"

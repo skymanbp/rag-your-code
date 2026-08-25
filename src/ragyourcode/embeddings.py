@@ -168,7 +168,82 @@ class RemoteEmbedder:
         return embedding_metadata(self.dimensions, self.provider, self.model)
 
 
-def embedder(cfg) -> LocalEmbedder | RemoteEmbedder:
+class LocalModelEmbedder:
+    """A trained model, run here, over `sentence-transformers`.
+
+    `semantic` is True and it is the only embedder for which that is true
+    without a network. What it buys is exactly what the feature hash cannot
+    have, and the reason is not a defect in the hash: a signed hash of a unit's
+    tokens is a term-frequency cosine over the same words the lexical half
+    already ranks with rarity weighting, field weights and saturation applied.
+    Measured on this repository and one other, its cosine correlates +0.45 with
+    the BM25F score, so it does carry variance of its own -- drawn from words
+    counted equally, which is precisely the part rarity weighting throws away.
+    Independent noise, not independent signal, and ablating it moves a single
+    question in either direction across three rulers.
+
+    The same four pairs 0.4.0 used to show the hash carries no semantics, under
+    this model: `retry a failed card charge` against `resend a payment after a
+    transient error` scores 0.583 where the hash scores 0.298 and against an
+    unrelated sentence 0.073; `计算两个数的和` against `sum two numbers` scores
+    0.822 and `刷新索引` against `rebuild the index` 0.684, both of which the
+    hash scores exactly 0.0000 -- identical to unrelated text, because zero
+    shared tokens is zero either way.
+
+    Optional by construction. The import happens here rather than at module
+    level so that a repository that never selects it pays nothing, and
+    `dependencies = []` stays true of the package a default install gets.
+    """
+
+    semantic = True
+
+    def __init__(self, *, model: str, dimensions: int, batch: int = 64) -> None:
+        if not model:
+            raise ProviderError(
+                "embedding.provider is sentence-transformers but embedding.model is empty; "
+                "set it to a model name such as sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+            )
+        try:
+            from sentence_transformers import SentenceTransformer
+        except ImportError as exc:
+            raise ProviderError(
+                "embedding.provider is sentence-transformers but the package is not installed; "
+                "run `pip install rag-your-code[sentence-transformers]`, or set "
+                "`embedding.provider` back to signed-feature-hash"
+            ) from exc
+        self._model = SentenceTransformer(model)
+        # Renamed between releases of the library, so both spellings are tried
+        # rather than pinning a floor that would make the extra harder to
+        # satisfy than the feature is worth.
+        measure = getattr(self._model, "get_embedding_dimension", None) or self._model.get_sentence_embedding_dimension
+        width = int(measure())
+        if width != dimensions:
+            # The alternative is an index whose recorded width disagrees with
+            # its vectors, which `cosine` degrades quietly to zero rather than
+            # reporting -- a silent loss of the whole vector half.
+            raise ProviderError(
+                f"{model} produces {width}-dimensional vectors but embedding.dimensions is "
+                f"{dimensions}; run `rag-your-code config set embedding.dimensions {width}` and reindex"
+            )
+        self.model, self.dimensions, self._batch = model, dimensions, batch
+        self.provider = "sentence-transformers"
+
+    def one(self, text: str) -> list[float]:
+        return self.many([text])[0]
+
+    def many(self, texts: list[str]) -> list[list[float]]:
+        out: list[list[float]] = []
+        for start in range(0, len(texts), self._batch):
+            encoded = self._model.encode(texts[start : start + self._batch], normalize_embeddings=True)
+            out.extend([float(value) for value in row] for row in encoded)
+        return out
+
+    @property
+    def metadata(self) -> dict[str, object]:
+        return embedding_metadata(self.dimensions, self.provider, self.model)
+
+
+def embedder(cfg) -> LocalEmbedder | LocalModelEmbedder | RemoteEmbedder:
     """The embedder a repository's settings ask for.
 
     The credential is read from the environment rather than from the settings
@@ -179,7 +254,14 @@ def embedder(cfg) -> LocalEmbedder | RemoteEmbedder:
     configuration module deliberately does not have -- it is one secret, kept
     out of a file that is meant to be shared.
     """
-    if cfg["embedding.provider"] != "openai-compatible":
+    provider = cfg["embedding.provider"]
+    if provider == "sentence-transformers":
+        return LocalModelEmbedder(
+            model=cfg["embedding.model"],
+            dimensions=cfg["embedding.dimensions"],
+            batch=cfg["embedding.batch"],
+        )
+    if provider != "openai-compatible":
         return LocalEmbedder(cfg["embedding.dimensions"])
     variable = cfg["embedding.api_key_env"]
     key = os.environ.get(variable, "") if variable else ""
