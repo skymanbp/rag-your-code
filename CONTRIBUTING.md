@@ -105,6 +105,28 @@ vectors disagree, and the resulting numbers described nothing. The comparison
 only became honest once both sides were rebuilt together — and it then
 reversed the conclusion.
 
+**A default argument is bound when the function is defined.** The first sweep
+over `search.min_coverage` set `search.DEFAULT_MIN_COVERAGE` on the module
+between runs. Every threshold scored identically, which reads exactly like a
+setting that does not matter — and it very nearly was recorded as one. Pass the
+override into the call; `evaluate()` and `--min-coverage` exist for that. This
+is the second confounded measurement in three releases, and both looked like
+results rather than like mistakes.
+
+**A number that moves for two reasons at once tells you nothing.** Two of the
+rulers grade this repository's live tree, so editing any file moves them. Every
+before-and-after in this project has to hold the corpus fixed: build one unit
+list, vary only the thing under test. When 227 descriptions were removed, the
+score did not move at all — and the reason was not that descriptions do not
+matter, it was a bug that went on serving them.
+
+**A ruler's own claims rot too, and sometimes in the opposite direction.**
+`absent_queries.json` asserts that nothing here answers its questions. Three
+separate things falsified that within an hour of writing it: two subject words
+this repository had always contained, and two more that appeared *because the
+source explains the feature using them as an example*. Documentation and ruler
+cannot own the same vocabulary. The check is mechanical for that reason.
+
 ## Adding a setting
 
 `config.py` holds one settings table. Add a row and the loader, the validator,

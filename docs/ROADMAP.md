@@ -154,10 +154,12 @@ to `name`. A scope stack keyed on brace depth would supply it and would improve
 Tree-sitter would supply it too, which is why the two are listed together on
 the evolution plan rather than fixed separately.
 
-Descriptions exist for `src/` only. The units under `tests/` and `benchmarks/`
-still carry generated ones; test names in this repository are already full
-sentences, so the marginal return there is small, but it is a gap and not a
-decision.
+Descriptions exist for `src/`, the benchmark tooling and the parser fixtures —
+297 of 524 units. The test functions carry generated ones, and as of 1.0.0 that
+is a decision rather than a gap: all 227 were written, measured, and cost five
+real answers and six false silences, because a test description restates what
+the source does in the source's own words and then outranks it. The table is
+under 1.0.0 below.
 
 There is no stemming. A description saying `backtracks catastrophically` does
 not answer a query saying `catastrophic backtracking`, and that appears in the
@@ -396,7 +398,7 @@ release worked on. It was ranking.
 | Nothing corrected for size | largest declaration held 539 distinct terms against a median of 52, and led the top three for four questions of six | BM25 length normalisation, per field |
 | A word counted the same wherever it was | test declarations outranked the code they test | field weights: name 8, signature 4, description 3, relations 2, body 1 |
 
-Measured on identical content, all three rulers moved in the same direction:
+Measured on identical content, all three rulers moved in the same direction. These are 0.6.0's figures and are kept as its record; the current ones are in README.md:
 
 | ruler | hit@1 | hit@3 | MRR |
 |---|---|---|---|
@@ -531,6 +533,151 @@ instead: `benchmarks/repo_queries.py --index` grades any index, so the
 question is answerable by whoever has the key. The 0.15 default for
 `search.vector_weight` was tuned against a hash carrying no meaning and is
 very likely wrong for a model.
+
+## 1.0.0 — the question a ranking cannot answer
+
+Eight releases measured how well retrieval finds the answer. None of them
+could measure what it does when there is no answer, because all three rulers
+graded questions that had one. Adding the ruler that could took one run to
+settle it: **thirty questions about subjects neither graded repository
+implements, and all thirty were answered.** Both languages, both repositories,
+scored 0.000 silence.
+
+The evidence was in the reply the whole time. `where are CUDA kernels
+dispatched to the device` came back with a test about word counting, matched
+on `are`, `the`, `to`, `where`. `准入控制为什么会拒绝没有资源限额的容器组`
+came back with the UTF-8 console setup, matched on `拒绝`, `控制`, `没有`.
+
+### It was never a Chinese problem
+
+The session opened by measuring Chinese cold-start at hit@1 0.000 and calling
+that the gap. That framing was wrong, and the absent ruler is what showed it:
+English fails identically and less visibly. Nothing in the pipeline asked
+whether a result was evidence; it only asked which one ranked highest, and a
+ranking always has a winner.
+
+### What was measured before choosing
+
+Measured on the four rulers as they ship — 98 answerable questions that are
+findable at all, and 60 unanswerable ones, half of each in English:
+
+| rule | real answers kept | unanswerable silenced | English |
+|---|---|---|---|
+| plain coverage ≥ 0.15 | 98/98 | 16/60 | 0/30 |
+| plain coverage ≥ 0.40 | 97/98 | 27/60 | 0/30 |
+| **coverage ≥ 0.40 over discriminating words only** | **97/98** | **46/60** | **18/30** |
+
+Two further rules were measured against the draft ruler and rejected there: an
+escape hatch admitting any query with one rare matched term recovered no lost
+answer and cost a third of the silence, and *requiring* a rare matched term
+bought nine English silences for five real answers — the wrong direction.
+
+Plain coverage protects Chinese and does nothing whatever for English, because
+`where`/`are`/`to`/`the` are half of that query. Requiring a rare matched term
+costs five real answers to suppress nine fake ones — the wrong direction, and
+rejected. Dropping corpus-ubiquitous words from *both* sides of the fraction
+costs exactly what plain coverage costs and silences twenty more.
+
+### Three defects found while building it
+
+**A ratio is degenerate at small N.** `COMMON_TERM = 0.05` marked a word in
+one unit of ten as ubiquitous, since 0.1 > 0.05 — so every term in a small
+index was "everywhere" and every query refused. 29 tests failed at once and
+named it. The same defect as a constant tied to a scale, arrived at from the
+other side; `COMMON_TERM_FLOOR` fixes it.
+
+**A default argument is bound at definition.** The first threshold sweep set
+`search.DEFAULT_MIN_COVERAGE` on the module between runs and every threshold
+scored identically — indistinguishable from a setting that does not matter.
+`evaluate()` now passes overrides to `search`, and `--min-coverage` exists for
+the same reason `--vector-weight` does. The second confounded measurement in
+two releases; CONTRIBUTING carries the rule.
+
+**Writing the documentation made the subjects present.** The absence check
+fired on `cuda` and `kernels` the first time it ran, because the source
+explains the coverage bar using exactly that example. It also fired on
+`webhook` and `hostname`, which this repository has always had and which were
+written into the ruler by eye rather than run through the check. Every subject
+was re-derived mechanically; the GPU questions were retired.
+
+### What it costs, and what it does not fix
+
+One question of 158. `控制台编码不是 UTF-8 会怎么样` was reaching
+`_use_utf8_streams`, and the only words in it this repository contains are
+`utf` and `8`, both used everywhere. It was right by coincidence.
+
+An English question whose words occur here in another sense is untouched:
+`how is the OAuth refresh token rotated` matches `refresh` because this
+project refreshes indexes. Six of fifteen English absent questions survive for
+that reason, and no lexical threshold separates them. That is the case a real
+embedding model exists for — and for the first time there is an instrument
+that would show it.
+
+### Descriptions: written for every unit, kept for 57% of them
+
+The plan was full coverage. All 361 remaining units were described, and the
+measurement that followed was decisive enough to undo most of it. On one fixed
+corpus, varying nothing but the description store:
+
+| descriptions | n | hit@1 | hit@3 | MRR | silence |
+|---|---|---|---|---|---|
+| none | 0 | 0.329 | 0.457 | 0.386 | 0.800 |
+| src only | 163 | 0.486 | 0.729 | 0.579 | 0.800 |
+| src + benchmark tooling | 184 | 0.500 | 0.729 | 0.583 | 0.733 |
+| src + parser fixtures | 276 | 0.500 | 0.714 | 0.581 | 0.800 |
+| **src + tooling + fixtures** | **297** | **0.500** | **0.729** | **0.583** | 0.733 |
+| src + test functions | 411 | 0.414 | 0.729 | 0.552 | 0.633 |
+| everything | 524 | 0.414 | 0.714 | 0.545 | 0.600 |
+
+Describing the *test functions* costs five real answers and six false
+silences, and lifts test units from 9 of 67 top-1 results to 15. Describing the
+*parser fixtures* costs nothing. The line is not tests versus source: it is
+what the description says. A fixture description is about grammar — `suspend
+function`, `destructor`, `unit struct` — and no question about this project is
+asked in those words. A test description restates what the source does, in the
+source's own vocabulary, and then competes with it.
+
+A probe of eighteen test descriptions had moved hit@1 by one question in one
+direction and hit@3 by two in the other, which is this instrument's noise. The
+effect only became visible at scale, which is an argument for finishing a
+measurement rather than sampling one.
+
+The 227 test-function descriptions were written and are not shipped. What they
+bought is the row that rules them out.
+
+### The edit to the store that did nothing
+
+Removing those 227 changed no score at all, which was the wrong kind of
+surprise. Reuse copies a unit out of the previous index carrying the text
+applied when that index was written, and the apply step only ever *sets* text:
+
+```python
+text = authored.get(unit.id)
+if text and unit.description != text:   # a deletion is `None`, so nothing happens
+```
+
+Adding a description took effect. Changing one took effect. Deleting one did
+nothing, indefinitely — the removed sentence went on being served out of every
+reused unit, and the ruler went on reporting the score it produced. It was
+found by a number that refused to move, not by a report, and it had been there
+since descriptions existed.
+
+The generated sentence a description replaces is a function of the syntax tree,
+so only re-parsing recovers it. Re-parsing every file on any description edit
+would be free locally and expensive against a provider, where each vector is a
+billed round trip — so vectors are carried across by identity on the text they
+were computed from, and a unit whose own text did not move costs no request.
+The first version of that carry-over compared descriptions instead, which
+handed a unit edited from `return 1` to `return 2` its old vector; the existing
+incremental test caught it.
+
+### Also in 1.0.0
+
+Descriptions cover every unit rather than `src/` alone. The README's settings
+table had been nine settings behind since 0.8.0 and is now asserted against
+`config.py` in both directions. `--index` on the benchmark accepts a
+repository instead of answering with a `PermissionError` traceback, which
+mattered because that is the one command the docs hand to a stranger.
 
 ## Non-goals
 

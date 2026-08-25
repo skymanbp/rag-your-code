@@ -3,4 +3,4 @@
 from .models import CodeUnit, SearchResult
 
 __all__ = ["CodeUnit", "SearchResult"]
-__version__ = "0.8.0"
+__version__ = "1.0.0"

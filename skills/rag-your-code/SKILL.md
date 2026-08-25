@@ -48,9 +48,25 @@ Use this skill when repository context is broad or a symbol's implementation is 
    query sharing no word with a unit scores zero against it — synonyms do not
    match. So query in the vocabulary the code uses: prefer `retry charge
    gateway timeout` over "重试扣款失败", and try two or three wordings before
-   concluding something is absent. A result with an empty `matched_terms` and
-   a near-zero score is the no-lexical-overlap fallback, which means nothing
-   actually matched.
+   concluding something is absent.
+
+   **An empty `results` is an answer, not a failure.** Retrieval returns
+   nothing when too little of the question occurs in the index, rather than
+   handing back whatever ranked least badly — which it used to do for all
+   thirty questions in `benchmarks/absent_queries.json`, about subjects the
+   repository does not contain. Read `diagnosis.reason` and act on it:
+
+   - `no_query_term_in_index` — not one word of the query is here. Re-ask in
+     the code's own vocabulary, or check you are pointed at the right index.
+   - `only_ubiquitous_terms_matched` — the words that matched are ones this
+     repository uses throughout. Add a term specific to what you want.
+   - `too_little_of_the_query_matched` — ask something narrower, or say the
+     concept in the words the code uses.
+
+   Do not respond to any of these by lowering `search.min_coverage`; that
+   restores the guessing. If two or three rephrasings all come back empty,
+   that is evidence the repository does not contain it — report that, rather
+   than continuing until something is returned.
 
    A repository's owner may have set `embedding.provider` to
    `openai-compatible`, in which case similarity carries real meaning and can

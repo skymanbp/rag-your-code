@@ -3,6 +3,90 @@
 Notable changes per release. Dates are the release date; measurements are from
 the development machine (Windows 11, CPython 3.13) and are directional.
 
+## 1.0.0 — 2026-08-25
+
+Eight releases measured how well retrieval finds an answer. None could measure
+what it does when there is no answer, because every ruler graded questions that
+had one. The fourth ruler settled it in a single run: **thirty questions about
+subjects neither graded repository implements, and all thirty were answered.**
+
+`where are CUDA kernels dispatched to the device` came back with a test about
+word counting, on the evidence of `are`, `the`, `to` and `where`.
+
+### Added
+
+- **Retrieval can say it has no answer.** `search` returns nothing when too
+  little of a question occurs in the index, rather than the unit that ranked
+  least badly. A ranking always has a winner and returns it with a score and a
+  rank that read exactly like an answer; asking *is any of this evidence* is a
+  separate question, and until now nothing asked it.
+
+- **`search.min_coverage`** (default `0.40`) — the share of a question's
+  discriminating words that must occur in the index. Set it to `0` to restore
+  the previous behaviour exactly.
+
+  Words the repository uses everywhere are dropped from both sides of that
+  fraction, which is the part that does the work: half of `where are CUDA
+  kernels dispatched to the device` matches, and it looks like evidence until
+  you notice which half. Counting only words that distinguish silenced 18 of 30
+  unanswerable English questions that no plain coverage threshold reached at
+  all, at identical cost in real answers — 97 of 98 either way.
+
+- **A `diagnosis` field on every empty reply**, in the command line and the
+  agent protocol: `no_query_term_in_index`, `only_ubiquitous_terms_matched` or
+  `too_little_of_the_query_matched`, each with the matched words and a hint.
+  Three ways to fail, recovered by three different moves. `stop_reason` keeps
+  its published values — widening an enumeration callers branch on is a
+  breaking change wearing the clothes of an improvement.
+
+- **`benchmarks/absent_queries.json`**, the fourth ruler, and
+  `--min-coverage` on the benchmark runner. `--index` now accepts a repository
+  instead of answering with a `PermissionError` traceback.
+
+### Fixed
+
+- **A description removed from the store went on being served.** Reuse copies a
+  unit out of the previous index with the text applied when it was written, and
+  the apply step only ever *set* text, so adding took effect, changing took
+  effect, and deleting did nothing at all. Found by a number that refused to
+  move: removing 227 descriptions changed no score. Recovery re-parses, and
+  carries vectors across by identity on the text they were computed from, so a
+  provider is not billed for a full re-embedding.
+
+- **The README's settings table had been nine settings behind since 0.8.0**,
+  listing twelve of twenty-one and omitting every provider setting that release
+  existed to add. Now asserted against `config.py` in both directions.
+
+### Measured
+
+| | before | now |
+|---|---|---|
+| unanswerable questions met with silence, this repository | 0.000 | **0.733** |
+| the same, on the foreign repository | 0.000 | **0.800** |
+| results resting on no lexical evidence, all three rulers | 0.029 – 0.129 | **0.000** |
+| hit@1 / hit@3 / MRR, foreign repository (35) | 0.257 / 0.400 / 0.314 | **unchanged** |
+| hit@1 / hit@3 / MRR, this repository (70) | 0.486 / 0.729 / 0.579 | **0.500 / 0.729 / 0.583** |
+
+Cost: one question of the 158 measured. `控制台编码不是 UTF-8 会怎么样` was
+reaching `_use_utf8_streams`, and the only words in it this repository contains
+are `utf` and `8`, both used everywhere. It was right by coincidence.
+
+Not fixed: an English question whose words occur here in another sense. `how is
+the OAuth refresh token rotated` matches `refresh` because this project
+refreshes indexes. Six of fifteen English absent questions survive for that
+reason, and no lexical threshold separates them.
+
+### Descriptions
+
+Coverage is 297 of 524 units — `src/`, the benchmark tooling and the parser
+fixtures. All 227 test-function descriptions were written and are not shipped:
+measured on a fixed corpus they cost hit@1 0.500 → 0.414 and silence 0.800 →
+0.600, because a test description restates what the source does in the source's
+own vocabulary and then competes with it. Fixture descriptions cost nothing,
+because they are about grammar and no question here is asked in those words.
+
+311 tests.
+
 ## 0.8.0 — 2026-08-25
 
 0.7.0 measured eight ways to give the vector half real semantics without a

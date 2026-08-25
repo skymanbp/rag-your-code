@@ -1,6 +1,216 @@
 {
   "schema": 1,
   "descriptions": {
+    "benchmarks/fixture/auth.py:4:issue_session_token": {
+      "hash": "bdf596e468e9cf4f",
+      "code_hash": "48c2da5948cca53e",
+      "path": "benchmarks/fixture/auth.py",
+      "name": "issue_session_token",
+      "text": "Fixture code: a session token being minted, giving the golden set a declaration to retrieve for questions about signing and credentials. 中文：夹具代码：签发一个会话令牌，为黄金集合里关于签名与凭证的问题提供一个可检索的声明。"
+    },
+    "benchmarks/fixture/auth.py:9:verify_session_token": {
+      "hash": "8b142e624740a170",
+      "code_hash": "dd8bb910e3ccc18d",
+      "path": "benchmarks/fixture/auth.py",
+      "name": "verify_session_token",
+      "text": "Fixture code: a token being checked for validity and expiry, the answer to the golden question phrased entirely in words the code does not use. 中文：夹具代码：校验一个令牌是否有效、是否过期——黄金集合里那道完全用代码不使用的词提问的题，答案就是它。"
+    },
+    "benchmarks/fixture/notifications.py:4:send_email": {
+      "hash": "d844c1cc1c50048f",
+      "code_hash": "39b9e604ddd2a34c",
+      "path": "benchmarks/fixture/notifications.py",
+      "name": "send_email",
+      "text": "Fixture code: an outbound message being sent, one of the unrelated declarations a ranking has to rank below the actual answer. 中文：夹具代码：发出一条外发消息——排序必须把它排在真正答案之下的那些无关声明之一。"
+    },
+    "benchmarks/fixture/notifications.py:9:enqueue_webhook": {
+      "hash": "add1ba0a2a86c44e",
+      "code_hash": "1fbfd58ade8655bf",
+      "path": "benchmarks/fixture/notifications.py",
+      "name": "enqueue_webhook",
+      "text": "Fixture code: an outbound event being queued for asynchronous delivery, and the answer to one golden question about queueing. 中文：夹具代码：把一个外发事件排入队列以便异步投递；黄金集合里关于排队的那道题，答案就是它。"
+    },
+    "benchmarks/fixture/payments.py:13:refund_payment": {
+      "hash": "ea459a4bc7451b36",
+      "code_hash": "757817ea385a5c5a",
+      "path": "benchmarks/fixture/payments.py",
+      "name": "refund_payment",
+      "text": "Fixture code: money going back the other way, close enough to the charge path to make ranking between them a real decision. 中文：夹具代码：钱往回走的那条路——它与扣款路径足够接近，使两者之间的排序成为一个真实的判断。"
+    },
+    "benchmarks/fixture/payments.py:4:retry_charge": {
+      "hash": "ddb41f6a51c323e7",
+      "code_hash": "7fe5635c38d07bca",
+      "path": "benchmarks/fixture/payments.py",
+      "name": "retry_charge",
+      "text": "Fixture code: a failed card charge being retried with backoff, the declaration most of the golden and description examples are phrased around. 中文：夹具代码：一次失败的刷卡扣款带退避重试——黄金集合与描述示例大多围绕这个声明来提问。"
+    },
+    "benchmarks/fixture/search.py:4:rank_documents": {
+      "hash": "d7122bc6d1aed0d5",
+      "code_hash": "4485a57b91d17dfc",
+      "path": "benchmarks/fixture/search.py",
+      "name": "rank_documents",
+      "text": "Fixture code: a toy ranking function, present so the fixture contains a declaration whose vocabulary overlaps this project's own. 中文：夹具代码：一个玩具排序函数，存在的目的是让夹具里有一个词汇与本项目自身重叠的声明。"
+    },
+    "benchmarks/fixture/search.py:9:build_search_index": {
+      "hash": "ba088dc1d2a02a16",
+      "code_hash": "cb54f0e95d453fa0",
+      "path": "benchmarks/fixture/search.py",
+      "name": "build_search_index",
+      "text": "Fixture code: a toy index builder sharing a name with this project's real one, which is exactly the collision a ranking should not be confused by. 中文：夹具代码：一个与本项目真实实现同名的玩具索引构建器——正是排序不应该被搞混的那种撞名。"
+    },
+    "benchmarks/fixture/workflow.py:6:checkout_invoice": {
+      "hash": "df7b348c8632bf5e",
+      "code_hash": "41006324d9cffb5e",
+      "path": "benchmarks/fixture/workflow.py",
+      "name": "checkout_invoice",
+      "text": "Fixture code: a declaration that calls into the payment path, giving graph expansion a real edge to walk rather than a synthetic one. 中文：夹具代码：一个调用进支付路径的声明，让图扩展有一条真实的边可走，而不是一条合成的边。"
+    },
+    "benchmarks/large_repo.py:164:main": {
+      "hash": "b02a8caa8500b269",
+      "code_hash": "b02a8caa8500b269",
+      "path": "benchmarks/large_repo.py",
+      "name": "main",
+      "text": "Runs the scale measurement and writes its archive, which is what the published figures are quoted from. 中文：跑规模测量并写出归档——公开的那些数字就是从这里引用的。"
+    },
+    "benchmarks/large_repo.py:32:_memory_mb": {
+      "hash": "0fbddfa0ffbdd045",
+      "code_hash": "0fbddfa0ffbdd045",
+      "path": "benchmarks/large_repo.py",
+      "name": "_memory_mb",
+      "text": "Reads resident memory from the operating system, since the point of the scale benchmark is the bound rather than the average. 中文：从操作系统读取常驻内存——规模基准关心的是上界而不是平均值。"
+    },
+    "benchmarks/large_repo.py:40:_memory_mb.Counters": {
+      "hash": "932db65247194469",
+      "code_hash": "932db65247194469",
+      "path": "benchmarks/large_repo.py",
+      "name": "_memory_mb.Counters",
+      "text": "The structure the platform fills in with process memory counters. 中文：平台用进程内存计数填充的那个结构体。"
+    },
+    "benchmarks/large_repo.py:60:_max_rss_mb": {
+      "hash": "c1ad0cd01d32a442",
+      "code_hash": "c1ad0cd01d32a442",
+      "path": "benchmarks/large_repo.py",
+      "name": "_max_rss_mb",
+      "text": "The peak rather than the current figure, because a build that briefly doubles is a build that fails on a smaller machine. 中文：取峰值而不是当前值——一次短暂翻倍的构建，就是一次在更小的机器上会失败的构建。"
+    },
+    "benchmarks/large_repo.py:64:create_repo": {
+      "hash": "b3c317e92b0a6f12",
+      "code_hash": "b3c317e92b0a6f12",
+      "path": "benchmarks/large_repo.py",
+      "name": "create_repo",
+      "text": "Generates a synthetic repository of a chosen size, so scale can be measured without needing a real one that large. 中文：按指定规模生成一个合成仓库，使规模可以在没有那么大的真实仓库的情况下被测量。"
+    },
+    "benchmarks/large_repo.py:70:measure": {
+      "hash": "89b6dcde19fb3344",
+      "code_hash": "89b6dcde19fb3344",
+      "path": "benchmarks/large_repo.py",
+      "name": "measure",
+      "text": "Measures a full build, an incremental rebuild after one file changes, storage size, load time, memory and query latency: the envelope inside which the readable JSON storage is known to be adequate. 中文：测量全量构建、单文件变动后的增量重建、存储体积、加载时间、内存与查询延迟——即「可读 JSON 存储已知够用」的那个包络。"
+    },
+    "benchmarks/measure_index.py:15:main": {
+      "hash": "c8dd19d05142ab38",
+      "code_hash": "c8dd19d05142ab38",
+      "path": "benchmarks/measure_index.py",
+      "name": "main",
+      "text": "Measures one existing index rather than a generated one, for when the question is about a real repository. 中文：测量一个已存在的索引而不是生成的索引，用于问题针对真实仓库的场合。"
+    },
+    "benchmarks/repo_queries.py:152:evaluate.summarise": {
+      "hash": "51e572d9db9ad139",
+      "code_hash": "51e572d9db9ad139",
+      "path": "benchmarks/repo_queries.py",
+      "name": "evaluate.summarise",
+      "text": "Averages the answerable questions into hit rates, reciprocal rank, and the two figures that describe how retrieval declined: results resting on no lexical evidence, and questions it refused to answer. 中文：把可回答的题平均成命中率、倒数排名，以及描述「检索如何拒答」的两个数字：建立在零词面证据上的结果，以及它拒绝回答的题目数。"
+    },
+    "benchmarks/repo_queries.py:173:evaluate.silence": {
+      "hash": "1c79758a6cb29ed7",
+      "code_hash": "1c79758a6cb29ed7",
+      "path": "benchmarks/repo_queries.py",
+      "name": "evaluate.silence",
+      "text": "Averages the unanswerable questions into the one figure that describes them: how often nothing was returned, which is the only correct reply. 中文：把不可回答的题平均成描述它们的唯一一个数字：有多大比例什么都没返回——那是唯一正确的答复。"
+    },
+    "benchmarks/repo_queries.py:207:_report": {
+      "hash": "ab980527104bcece",
+      "code_hash": "ab980527104bcece",
+      "path": "benchmarks/repo_queries.py",
+      "name": "_report",
+      "text": "Prints the report for a person, including which questions were missed and which unanswerable ones were answered anyway, since the useful thing about a wrong answer is always which unit it was and on what evidence. 中文：给人打印报告，包括哪些题错过了、哪些不可回答的题还是被回答了——一个错误答案里有用的部分，永远是「它是哪个单元」和「凭什么证据」。"
+    },
+    "benchmarks/repo_queries.py:240:main": {
+      "hash": "92d91868a48b0aef",
+      "code_hash": "92d91868a48b0aef",
+      "path": "benchmarks/repo_queries.py",
+      "name": "main",
+      "text": "The command line: chooses which index and which question set to grade, accepts a repository where an index file is expected, and lets a caller override the thresholds it is measuring. 中文：命令行：选择评判哪个索引、哪个题集，在期待索引文件的地方也接受一个仓库目录，并允许调用方覆盖它正在测量的那些阈值。"
+    },
+    "benchmarks/repo_queries.py:57:load_questions": {
+      "hash": "cc508f7f96c74f99",
+      "code_hash": "cc508f7f96c74f99",
+      "path": "benchmarks/repo_queries.py",
+      "name": "load_questions",
+      "text": "Reads one question set. The count lives in the file rather than in any sentence about it, because a figure restated in prose is a claim nothing checks. 中文：读入一个题集。数量存在文件里而不是任何一句关于它的话里——散文里重述的数字是一个没人核对的断言。"
+    },
+    "benchmarks/repo_queries.py:61:check_ruler": {
+      "hash": "9312c0aa6eb33dc0",
+      "code_hash": "835e0b19c3181bc6",
+      "path": "benchmarks/repo_queries.py",
+      "name": "check_ruler",
+      "text": "Checks the ruler before anything is scored: every listed answer must name a unit that exists, and a question claiming its subject is absent must not also list one. A ruler that quietly stopped referring to real code would report improvement by losing its own questions. 中文：在打分之前先检查尺子：每个列出的答案都必须指向真实存在的单元；而一道声称其主题不存在的题，不能同时列出答案。一把悄悄不再指向真实代码的尺子，会靠丢掉自己的题目来报告进步。"
+    },
+    "benchmarks/repo_queries.py:94:evaluate": {
+      "hash": "24a0ac8807f9abdf",
+      "code_hash": "ee291d49999673f4",
+      "path": "benchmarks/repo_queries.py",
+      "name": "evaluate",
+      "text": "Grades one question set, keeping answerable and unanswerable questions apart. Overrides are passed to the search call rather than set on the module: a default argument is bound when the function is defined, so assigning the module attribute afterwards changes nothing and produces a sweep in which every threshold scores identically. 中文：给一个题集打分，并把「可回答」与「不可回答」的题分开。覆盖项是传给检索调用的，而不是设在模块上：默认参数在函数定义时就已绑定，事后改模块属性什么也改不了，只会产出一份「每个阈值得分都一样」的扫描结果。"
+    },
+    "benchmarks/run_benchmark.py:104:run.optimized_search": {
+      "hash": "486e51df6ec7b5c9",
+      "code_hash": "486e51df6ec7b5c9",
+      "path": "benchmarks/run_benchmark.py",
+      "name": "run.optimized_search",
+      "text": "The hybrid strategy with its inverted index built once outside the timing loop, so what is measured is querying rather than indexing. 中文：混合策略，其倒排表在计时循环之外只建一次，因此量的是查询而不是建索引。"
+    },
+    "benchmarks/run_benchmark.py:149:main": {
+      "hash": "c2a0bbd44750ede9",
+      "code_hash": "c2a0bbd44750ede9",
+      "path": "benchmarks/run_benchmark.py",
+      "name": "main",
+      "text": "Runs the benchmark and writes its report, so continuous integration and a person get the same numbers from the same command. 中文：跑基准并写出报告，使持续集成与人从同一条命令得到同一批数字。"
+    },
+    "benchmarks/run_benchmark.py:32:lexical_search": {
+      "hash": "d8a8e4c63f8a2ce4",
+      "code_hash": "9bd07bc37e29541a",
+      "path": "benchmarks/run_benchmark.py",
+      "name": "lexical_search",
+      "text": "The baseline the hybrid ranking is compared against: plain word overlap, no fields, no rarity, no vectors. A change that beats nothing proves nothing, so the comparison needs a floor to stand on. 中文：混合排序所对照的基线：纯粹的词面重叠，不分字段、不看稀有度、不用向量。一个只赢过空气的改动什么也证明不了，所以比较需要一个可以立足的地板。"
+    },
+    "benchmarks/run_benchmark.py:44:_is_relevant": {
+      "hash": "5a237e8de0a2e88a",
+      "code_hash": "5a237e8de0a2e88a",
+      "path": "benchmarks/run_benchmark.py",
+      "name": "_is_relevant",
+      "text": "Decides whether one retrieved unit is one of the answers a question listed. 中文：判定某个检索到的单元，是不是某道题所列出的答案之一。"
+    },
+    "benchmarks/run_benchmark.py:48:_metrics": {
+      "hash": "de5a98725bd65a01",
+      "code_hash": "de5a98725bd65a01",
+      "path": "benchmarks/run_benchmark.py",
+      "name": "_metrics",
+      "text": "Turns one ranked list into recall and reciprocal rank, which are the two figures the golden set is asserted on. 中文：把一份排好序的结果变成召回率与倒数排名——正是黄金集合据以断言的那两个数字。"
+    },
+    "benchmarks/run_benchmark.py:60:evaluate": {
+      "hash": "87fe1c42f7e4d32c",
+      "code_hash": "87fe1c42f7e4d32c",
+      "path": "benchmarks/run_benchmark.py",
+      "name": "evaluate",
+      "text": "Scores one retrieval strategy across every question and records its timings, repeating each query so a single slow first run does not read as a regression. 中文：给一种检索策略在所有题目上打分并记录耗时；每个查询重复多次，使单次缓慢的首轮不会读作性能退步。"
+    },
+    "benchmarks/run_benchmark.py:90:run": {
+      "hash": "48c6c25b2ff0da88",
+      "code_hash": "48c6c25b2ff0da88",
+      "path": "benchmarks/run_benchmark.py",
+      "name": "run",
+      "text": "Runs the whole comparison and returns the report continuous integration asserts against. Quality figures are a user-facing contract; timings are recorded but never asserted, because a shared build machine has no stable clock. 中文：跑完整个对比，返回持续集成据以断言的报告。质量数字是面向用户的契约；耗时只记录、从不断言——共享的构建机器没有稳定的时钟。"
+    },
     "src/ragyourcode/agentic.py:10:_result_ids": {
       "hash": "68f9fada99217d46",
       "path": "src/ragyourcode/agentic.py",
@@ -27,12 +237,12 @@
       "name": "dominance",
       "text": "How far the best answer leads the second-best, as a fraction of the best. A ratio between two numbers produced by the same query under the same scoring rule, so scaling every score changes nothing -- which is the entire point. The absolute threshold it replaced was tied to a scoring scale; when ranking changed, the scale moved out from under it and the decision it guarded silently stopped happening. 中文：最好的答案领先第二名多少，按最好者的比例计。它是同一次查询、同一套打分下两个数的比值，因此整体缩放分数不改变结果——这正是要点。它取代的绝对阈值绑在打分量纲上，排序一改量纲就移走了，它守护的判断于是悄无声息地不再发生。"
     },
-    "src/ragyourcode/agentic.py:73:research": {
-      "hash": "2a51c0f2ebb60d09",
-      "code_hash": "f8a9fe3cc986cbdb",
+    "src/ragyourcode/agentic.py:84:research": {
+      "hash": "6aebf36912d61460",
+      "code_hash": "34f810495614a677",
       "path": "src/ragyourcode/agentic.py",
       "name": "research",
-      "text": "Answers an ambiguous question in at most two observable retrieval rounds and says why it stopped. Deliberately bounded: it searches, and only if the leader is not clearly ahead of the runner-up does it spend a second round walking the call graph outward. The reply carries the code once, in a context block under the same budget every other reply uses. 中文：用至多两轮可观察的检索回答一个含糊的问题，并说明为何停下。刻意设了上限：先检索，只有当领先者相对第二名优势不明显时，才花第二轮沿调用图向外走。回复只带一份代码，放在与其它回复共用同一预算的上下文块里。"
+      "text": "Answers an ambiguous question in at most two observable retrieval rounds and says why it stopped. When the first round returns nothing, it reports which kind of nothing and stops there: a second round cannot recover a question whose words are not in this index, so spending the budget to arrive at the same silence helps no one. The published set of stop reasons is unchanged and the detail arrives in a field beside it, because widening an enumeration callers already branch on is a breaking change wearing the clothes of an improvement. 中文：用至多两轮可观察的检索回答一个含糊的问题，并说明为何停下。第一轮什么都没有时，它报告这是哪一种「什么都没有」并就此停住：第二轮救不了一个词汇根本不在索引里的问题，花掉预算走到同样的沉默对谁都没有好处。已发布的停止原因取值集合保持不变，细节放在旁边一个新字段里——扩大一个调用方已经在据以分支的枚举，是一次穿着改进外衣的破坏性变更。"
     },
     "src/ragyourcode/annotate.py:14:describe_python": {
       "hash": "7a20909be9ec39b5",
@@ -72,11 +282,11 @@
       "code_hash": "5e9525fddea54644"
     },
     "src/ragyourcode/cli.py:172:_cmd_search": {
-      "hash": "ab660d0464551017",
-      "code_hash": "b043cf7668acf5e2",
+      "hash": "88c7ffe64fed6d81",
+      "code_hash": "4680c9dbc6fa4cdc",
       "path": "src/ragyourcode/cli.py",
       "name": "_cmd_search",
-      "text": "Answers one question from the published index and prints it, as a readable block for a person or machine-readable output for an agent. Result count, context budget, the balance between word overlap and similarity, and how far similarity may widen the candidate set all fall back to the repository settings. It prints the staleness warning StaleMonitor raises; deciding whether the index is stale is not its job. 中文：从已发布的索引回答一个问题并输出——给人是可读块，给 agent 是机器可读格式。返回条数、上下文预算、词面与相似度的配比、以及相似度可把候选集放宽多少，都回落到仓库设置。它负责打印 StaleMonitor 提出的过时警告；判断索引是否过时不归它管。"
+      "text": "Answers one question from the published index and prints it, as a readable block for a person or machine-readable output for an agent. When nothing comes back it prints why rather than a bare 'no matching code units', because 'not in this repository', 'asked in the wrong words' and 'the index is broken' are three different next moves and the caller cannot tell them apart from silence. Result count, context budget, the balance between word overlap and similarity, how far similarity may widen the candidate set, and how much of a question must occur before it is answered all fall back to the repository settings. 中文：从已发布的索引回答一个问题并输出——给人是可读块，给 agent 是机器可读格式。什么都没有时它打印原因，而不是一句干巴巴的「没有匹配的代码单元」，因为「本仓库没有这东西」「问法不对」「索引坏了」是三个完全不同的下一步，而调用方从沉默里分辨不出是哪一个。返回条数、上下文预算、词面与相似度的配比、相似度可把候选集放宽多少、以及一个问题要有多少落在索引里才作答，都回落到仓库设置。"
     },
     "src/ragyourcode/cli.py:270:_cmd_describe": {
       "hash": "bc80c3de23167e73",
@@ -103,19 +313,19 @@
       "text": "Clamps a numeric field from an incoming request into its allowed range. The clamp has to survive values that are not ordinary numbers: an enormous literal becomes infinity, and converting infinity to a whole number raises an error that is neither of the two the request loop originally caught, so a single such request terminated the whole session. Saturating at the bound is the reading the caller intended anyway. 中文：把请求中的数值字段夹到允许范围内。这个夹取必须扛得住非常规数值：极大的字面量会变成无穷大，而把无穷大转成整数抛出的错误不属于请求循环原本捕获的那两类，一条这样的请求就终止了整个会话。饱和到边界本来也就是调用方想表达的意思。",
       "code_hash": "60976c98a4c983ea"
     },
-    "src/ragyourcode/cli.py:397:_cmd_agent": {
-      "hash": "4b5f6e03b10b6b2c",
-      "code_hash": "1bb28b2f6ba912a8",
-      "path": "src/ragyourcode/cli.py",
-      "name": "_cmd_agent",
-      "text": "Serves one JSON request per line for as long as an agent keeps the process alive, so a session pays the parse-and-embed cost once instead of per question. Every failure is reported in-band and the loop survives it: a malformed request, an out-of-range number or an unanticipated exception must not be able to end a session an agent depends on. 中文：只要 agent 让进程活着，就按行服务 JSON 请求，使一次会话只付一次解析与嵌入的代价，而不是每问一次付一次。所有失败都在带内回报且循环存活：畸形请求、越界数值或未预料的异常，都不该终结一个 agent 正依赖着的会话。"
-    },
     "src/ragyourcode/cli.py:39:_refresh_index": {
-      "hash": "de5f27fc3ba06f73",
-      "code_hash": "dd2804cb5364a188",
+      "hash": "5c66f206bc2ed58d",
+      "code_hash": "c20ef43022ac72fe",
       "path": "src/ragyourcode/cli.py",
       "name": "_refresh_index",
-      "text": "Builds or rebuilds a repository index and publishes it, reusing what it can. It settles up front whether the rules deciding what a unit is have changed — the indexing settings, the vector width, the parser, or who computes the vectors — and discards the previous work when they have, so the report can honestly say whether reuse happened. One embedder is built here and handed to every stage, so the vectors stored, the metadata published and the queries later asked all come from the same scheme by construction rather than by three call sites agreeing. 中文：构建或重建仓库索引并发布，尽可能复用既有成果。它先行判定「什么算一个单元」的规则是否变过——索引设置、向量宽度、解析器，或由谁来算向量——变了就丢弃旧成果，使报告能如实说明是否发生了复用。嵌入器在此处建一次并交给各阶段，因此存下的向量、发布的元数据、之后发起的查询都由构造保证同源，而不是靠三个调用点彼此约定。"
+      "text": "Builds or rebuilds a repository index and publishes it, reusing what it can. It settles up front whether the rules deciding what a unit is have changed, and whether the authored descriptions moved — the third input no content fingerprint can see, and the only one where an edit in one direction used to be lost: a deleted description went on being served out of the reused unit that still carried it. One embedder is built here and handed to every stage, so the vectors stored and the queries later asked come from the same scheme by construction. 中文：构建或重建仓库索引并发布，尽可能复用。它先行判定「什么算一个单元」的规则是否变过，以及人写的描述有没有变动——那是内容指纹看不见的第三个输入，也是唯一一个曾在某个方向上会丢失编辑的输入：被删除的描述会继续从那个仍带着它的复用单元里被端出来。嵌入器在此建一次并交给各阶段，因此存下的向量与之后的查询由构造保证同源。"
+    },
+    "src/ragyourcode/cli.py:405:_cmd_agent": {
+      "hash": "9bf8a4a80acddcd9",
+      "code_hash": "2c1645bc9c085785",
+      "path": "src/ragyourcode/cli.py",
+      "name": "_cmd_agent",
+      "text": "Serves one JSON request per line for as long as an agent keeps the process alive, so a session pays the parse-and-embed cost once instead of per question. Every reply carries the same shape whether or not it found anything: the diagnosis field is null when there were results, so a caller reads one field rather than inferring from an empty list which of several quite different situations it is in. Every failure is reported in-band and the loop survives it. 中文：只要 agent 让进程活着，就按行服务 JSON 请求，使一次会话只付一次解析与嵌入的代价，而不是每问一次付一次。无论有没有找到东西，每个回复的形状都一样：有结果时诊断字段为空，因此调用方读一个字段就够了，不必从一个空列表去推断自己身处几种截然不同情形中的哪一种。所有失败都在带内回报且循环存活。"
     },
     "src/ragyourcode/cli.py:514:build_parser": {
       "hash": "90796b536516e0a4",
@@ -577,11 +787,11 @@
       "code_hash": "804c47f5528089da"
     },
     "src/ragyourcode/graph.py:208:graph_search": {
-      "hash": "3a6381f1f2212d78",
-      "code_hash": "38616a073b6c8380",
+      "hash": "3b03712d66159aed",
+      "code_hash": "aed612a3aa1ef072",
       "path": "src/ragyourcode/graph.py",
       "name": "graph_search",
-      "text": "Retrieves by words first, then follows calls, imports and containment outward from what was found, so a question about a workflow reaches the functions that participate in it rather than only the one that names it. Every expanded result carries the exact chain of edges that reached it, because a relationship a caller cannot check is a relationship it should not act on. 中文：先按词面检索，再从命中项沿调用、导入与包含关系向外走，使一个关于工作流的问题能够到参与其中的各个函数，而不只是名字里带那个词的那一个。每个被扩展出来的结果都带上到达它的确切边链，因为调用方无法核查的关系，就是它不该据以行动的关系。"
+      "text": "Retrieves by words first, then follows calls, imports and containment outward from what was found. When the seeds were withheld for want of evidence there is nothing to expand, and that matters more than it sounds: walking outward from a guess turns one unsupported result into a whole connected neighbourhood of them, each carrying an edge chain that makes it look better evidenced than the guess it came from. 中文：先按词面检索，再从命中项沿调用、导入与包含关系向外走。当种子因证据不足而被扣下时，就没有东西可扩展了——这件事比听起来重要：从一个猜测向外走，会把一个没有依据的结果变成一整片彼此相连的结果，而且每一个都带着边链，看上去比它出身的那个猜测更有据可依。"
     },
     "src/ragyourcode/graph.py:25:CodeEdge.to_dict": {
       "hash": "8cab8c6fc49a0500",
@@ -675,11 +885,11 @@
       "code_hash": "cad8a19baf1674cd"
     },
     "src/ragyourcode/indexer.py:264:build_units": {
-      "hash": "89276203210b57de",
-      "code_hash": "f2d88087e2ef1cd7",
+      "hash": "7cb238212d8773cf",
+      "code_hash": "78598bfd3606f1fb",
       "path": "src/ragyourcode/indexer.py",
       "name": "build_units",
-      "text": "Parses a repository into units, reusing unchanged files and keeping serial numbers stable across runs, then gives every unit that needs one a vector. Embedding happens in a single batched pass rather than inside the parse loop, because a provider charges a round trip per request and eleven hundred units one at a time is not a slower version of the same thing but an unusable one. Units whose vectors were reused are not in that pass, so an incremental run over an unchanged repository makes no request at all. 中文：把仓库解析成单元，复用未变动的文件并让编号跨运行保持稳定，再给每个需要的单元算向量。嵌入放在一次成批的独立过程里而非解析循环内，因为 provider 每个请求收一个往返，一千一百个单元逐个来不是同一件事的慢版本，而是不可用的版本。复用了向量的单元不进入那一批，因此对未变动仓库的增量运行不会发出任何请求。"
+      "text": "Parses a repository into units, reusing unchanged files and keeping serial numbers stable, then gives every unit that needs one a vector. Reuse stops when the authored text moved, and for one direction only: the apply step only ever sets text, so adding and changing a description took effect while deleting one did nothing at all. Only re-parsing recovers the generated sentence; vectors are then carried across by identity on the text they were computed from, so a unit whose own text did not move costs no embedding request. 中文：把仓库解析成单元，复用未变动的文件并让编号保持稳定，再给每个需要的单元算向量。人写的文字一旦变动就停止复用，而问题只出在一个方向：应用那一步只会「设置」文字，因此加描述、改描述都生效，唯独删描述什么也没做。只有重新解析才能恢复生成的句子；随后向量按「算它时所依据的文本是否相同」搬运，因此自身文本没动的单元一个嵌入请求都不花。"
     },
     "src/ragyourcode/indexer.py:269:fingerprint": {
       "hash": "c43969d994f83628",
@@ -946,6 +1156,13 @@
       "name": "embed_batch",
       "text": "Fetches vectors for one batch of texts from an OpenAI-compatible endpoint, in the order they were given. Rate limits and transport failures are retried with growing backoff; a rejected key or an unknown model is not, because the answer will not change and on a metered service each attempt costs the caller something. When the attempts run out the exception propagates: a build either uses one vector space or does not finish. 中文：从 OpenAI 兼容端点取一批文本的向量，按给定顺序返回。限流与传输失败按递增退避重试；密钥被拒或模型名错误则不重试，因为答案不会变，而在计费服务上每次尝试都要花钱。重试用尽后异常向上抛出：一次构建要么使用单一向量空间，要么不完成。"
     },
+    "src/ragyourcode/search.py:115:Evidence": {
+      "hash": "e5c8b6522c1f495a",
+      "code_hash": "867747e577238b48",
+      "path": "src/ragyourcode/search.py",
+      "name": "Evidence",
+      "text": "Whether a query reached the index at all, kept as a separate answer from how its results rank. Ranking says which candidate is best and can never say that none of them is an answer, because there is always a least-bad one and it comes back with a score and a rank that read exactly like a real result. Carries the words that were considered, the ones that matched, the ones the repository uses everywhere, and the resulting share. 中文：一个查询究竟有没有够到索引，作为与「结果如何排序」相互独立的一个答案保存。排序只能说出哪个候选最好，永远说不出「没有一个是答案」——因为总有一个最不差的，而它带着分数和名次回来，读起来和真结果一模一样。它记录参与判定的词、命中的词、仓库里到处都是的词，以及由此得到的比例。"
+    },
     "src/ragyourcode/search.py:115:_in_posting": {
       "hash": "68ba487a020c6d72",
       "code_hash": "4ef3996ff36e802f",
@@ -960,12 +1177,26 @@
       "name": "_inverse_document_frequency",
       "text": "How much evidence one word carries, derived from how rare it is in the corpus being searched. A word in nearly every unit says nothing about which unit is wanted; a word in two says a great deal. Deriving this from the corpus instead of from a list of stopwords is what makes it work on a repository in any language -- the and calls earn their low weight the same way a Chinese bigram does, by being everywhere, and no list has to be maintained. Measured on a foreign repository, calls reached 97 percent of units while daemon reached two. 中文：一个词携带多少证据，由它在被检索语料中的稀有程度推出。出现在几乎所有单元里的词，说不出想要哪个单元；只出现在两个单元里的词则说得很多。从语料推导而非依赖停用词表，正是它能在任何语言的仓库上生效的原因——the 与 calls 靠遍地都是拿到低权重，中文二元组也一样，且无需维护任何词表。在一个外部仓库实测：calls 覆盖 97% 的单元，而 daemon 只有两个。"
     },
-    "src/ragyourcode/search.py:145:search": {
-      "hash": "97dddfaa863492c9",
-      "code_hash": "648bb2dbe7ae8345",
+    "src/ragyourcode/search.py:143:Evidence.reason": {
+      "hash": "c13b511d474e41e6",
+      "code_hash": "2a27b4b13676f8c3",
       "path": "src/ragyourcode/search.py",
-      "name": "search",
-      "text": "Ranks code units against a question by combining weighted word overlap with vector similarity. Rare words count for more than common ones, repeating a word saturates, and a unit is discounted for how much text it owns. When -- and only when -- the embedder carries real semantics, similarity may also add candidates the words never reached, which is the one thing a vector can do that reordering cannot. Lexical evidence stays dominant: a unit found by similarity alone scores at most the vector weight. 中文：把代码单元按与问题的相关性排序，结合加权词面重合与向量相似度。罕见词比常见词值钱，词重复出现会饱和，单元因自身文本量大而被折价。当且仅当嵌入器携带真实语义时，相似度还可以新增词面从未够到的候选——那是向量能做而重排做不到的唯一一件事。词面证据始终占主导：仅凭相似度被找到的单元，得分至多为向量权重。"
+      "name": "Evidence.reason",
+      "text": "Why an answer was withheld, as a stable token a caller can branch on rather than a sentence it would have to parse. Three cases, because each is recovered by a different move: no word of the question is here at all, the only words that matched are ones this repository uses throughout, or some distinctive words matched but too few. 中文：为什么没有给出答案，以一个稳定的标识返回，供调用方分支判断，而不是一句需要它去解析的话。分三种，因为每一种的补救动作都不同：问题里没有一个词在这里、命中的全是本仓库到处都在用的词、或者确实命中了有区分度的词但太少。"
+    },
+    "src/ragyourcode/search.py:152:assess": {
+      "hash": "af4f23a2ac45af52",
+      "code_hash": "9638d89a974cbc6a",
+      "path": "src/ragyourcode/search.py",
+      "name": "assess",
+      "text": "Works out how much of a question actually occurs in this index, counting only the words that tell units apart. A word the repository uses everywhere is dropped from both the numerator and the denominator, which is the part that does the work: half of a question can match and still be nothing but the words every file contains. The bar is eased on a small index, because a repository too small to hold the vocabulary of a sentence would otherwise be refused its own questions, and it is lifted entirely for a semantic embedder, where a paraphrase sharing no word with its answer is the case that was configured for. 中文：算出一个问题究竟有多少落在这个索引里，且只数那些能把单元区分开的词。仓库里到处都是的词同时从分子和分母中剔除——关键正在这里：一个问题可以有一半命中，而命中的那一半全是每个文件都有的词。索引很小时门槛按比例放宽，否则一个小到装不下一句话词汇量的仓库会被拒答自己的问题；面对语义嵌入器则完全不设门槛，因为「与答案不共享任何词的转述」正是它被配置来处理的情形。"
+    },
+    "src/ragyourcode/search.py:206:diagnose": {
+      "hash": "2f0818046540c47d",
+      "code_hash": "1ce2c8139f5e2b63",
+      "path": "src/ragyourcode/search.py",
+      "name": "diagnose",
+      "text": "Turns a withheld answer into something an agent can act on. An empty reply is only useful if it says which kind of empty it is: rephrase in the code's vocabulary, add a word specific to what you want, or write the descriptions that would give the concept words at all. None of those is what an agent does when it is handed a plausible wrong unit instead. 中文：把「不作答」变成 agent 可以据以行动的东西。空回复只有在说明「是哪一种空」时才有用：换成代码自己的词汇重问、补一个针对性的词、或者去写那些能让这个概念第一次拥有词汇的描述。而当它拿到的是一个看似合理的错误单元时，这三件事它一件都不会做。"
     },
     "src/ragyourcode/search.py:240:_block": {
       "hash": "afacfcda8888ea5b",
@@ -987,6 +1218,13 @@
       "path": "src/ragyourcode/search.py",
       "name": "context",
       "text": "Packs ranked results into one block an agent can paste straight into a prompt, stopping before the caller character budget is exceeded. This is where the code arrives -- once -- so results beside it need carry none. 中文：把排好序的结果打包成一整块，agent 可以直接贴进提示词，并在超出调用方字符预算前停下。代码就在这里出现，且只出现一次，因此旁边的结果无需再带。"
+    },
+    "src/ragyourcode/search.py:294:search": {
+      "hash": "c322a4afedbcc5df",
+      "code_hash": "08fff2b21102582a",
+      "path": "src/ragyourcode/search.py",
+      "name": "search",
+      "text": "Ranks code units against a natural-language question by combining weighted word overlap with vector similarity, and returns nothing when too little of the question occurs in the index to call any result evidence. That refusal comes first, before any embedding or scoring, so an unanswerable query costs one dictionary lookup per word instead of a pass over the corpus. The lexical half is BM25 over weighted fields; similarity may additionally add candidates the words never reached, but only when the vectors carry real meaning. 中文：把代码单元按自然语言问题排序，做法是加权词面重叠与向量相似度的结合；当问题落在索引里的部分太少、任何结果都称不上证据时，返回空。这个拒答发生在最前面，早于任何嵌入与打分，因此一个无法回答的查询只花每个词一次字典查找，而不是遍历整个语料。词面部分是按字段加权的 BM25；相似度还可以额外引入词面从未够到的候选，但仅限于向量真的携带语义时。"
     },
     "src/ragyourcode/search.py:51:SearchIndex": {
       "hash": "9ca2694300e2612b",
@@ -1029,6 +1267,734 @@
       "path": "src/ragyourcode/workflow.py",
       "name": "store_descriptions",
       "text": "Validates and persists a batch of written text, reporting every rejection with a reason. Nothing is truncated to fit: a description silently cut at the limit would lose exactly the trailing synonyms that make it worth writing, and the agent would have no way to learn that it had happened. 中文：校验并持久化一批写好的文字，逐条报告被拒绝的原因。不做任何截断以求塞下：在长度上限处被悄悄剪掉的描述，丢的正是结尾那些让它值得一写的同义表述，而 agent 无从得知这件事发生过。"
+    },
+    "tests/fixtures/languages/FeedStore.swift:10:Page": {
+      "hash": "481b1af22b3ffa4c",
+      "code_hash": "481b1af22b3ffa4c",
+      "path": "tests/fixtures/languages/FeedStore.swift",
+      "name": "Page",
+      "text": "Parser fixture: a generic struct with a protocol conformance in its declaration line. 中文：解析夹具：声明行里带协议一致性的泛型 struct。"
+    },
+    "tests/fixtures/languages/FeedStore.swift:14:isEmpty": {
+      "hash": "b9ef2d9b067bd494",
+      "code_hash": "b9ef2d9b067bd494",
+      "path": "tests/fixtures/languages/FeedStore.swift",
+      "name": "isEmpty",
+      "text": "Parser fixture: a computed property, which is a member with no parameter list and must still be found. 中文：解析夹具：计算属性——一个没有参数表的成员，仍然必须被找到。"
+    },
+    "tests/fixtures/languages/FeedStore.swift:19:FeedStore": {
+      "hash": "480b8a62e64379e3",
+      "code_hash": "480b8a62e64379e3",
+      "path": "tests/fixtures/languages/FeedStore.swift",
+      "name": "FeedStore",
+      "text": "Parser fixture: a final class with a generic parameter constrained by a protocol. 中文：解析夹具：带受协议约束的泛型参数的 final class。"
+    },
+    "tests/fixtures/languages/FeedStore.swift:24:init": {
+      "hash": "1c668e0e8ce743dc",
+      "code_hash": "1c668e0e8ce743dc",
+      "path": "tests/fixtures/languages/FeedStore.swift",
+      "name": "init",
+      "text": "Parser fixture: an initialiser whose parameter list spans several lines, which is where a scanner reading one line at a time has to close the span correctly. 中文：解析夹具：参数表跨多行的初始化器——这正是一次只读一行的扫描器必须正确闭合作用域的地方。"
+    },
+    "tests/fixtures/languages/FeedStore.swift:30:itemCount": {
+      "hash": "23d8fe8414abdf26",
+      "code_hash": "23d8fe8414abdf26",
+      "path": "tests/fixtures/languages/FeedStore.swift",
+      "name": "itemCount",
+      "text": "Parser fixture: a second computed property, to show the first was not a coincidence. 中文：解析夹具：第二个计算属性，用来说明第一个不是碰巧。"
+    },
+    "tests/fixtures/languages/FeedStore.swift:34:refresh": {
+      "hash": "5061e73262b682c3",
+      "code_hash": "5061e73262b682c3",
+      "path": "tests/fixtures/languages/FeedStore.swift",
+      "name": "refresh",
+      "text": "Parser fixture: an async throwing method, whose keywords sit between the declaration keyword and the name. 中文：解析夹具：async throws 方法——那些关键字夹在声明关键字与名字之间。"
+    },
+    "tests/fixtures/languages/FeedStore.swift:45:FeedStore": {
+      "hash": "e941627cd9804dce",
+      "code_hash": "e941627cd9804dce",
+      "path": "tests/fixtures/languages/FeedStore.swift",
+      "name": "FeedStore",
+      "text": "Parser fixture: an extension reopening a type already declared above, so the same name appears twice legitimately. 中文：解析夹具：扩展一个上文已声明的类型，因此同一个名字合法地出现了两次。"
+    },
+    "tests/fixtures/languages/FeedStore.swift:46:description": {
+      "hash": "23fec786a601b567",
+      "code_hash": "23fec786a601b567",
+      "path": "tests/fixtures/languages/FeedStore.swift",
+      "name": "description",
+      "text": "Parser fixture: a property inside an extension, one nesting level deeper than the type it extends. 中文：解析夹具：扩展内部的属性，比它所扩展的类型多一层嵌套。"
+    },
+    "tests/fixtures/languages/FeedStore.swift:4:PageLoading": {
+      "hash": "31e43e42bfa0cbc8",
+      "code_hash": "31e43e42bfa0cbc8",
+      "path": "tests/fixtures/languages/FeedStore.swift",
+      "name": "PageLoading",
+      "text": "Parser fixture: a Swift protocol declaration, the form a scanner must recognise as a type rather than a function. 中文：解析夹具：Swift 的 protocol 声明——扫描器必须把这个形式认作类型而不是函数。"
+    },
+    "tests/fixtures/languages/FeedStore.swift:50:debugSummary": {
+      "hash": "f2c8ec0ea23f7469",
+      "code_hash": "f2c8ec0ea23f7469",
+      "path": "tests/fixtures/languages/FeedStore.swift",
+      "name": "debugSummary",
+      "text": "Parser fixture: a function with a defaulted parameter value containing a string literal. 中文：解析夹具：带字符串字面量默认值的参数的函数。"
+    },
+    "tests/fixtures/languages/InventoryService.java:11:InventoryService": {
+      "hash": "9f0cb41e28cf1051",
+      "code_hash": "9f0cb41e28cf1051",
+      "path": "tests/fixtures/languages/InventoryService.java",
+      "name": "InventoryService",
+      "text": "Parser fixture: a plain public Java class declaration. 中文：解析夹具：一个普通的 public Java 类声明。"
+    },
+    "tests/fixtures/languages/InventoryService.java:16:InventoryService": {
+      "hash": "4b45f84ec4191941",
+      "code_hash": "4b45f84ec4191941",
+      "path": "tests/fixtures/languages/InventoryService.java",
+      "name": "InventoryService",
+      "text": "Parser fixture: a constructor, which shares its name with its class and has no return type. 中文：解析夹具：构造器——它与所属类同名，且没有返回类型。"
+    },
+    "tests/fixtures/languages/InventoryService.java:20:sortedCopy": {
+      "hash": "6da9136dfb436bc7",
+      "code_hash": "6da9136dfb436bc7",
+      "path": "tests/fixtures/languages/InventoryService.java",
+      "name": "sortedCopy",
+      "text": "Parser fixture: a static generic method whose type parameter and return type both appear before the name. 中文：解析夹具：静态泛型方法——其类型参数与返回类型都排在名字前面。"
+    },
+    "tests/fixtures/languages/InventoryService.java:28:adjust": {
+      "hash": "67bf6d5ef6d5fe03",
+      "code_hash": "67bf6d5ef6d5fe03",
+      "path": "tests/fixtures/languages/InventoryService.java",
+      "name": "adjust",
+      "text": "Parser fixture: an ordinary instance method with a primitive return type. 中文：解析夹具：返回基本类型的普通实例方法。"
+    },
+    "tests/fixtures/languages/InventoryService.java:40:isTracked": {
+      "hash": "a69d319a9a114c94",
+      "code_hash": "a69d319a9a114c94",
+      "path": "tests/fixtures/languages/InventoryService.java",
+      "name": "isTracked",
+      "text": "Parser fixture: a private method, to show visibility does not decide whether a declaration is indexed. 中文：解析夹具：private 方法，用来说明可见性并不决定一个声明是否被索引。"
+    },
+    "tests/fixtures/languages/Invoice.php:10:tax_rate_for": {
+      "hash": "b6f3c06be7bba7c0",
+      "code_hash": "b6f3c06be7bba7c0",
+      "path": "tests/fixtures/languages/Invoice.php",
+      "name": "tax_rate_for",
+      "text": "Parser fixture: a PHP function with a nullable typed parameter, a default value and a return type. 中文：解析夹具：带可空类型参数、默认值与返回类型的 PHP 函数。"
+    },
+    "tests/fixtures/languages/Invoice.php:23:Chargeable": {
+      "hash": "fa098fef5bfd8a54",
+      "code_hash": "fa098fef5bfd8a54",
+      "path": "tests/fixtures/languages/Invoice.php",
+      "name": "Chargeable",
+      "text": "Parser fixture: an interface whose opening brace is on the following line. 中文：解析夹具：左花括号另起一行的 interface。"
+    },
+    "tests/fixtures/languages/Invoice.php:28:Invoice": {
+      "hash": "491ffed88b01626b",
+      "code_hash": "491ffed88b01626b",
+      "path": "tests/fixtures/languages/Invoice.php",
+      "name": "Invoice",
+      "text": "Parser fixture: a final class declaring an interface it implements. 中文：解析夹具：声明了所实现接口的 final class。"
+    },
+    "tests/fixtures/languages/Invoice.php:32:__construct": {
+      "hash": "10300112019d05b4",
+      "code_hash": "10300112019d05b4",
+      "path": "tests/fixtures/languages/Invoice.php",
+      "name": "__construct",
+      "text": "Parser fixture: a constructor with promoted properties in its parameter list. 中文：解析夹具：参数表里带构造器属性提升的构造函数。"
+    },
+    "tests/fixtures/languages/Invoice.php:38:addLine": {
+      "hash": "95366042e22b2ec2",
+      "code_hash": "95366042e22b2ec2",
+      "path": "tests/fixtures/languages/Invoice.php",
+      "name": "addLine",
+      "text": "Parser fixture: a method returning the enclosing type, so the return type is a name rather than a keyword. 中文：解析夹具：返回所在类型的方法——返回类型是一个名字而不是关键字。"
+    },
+    "tests/fixtures/languages/Invoice.php:45:amountDue": {
+      "hash": "85fcf0e8aa37d74e",
+      "code_hash": "85fcf0e8aa37d74e",
+      "path": "tests/fixtures/languages/Invoice.php",
+      "name": "amountDue",
+      "text": "Parser fixture: a method with no parameters and an explicit return type. 中文：解析夹具：无参数且带显式返回类型的方法。"
+    },
+    "tests/fixtures/languages/Invoice.php:51:format": {
+      "hash": "5b0a4adc21ac4c63",
+      "code_hash": "5b0a4adc21ac4c63",
+      "path": "tests/fixtures/languages/Invoice.php",
+      "name": "format",
+      "text": "Parser fixture: a closure assigned to a variable, which is a function declaration wearing the shape of an assignment. 中文：解析夹具：赋值给变量的闭包——一个穿着赋值外衣的函数声明。"
+    },
+    "tests/fixtures/languages/PriceCatalog.scala:13:PriceCatalog": {
+      "hash": "0eddb3185c20dc8d",
+      "code_hash": "0eddb3185c20dc8d",
+      "path": "tests/fixtures/languages/PriceCatalog.scala",
+      "name": "PriceCatalog",
+      "text": "Parser fixture: a singleton object, a declaration keyword with no counterpart in most languages. 中文：解析夹具：单例 object——一个在多数语言里没有对应物的声明关键字。"
+    },
+    "tests/fixtures/languages/PriceCatalog.scala:16:lookup": {
+      "hash": "9c06f5f47e6963de",
+      "code_hash": "9c06f5f47e6963de",
+      "path": "tests/fixtures/languages/PriceCatalog.scala",
+      "name": "lookup",
+      "text": "Parser fixture: a method whose return type is a generic wrapper, so the type expression contains brackets. 中文：解析夹具：返回类型是泛型包装的方法——类型表达式里含有方括号。"
+    },
+    "tests/fixtures/languages/PriceCatalog.scala:27:QuoteEngine": {
+      "hash": "c08d7991720948d5",
+      "code_hash": "c08d7991720948d5",
+      "path": "tests/fixtures/languages/PriceCatalog.scala",
+      "name": "QuoteEngine",
+      "text": "Parser fixture: a class whose constructor parameters are part of the class declaration line. 中文：解析夹具：构造参数写在类声明行上的 class。"
+    },
+    "tests/fixtures/languages/PriceCatalog.scala:28:quote": {
+      "hash": "0a1f792953a05b1c",
+      "code_hash": "0a1f792953a05b1c",
+      "path": "tests/fixtures/languages/PriceCatalog.scala",
+      "name": "quote",
+      "text": "Parser fixture: a method whose body opens with a block expression on the same line. 中文：解析夹具：方法体在同一行以块表达式开始。"
+    },
+    "tests/fixtures/languages/PriceCatalog.scala:6:Money": {
+      "hash": "bae93529d27253f5",
+      "code_hash": "bae93529d27253f5",
+      "path": "tests/fixtures/languages/PriceCatalog.scala",
+      "name": "Money",
+      "text": "Parser fixture: a Scala case class, whose parameter list is also its field list. 中文：解析夹具：Scala 的 case class——它的参数表同时也是字段表。"
+    },
+    "tests/fixtures/languages/PriceCatalog.scala:7:plus": {
+      "hash": "742fc21628d894e5",
+      "code_hash": "742fc21628d894e5",
+      "path": "tests/fixtures/languages/PriceCatalog.scala",
+      "name": "plus",
+      "text": "Parser fixture: a method inside a case class body. 中文：解析夹具：case class 体内的方法。"
+    },
+    "tests/fixtures/languages/ReportBuilder.cs:18:Add": {
+      "hash": "e683785b5153b3aa",
+      "code_hash": "e683785b5153b3aa",
+      "path": "tests/fixtures/languages/ReportBuilder.cs",
+      "name": "Add",
+      "text": "Parser fixture: a method returning its own enclosing type, the fluent-builder shape. 中文：解析夹具：返回自身所在类型的方法，即流式构建器的形状。"
+    },
+    "tests/fixtures/languages/ReportBuilder.cs:35:RenderAsync": {
+      "hash": "ec7a92b473b01964",
+      "code_hash": "ec7a92b473b01964",
+      "path": "tests/fixtures/languages/ReportBuilder.cs",
+      "name": "RenderAsync",
+      "text": "Parser fixture: an async method whose generic return type and parameter list are split across lines. 中文：解析夹具：泛型返回类型与参数表跨行拆分的 async 方法。"
+    },
+    "tests/fixtures/languages/ReportBuilder.cs:8:ReportBuilder": {
+      "hash": "3b9e82b27ec54c96",
+      "code_hash": "3b9e82b27ec54c96",
+      "path": "tests/fixtures/languages/ReportBuilder.cs",
+      "name": "ReportBuilder",
+      "text": "Parser fixture: a C# class declaration with its brace on the next line. 中文：解析夹具：花括号另起一行的 C# 类声明。"
+    },
+    "tests/fixtures/languages/SyncEngine.kt:12:SyncEngine": {
+      "hash": "6223d697578ce900",
+      "code_hash": "6223d697578ce900",
+      "path": "tests/fixtures/languages/SyncEngine.kt",
+      "name": "SyncEngine",
+      "text": "Parser fixture: a class with a private constructor property in its declaration line. 中文：解析夹具：声明行里带 private 构造属性的 class。"
+    },
+    "tests/fixtures/languages/SyncEngine.kt:16:enqueue": {
+      "hash": "3cf4e20aa89409b0",
+      "code_hash": "3cf4e20aa89409b0",
+      "path": "tests/fixtures/languages/SyncEngine.kt",
+      "name": "enqueue",
+      "text": "Parser fixture: an ordinary function with a declared return type. 中文：解析夹具：带声明返回类型的普通函数。"
+    },
+    "tests/fixtures/languages/SyncEngine.kt:29:flush": {
+      "hash": "8daf91ab7c08eac7",
+      "code_hash": "8daf91ab7c08eac7",
+      "path": "tests/fixtures/languages/SyncEngine.kt",
+      "name": "flush",
+      "text": "Parser fixture: a suspend function with a defaulted parameter and a generic return type. 中文：解析夹具：带默认参数与泛型返回类型的 suspend 函数。"
+    },
+    "tests/fixtures/languages/SyncEngine.kt:41:toDocumentId": {
+      "hash": "17039d910ca801ac",
+      "code_hash": "17039d910ca801ac",
+      "path": "tests/fixtures/languages/SyncEngine.kt",
+      "name": "toDocumentId",
+      "text": "Parser fixture: an extension function, whose receiver type sits between the keyword and the name. 中文：解析夹具：扩展函数——接收者类型夹在关键字与名字之间。"
+    },
+    "tests/fixtures/languages/SyncEngine.kt:6:DocumentSnapshot": {
+      "hash": "9d09c2035a6c76dd",
+      "code_hash": "9d09c2035a6c76dd",
+      "path": "tests/fixtures/languages/SyncEngine.kt",
+      "name": "DocumentSnapshot",
+      "text": "Parser fixture: a Kotlin data class whose parameter list spans several lines. 中文：解析夹具：参数表跨多行的 Kotlin data class。"
+    },
+    "tests/fixtures/languages/delivery.rb:12:Delivery": {
+      "hash": "847487487dad5bee",
+      "code_hash": "847487487dad5bee",
+      "path": "tests/fixtures/languages/delivery.rb",
+      "name": "Delivery",
+      "text": "Parser fixture: a class nested inside a module, so the enclosing scope matters. 中文：解析夹具：嵌在 module 里的 class，因此外层作用域是有意义的。"
+    },
+    "tests/fixtures/languages/delivery.rb:15:initialize": {
+      "hash": "70912a1e6e712481",
+      "code_hash": "70912a1e6e712481",
+      "path": "tests/fixtures/languages/delivery.rb",
+      "name": "initialize",
+      "text": "Parser fixture: a method whose parameter list wraps across lines. 中文：解析夹具：参数表跨行折行的方法。"
+    },
+    "tests/fixtures/languages/delivery.rb:25:retryable?": {
+      "hash": "0b1167e1d18c1393",
+      "code_hash": "0b1167e1d18c1393",
+      "path": "tests/fixtures/languages/delivery.rb",
+      "name": "retryable?",
+      "text": "Parser fixture: a method name ending in a question mark, a character most languages would treat as punctuation. 中文：解析夹具：以问号结尾的方法名——多数语言会把那个字符当作标点。"
+    },
+    "tests/fixtures/languages/delivery.rb:29:from_json": {
+      "hash": "9ca89b8cd98a9465",
+      "code_hash": "9ca89b8cd98a9465",
+      "path": "tests/fixtures/languages/delivery.rb",
+      "name": "from_json",
+      "text": "Parser fixture: a singleton method declared on self, which is a class method wearing an instance method's syntax. 中文：解析夹具：声明在 self 上的单例方法——一个穿着实例方法语法的类方法。"
+    },
+    "tests/fixtures/languages/delivery.rb:34:perform!": {
+      "hash": "3d2fee569bac7f40",
+      "code_hash": "3d2fee569bac7f40",
+      "path": "tests/fixtures/languages/delivery.rb",
+      "name": "perform!",
+      "text": "Parser fixture: a method name ending in an exclamation mark. 中文：解析夹具：以感叹号结尾的方法名。"
+    },
+    "tests/fixtures/languages/delivery.rb:49:dispatch": {
+      "hash": "a809f6dda3f0c020",
+      "code_hash": "a809f6dda3f0c020",
+      "path": "tests/fixtures/languages/delivery.rb",
+      "name": "dispatch",
+      "text": "Parser fixture: a method after a visibility keyword, to show that visibility does not end the enclosing scope. 中文：解析夹具：可见性关键字之后的方法，用来说明可见性并不终结外层作用域。"
+    },
+    "tests/fixtures/languages/delivery.rb:51:handler": {
+      "hash": "6b886058cf2cac0a",
+      "code_hash": "6b886058cf2cac0a",
+      "path": "tests/fixtures/languages/delivery.rb",
+      "name": "handler",
+      "text": "Parser fixture: a lambda assigned to a local, closed on one line. 中文：解析夹具：赋值给局部变量的 lambda，在一行内闭合。"
+    },
+    "tests/fixtures/languages/delivery.rb:6:Webhooks": {
+      "hash": "2a6114de82e0e867",
+      "code_hash": "2a6114de82e0e867",
+      "path": "tests/fixtures/languages/delivery.rb",
+      "name": "Webhooks",
+      "text": "Parser fixture: a Ruby module, which encloses everything below it and is closed by a keyword rather than a brace. 中文：解析夹具：Ruby 的 module——它包住下面的一切，并且由关键字而不是花括号闭合。"
+    },
+    "tests/fixtures/languages/delivery.rb:9:DeliveryError": {
+      "hash": "57c8bd67840f8abe",
+      "code_hash": "57c8bd67840f8abe",
+      "path": "tests/fixtures/languages/delivery.rb",
+      "name": "DeliveryError",
+      "text": "Parser fixture: a one-line class declaration closed on the same line, which the keyword-based span closer has to handle without consuming the rest of the file. 中文：解析夹具：在同一行开闭的单行类声明——基于关键字的作用域闭合器必须处理它，且不能吞掉文件的其余部分。"
+    },
+    "tests/fixtures/languages/deploy.sh:10:log": {
+      "hash": "b936c7725b64a6a2",
+      "code_hash": "b936c7725b64a6a2",
+      "path": "tests/fixtures/languages/deploy.sh",
+      "name": "log",
+      "text": "Parser fixture: the brace-only shell function form. 中文：解析夹具：只有花括号的 shell 函数形式。"
+    },
+    "tests/fixtures/languages/deploy.sh:14:require_env": {
+      "hash": "18c1ab3b76264ef6",
+      "code_hash": "18c1ab3b76264ef6",
+      "path": "tests/fixtures/languages/deploy.sh",
+      "name": "require_env",
+      "text": "Parser fixture: the keyword form with no parentheses. 中文：解析夹具：带关键字、不带括号的形式。"
+    },
+    "tests/fixtures/languages/deploy.sh:22:write_manifest": {
+      "hash": "3c1d93b201cef24f",
+      "code_hash": "3c1d93b201cef24f",
+      "path": "tests/fixtures/languages/deploy.sh",
+      "name": "write_manifest",
+      "text": "Parser fixture: the keyword form with parentheses, which is both spellings at once. 中文：解析夹具：既带关键字又带括号的形式——两种写法同时出现。"
+    },
+    "tests/fixtures/languages/deploy.sh:34:publish_bundle": {
+      "hash": "cac1005f8173cb21",
+      "code_hash": "cac1005f8173cb21",
+      "path": "tests/fixtures/languages/deploy.sh",
+      "name": "publish_bundle",
+      "text": "Parser fixture: a function whose opening brace is on the following line. 中文：解析夹具：左花括号另起一行的函数。"
+    },
+    "tests/fixtures/languages/deploy.sh:46:run_checks": {
+      "hash": "1434beb1f3baf02f",
+      "code_hash": "1434beb1f3baf02f",
+      "path": "tests/fixtures/languages/deploy.sh",
+      "name": "run_checks",
+      "text": "Parser fixture: a function containing a here-document, whose body must not be mistaken for further declarations. 中文：解析夹具：内含 here-document 的函数——它的正文不能被误认成更多的声明。"
+    },
+    "tests/fixtures/languages/ringbuf.c:11:ring_buffer": {
+      "hash": "67d2741e6e784a19",
+      "code_hash": "67d2741e6e784a19",
+      "path": "tests/fixtures/languages/ringbuf.c",
+      "name": "ring_buffer",
+      "text": "Parser fixture: a struct definition, which is a type rather than a function and must still be indexed. 中文：解析夹具：struct 定义——它是类型不是函数，但仍必须被索引。"
+    },
+    "tests/fixtures/languages/ringbuf.c:20:rb_create": {
+      "hash": "b4247fce419966bd",
+      "code_hash": "b4247fce419966bd",
+      "path": "tests/fixtures/languages/ringbuf.c",
+      "name": "rb_create",
+      "text": "Parser fixture: a function returning a pointer to a struct, so the return type spans two words and a star. 中文：解析夹具：返回结构体指针的函数——返回类型横跨两个词和一个星号。"
+    },
+    "tests/fixtures/languages/ringbuf.c:40:rb_push": {
+      "hash": "fd7034f75031e360",
+      "code_hash": "fd7034f75031e360",
+      "path": "tests/fixtures/languages/ringbuf.c",
+      "name": "rb_push",
+      "text": "Parser fixture: a function whose parameter list wraps across lines. 中文：解析夹具：参数表跨行折行的函数。"
+    },
+    "tests/fixtures/languages/ringbuf.c:55:rb_describe": {
+      "hash": "545ef6ba47375a51",
+      "code_hash": "545ef6ba47375a51",
+      "path": "tests/fixtures/languages/ringbuf.c",
+      "name": "rb_describe",
+      "text": "Parser fixture: a function returning a const pointer, where the qualifier precedes the type. 中文：解析夹具：返回 const 指针的函数——限定符排在类型前面。"
+    },
+    "tests/fixtures/languages/ringbuf.h:17:rb_status": {
+      "hash": "57899d61edbdea5a",
+      "code_hash": "57899d61edbdea5a",
+      "path": "tests/fixtures/languages/ringbuf.h",
+      "name": "rb_status",
+      "text": "Parser fixture: an enum in a header, a declaration form that appears only in headers. 中文：解析夹具：头文件里的 enum——一种只在头文件里出现的声明形式。"
+    },
+    "tests/fixtures/languages/ringbuf.h:25:rb_stats": {
+      "hash": "125760d5947a3b53",
+      "code_hash": "125760d5947a3b53",
+      "path": "tests/fixtures/languages/ringbuf.h",
+      "name": "rb_stats",
+      "text": "Parser fixture: a struct declared in a header rather than a translation unit. 中文：解析夹具：声明在头文件而不是编译单元里的 struct。"
+    },
+    "tests/fixtures/languages/ringbuf.h:38:rb_all_dropped": {
+      "hash": "ebf90d969a405062",
+      "code_hash": "ebf90d969a405062",
+      "path": "tests/fixtures/languages/ringbuf.h",
+      "name": "rb_all_dropped",
+      "text": "Parser fixture: a static inline function defined in a header. 中文：解析夹具：定义在头文件里的 static inline 函数。"
+    },
+    "tests/fixtures/languages/sample.go:13:Blob": {
+      "hash": "77305b63055023ef",
+      "code_hash": "77305b63055023ef",
+      "path": "tests/fixtures/languages/sample.go",
+      "name": "Blob",
+      "text": "Parser fixture: a struct type declaration in Go. 中文：解析夹具：Go 的结构体类型声明。"
+    },
+    "tests/fixtures/languages/sample.go:18:Store": {
+      "hash": "6477226d399c3d1d",
+      "code_hash": "6477226d399c3d1d",
+      "path": "tests/fixtures/languages/sample.go",
+      "name": "Store",
+      "text": "Parser fixture: an interface type, whose members are declarations without bodies. 中文：解析夹具：interface 类型——其成员是没有函数体的声明。"
+    },
+    "tests/fixtures/languages/sample.go:23:MemStore": {
+      "hash": "c5434e5493358baa",
+      "code_hash": "c5434e5493358baa",
+      "path": "tests/fixtures/languages/sample.go",
+      "name": "MemStore",
+      "text": "Parser fixture: a second struct, so the first was not the only one found. 中文：解析夹具：第二个结构体，用来说明找到的不止第一个。"
+    },
+    "tests/fixtures/languages/sample.go:29:Get": {
+      "hash": "733dec2ee5ec7612",
+      "code_hash": "733dec2ee5ec7612",
+      "path": "tests/fixtures/languages/sample.go",
+      "name": "Get",
+      "text": "Parser fixture: a method with a pointer receiver, which appears before the name in parentheses. 中文：解析夹具：带指针接收者的方法——接收者在名字之前的括号里。"
+    },
+    "tests/fixtures/languages/sample.go:39:Filter": {
+      "hash": "f10d32ddce6f4667",
+      "code_hash": "f10d32ddce6f4667",
+      "path": "tests/fixtures/languages/sample.go",
+      "name": "Filter",
+      "text": "Parser fixture: a generic function whose type parameter list precedes its value parameters. 中文：解析夹具：泛型函数——类型参数表排在值参数之前。"
+    },
+    "tests/fixtures/languages/sample.go:49:Describe": {
+      "hash": "92c7a1c624081e91",
+      "code_hash": "92c7a1c624081e91",
+      "path": "tests/fixtures/languages/sample.go",
+      "name": "Describe",
+      "text": "Parser fixture: a plain function taking a pointer argument. 中文：解析夹具：接受指针参数的普通函数。"
+    },
+    "tests/fixtures/languages/sample.go:60:Validate": {
+      "hash": "22d143530b214652",
+      "code_hash": "22d143530b214652",
+      "path": "tests/fixtures/languages/sample.go",
+      "name": "Validate",
+      "text": "Parser fixture: a function value assigned to a package-level variable, a declaration wearing an assignment's shape. 中文：解析夹具：赋值给包级变量的函数值——一个穿着赋值外衣的声明。"
+    },
+    "tests/fixtures/languages/sample.js:19:uploadWithRetry": {
+      "hash": "61738f679bece498",
+      "code_hash": "61738f679bece498",
+      "path": "tests/fixtures/languages/sample.js",
+      "name": "uploadWithRetry",
+      "text": "Parser fixture: an exported async function whose parameter list wraps across lines. This file is also the regression case for a whole-file regular expression that took 12.6 seconds on 441 bytes. 中文：解析夹具：参数表跨行折行的导出 async 函数。这个文件同时是那条整文件正则的回归用例——它曾在 441 字节上花掉 12.6 秒。"
+    },
+    "tests/fixtures/languages/sample.js:34:normalizeName": {
+      "hash": "1587206bff8473a5",
+      "code_hash": "1587206bff8473a5",
+      "path": "tests/fixtures/languages/sample.js",
+      "name": "normalizeName",
+      "text": "Parser fixture: an arrow function assigned to a constant, with its body on the following line. 中文：解析夹具：赋值给常量的箭头函数，函数体另起一行。"
+    },
+    "tests/fixtures/languages/sample.js:39:makeLimiter": {
+      "hash": "5ea1c0719b1004d0",
+      "code_hash": "5ea1c0719b1004d0",
+      "path": "tests/fixtures/languages/sample.js",
+      "name": "makeLimiter",
+      "text": "Parser fixture: a function that returns another function, so one declaration encloses another. 中文：解析夹具：返回另一个函数的函数——一个声明包住另一个声明。"
+    },
+    "tests/fixtures/languages/sample.js:41:acquire": {
+      "hash": "c03ccf3316749671",
+      "code_hash": "c03ccf3316749671",
+      "path": "tests/fixtures/languages/sample.js",
+      "name": "acquire",
+      "text": "Parser fixture: a named function expression nested inside a return statement. 中文：解析夹具：嵌在 return 语句里的具名函数表达式。"
+    },
+    "tests/fixtures/languages/sample.js:48:render": {
+      "hash": "d556de345368f33c",
+      "code_hash": "d556de345368f33c",
+      "path": "tests/fixtures/languages/sample.js",
+      "name": "render",
+      "text": "Parser fixture: a class method written in shorthand, with no function keyword at all. 中文：解析夹具：简写形式的类方法，完全没有 function 关键字。"
+    },
+    "tests/fixtures/languages/sample.js:8:computeBackoff": {
+      "hash": "856a948e2a418b5c",
+      "code_hash": "856a948e2a418b5c",
+      "path": "tests/fixtures/languages/sample.js",
+      "name": "computeBackoff",
+      "text": "Parser fixture: a plain function declaration. 中文：解析夹具：普通的函数声明。"
+    },
+    "tests/fixtures/languages/sample.rs:11:Chunker": {
+      "hash": "628bf16e9f8212a5",
+      "code_hash": "628bf16e9f8212a5",
+      "path": "tests/fixtures/languages/sample.rs",
+      "name": "Chunker",
+      "text": "Parser fixture: a trait declaration, whose members are signatures without bodies. 中文：解析夹具：trait 声明——其成员是没有函数体的签名。"
+    },
+    "tests/fixtures/languages/sample.rs:16:LineChunker": {
+      "hash": "0373dc920d81e92c",
+      "code_hash": "0373dc920d81e92c",
+      "path": "tests/fixtures/languages/sample.rs",
+      "name": "LineChunker",
+      "text": "Parser fixture: a unit struct, declared and closed on one line with a semicolon. 中文：解析夹具：单元结构体——在一行内以分号声明并闭合。"
+    },
+    "tests/fixtures/languages/sample.rs:19:language": {
+      "hash": "80e4de9ce2044742",
+      "code_hash": "80e4de9ce2044742",
+      "path": "tests/fixtures/languages/sample.rs",
+      "name": "language",
+      "text": "Parser fixture: a trait method implementation with a borrowed receiver and a lifetime in its return type. 中文：解析夹具：trait 方法实现，带借用接收者，返回类型里含生命周期标注。"
+    },
+    "tests/fixtures/languages/sample.rs:23:split": {
+      "hash": "1f27aa92bb56e774",
+      "code_hash": "1f27aa92bb56e774",
+      "path": "tests/fixtures/languages/sample.rs",
+      "name": "split",
+      "text": "Parser fixture: a method returning a generic collection, so the return type contains angle brackets. 中文：解析夹具：返回泛型集合的方法——返回类型里含尖括号。"
+    },
+    "tests/fixtures/languages/sample.rs:36:load_index": {
+      "hash": "ffc2cb651161e06a",
+      "code_hash": "ffc2cb651161e06a",
+      "path": "tests/fixtures/languages/sample.rs",
+      "name": "load_index",
+      "text": "Parser fixture: a public async function whose parameter list spans several lines. 中文：解析夹具：参数表跨多行的 pub async 函数。"
+    },
+    "tests/fixtures/languages/sample.rs:49:chunk_count": {
+      "hash": "40df092c461803df",
+      "code_hash": "40df092c461803df",
+      "path": "tests/fixtures/languages/sample.rs",
+      "name": "chunk_count",
+      "text": "Parser fixture: a function taking a slice, whose body declares another function inside it. 中文：解析夹具：接受切片的函数，其函数体内部又声明了一个函数。"
+    },
+    "tests/fixtures/languages/sample.rs:50:is_real": {
+      "hash": "57038300af4560ef",
+      "code_hash": "57038300af4560ef",
+      "path": "tests/fixtures/languages/sample.rs",
+      "name": "is_real",
+      "text": "Parser fixture: a function nested inside another function's body. 中文：解析夹具：嵌在另一个函数体内的函数。"
+    },
+    "tests/fixtures/languages/sample.rs:57:normalize": {
+      "hash": "59400ea29f626a7c",
+      "code_hash": "59400ea29f626a7c",
+      "path": "tests/fixtures/languages/sample.rs",
+      "name": "normalize",
+      "text": "Parser fixture: a private function returning an owned string. 中文：解析夹具：返回自有字符串的私有函数。"
+    },
+    "tests/fixtures/languages/sample.rs:5:Chunk": {
+      "hash": "5e1727409f4f434c",
+      "code_hash": "5e1727409f4f434c",
+      "path": "tests/fixtures/languages/sample.rs",
+      "name": "Chunk",
+      "text": "Parser fixture: a public struct declaration in Rust. 中文：解析夹具：Rust 的 pub 结构体声明。"
+    },
+    "tests/fixtures/languages/sample.ts:11:TtlCache": {
+      "hash": "ac005711a62ae201",
+      "code_hash": "ac005711a62ae201",
+      "path": "tests/fixtures/languages/sample.ts",
+      "name": "TtlCache",
+      "text": "Parser fixture: an exported generic class. 中文：解析夹具：导出的泛型类。"
+    },
+    "tests/fixtures/languages/sample.ts:15:constructor": {
+      "hash": "817204546ec35f7c",
+      "code_hash": "817204546ec35f7c",
+      "path": "tests/fixtures/languages/sample.ts",
+      "name": "constructor",
+      "text": "Parser fixture: a constructor with parameter properties spanning several lines. 中文：解析夹具：参数属性跨多行的构造函数。"
+    },
+    "tests/fixtures/languages/sample.ts:20:size": {
+      "hash": "f7a0a3c1ce000845",
+      "code_hash": "f7a0a3c1ce000845",
+      "path": "tests/fixtures/languages/sample.ts",
+      "name": "size",
+      "text": "Parser fixture: a getter, where the accessor keyword precedes the name. 中文：解析夹具：getter——访问器关键字排在名字之前。"
+    },
+    "tests/fixtures/languages/sample.ts:24:fromSeconds": {
+      "hash": "8a25f6cd237d345e",
+      "code_hash": "8a25f6cd237d345e",
+      "path": "tests/fixtures/languages/sample.ts",
+      "name": "fromSeconds",
+      "text": "Parser fixture: a static method returning the enclosing generic type. 中文：解析夹具：返回所在泛型类型的静态方法。"
+    },
+    "tests/fixtures/languages/sample.ts:30:set": {
+      "hash": "0ad28c67c1d15e64",
+      "code_hash": "0ad28c67c1d15e64",
+      "path": "tests/fixtures/languages/sample.ts",
+      "name": "set",
+      "text": "Parser fixture: a method whose name is also a language keyword used for accessors. 中文：解析夹具：方法名恰好是该语言用于访问器的关键字。"
+    },
+    "tests/fixtures/languages/sample.ts:34:getOrLoad": {
+      "hash": "216e1b10e39c0d73",
+      "code_hash": "216e1b10e39c0d73",
+      "path": "tests/fixtures/languages/sample.ts",
+      "name": "getOrLoad",
+      "text": "Parser fixture: an async generic method with a constrained type parameter. 中文：解析夹具：带受约束类型参数的 async 泛型方法。"
+    },
+    "tests/fixtures/languages/sample.ts:3:CacheEntry": {
+      "hash": "e721f6cdce97e717",
+      "code_hash": "e721f6cdce97e717",
+      "path": "tests/fixtures/languages/sample.ts",
+      "name": "CacheEntry",
+      "text": "Parser fixture: an exported generic interface. This file is the regression case for idiomatic TypeScript once yielding zero units at all. 中文：解析夹具：导出的泛型接口。这个文件是「地道 TypeScript 曾经一个单元都解析不出」的回归用例。"
+    },
+    "tests/fixtures/languages/sample.ts:45:prune": {
+      "hash": "e8f5d45052f7244b",
+      "code_hash": "e8f5d45052f7244b",
+      "path": "tests/fixtures/languages/sample.ts",
+      "name": "prune",
+      "text": "Parser fixture: a method with a defaulted parameter whose default is a call expression. 中文：解析夹具：带默认值的方法参数，且默认值是一个调用表达式。"
+    },
+    "tests/fixtures/languages/sample.ts:58:cacheFor": {
+      "hash": "bb1686cfe73f42ae",
+      "code_hash": "bb1686cfe73f42ae",
+      "path": "tests/fixtures/languages/sample.ts",
+      "name": "cacheFor",
+      "text": "Parser fixture: an exported arrow function with a type parameter, whose trailing comma exists to keep it from parsing as markup. 中文：解析夹具：带类型参数的导出箭头函数——那个尾随逗号存在的意义，是防止它被解析成标记语言。"
+    },
+    "tests/fixtures/languages/scheduler.cpp:13:Scheduler": {
+      "hash": "d5750c6baf946b2b",
+      "code_hash": "d5750c6baf946b2b",
+      "path": "tests/fixtures/languages/scheduler.cpp",
+      "name": "Scheduler",
+      "text": "Parser fixture: a C++ class declaration. 中文：解析夹具：C++ 的类声明。"
+    },
+    "tests/fixtures/languages/scheduler.cpp:15:Scheduler": {
+      "hash": "d8799e55f8b4cf16",
+      "code_hash": "d8799e55f8b4cf16",
+      "path": "tests/fixtures/languages/scheduler.cpp",
+      "name": "Scheduler",
+      "text": "Parser fixture: an explicit constructor with a member initialiser list on the following line. 中文：解析夹具：explicit 构造函数，成员初始化列表另起一行。"
+    },
+    "tests/fixtures/languages/scheduler.cpp:18:~Scheduler": {
+      "hash": "1006cfa9282560cd",
+      "code_hash": "1006cfa9282560cd",
+      "path": "tests/fixtures/languages/scheduler.cpp",
+      "name": "~Scheduler",
+      "text": "Parser fixture: a destructor, whose name begins with a character most scanners treat as an operator. 中文：解析夹具：析构函数——它的名字以一个多数扫描器当作运算符的字符开头。"
+    },
+    "tests/fixtures/languages/scheduler.cpp:27:pending": {
+      "hash": "b5b356455e5132ca",
+      "code_hash": "b5b356455e5132ca",
+      "path": "tests/fixtures/languages/scheduler.cpp",
+      "name": "pending",
+      "text": "Parser fixture: a const member function defined inline on one line. 中文：解析夹具：在一行内内联定义的 const 成员函数。"
+    },
+    "tests/fixtures/languages/scheduler.cpp:35:submit": {
+      "hash": "b90022b795210c0a",
+      "code_hash": "b90022b795210c0a",
+      "path": "tests/fixtures/languages/scheduler.cpp",
+      "name": "submit",
+      "text": "Parser fixture: a member function defined outside its class, so the name carries a scope qualifier. 中文：解析夹具：在类外定义的成员函数——名字带作用域限定符。"
+    },
+    "tests/fixtures/languages/scheduler.cpp:47:describe": {
+      "hash": "7de6d166ed1489f8",
+      "code_hash": "7de6d166ed1489f8",
+      "path": "tests/fixtures/languages/scheduler.cpp",
+      "name": "describe",
+      "text": "Parser fixture: an out-of-class const member function whose return type is a qualified name. 中文：解析夹具：类外定义的 const 成员函数，返回类型是一个带限定的名字。"
+    },
+    "tests/fixtures/languages/scheduler.cpp:53:clamp_to": {
+      "hash": "5151bb94d87dedf1",
+      "code_hash": "5151bb94d87dedf1",
+      "path": "tests/fixtures/languages/scheduler.cpp",
+      "name": "clamp_to",
+      "text": "Parser fixture: a function template whose template header sits on the line above the declaration. 中文：解析夹具：函数模板——模板头位于声明行的上一行。"
+    },
+    "tests/test_language_fixtures.py:33:_mark_pending": {
+      "hash": "e2817308918ca36b",
+      "code_hash": "e2817308918ca36b",
+      "path": "tests/test_language_fixtures.py",
+      "name": "_mark_pending",
+      "text": "Marks the fixtures a rule does not yet cover as expected failures, so the ruler can carry more ground truth than the parser currently satisfies. 中文：把某条规则尚未覆盖的夹具标为预期失败，使这把尺子可以承载比解析器当前所能满足的更多的基准事实。"
+    },
+    "tests/test_language_fixtures.py:39:_units_by_name": {
+      "hash": "a0f525a3f5bfda88",
+      "code_hash": "a0f525a3f5bfda88",
+      "path": "tests/test_language_fixtures.py",
+      "name": "_units_by_name",
+      "text": "Indexes what the parser produced by name, so a fixture's expectations can be checked one declaration at a time. 中文：把解析器的产出按名字建索引，使夹具的期望可以逐个声明地核对。"
+    },
+    "tests/test_language_fixtures.py:47:test_core_declarations_are_found": {
+      "hash": "6541093be8497671",
+      "code_hash": "6541093be8497671",
+      "path": "tests/test_language_fixtures.py",
+      "name": "test_core_declarations_are_found",
+      "text": "The ground truth of what the parser must find in each language, written before the parser was rewritten so it could not encode whatever the new one happens to do. 中文：解析器在每种语言里必须找到什么的基准事实。它写在解析器重写之前，因此不可能把新解析器碰巧的行为编码进去。"
+    },
+    "tests/test_language_fixtures.py:55:test_core_declarations_report_the_right_line": {
+      "hash": "0859e85b84e297fb",
+      "code_hash": "551930f946935042",
+      "path": "tests/test_language_fixtures.py",
+      "name": "test_core_declarations_report_the_right_line",
+      "text": "A location that is wrong is worse than one that is missing, because it sends a reader to code that has nothing to do with the answer. 中文：错误的位置比缺失的位置更糟，因为它把读者送去一段与答案毫无关系的代码。"
+    },
+    "tests/test_language_fixtures.py:69:test_core_declarations_carry_a_usable_signature": {
+      "hash": "0d41108b39d85896",
+      "code_hash": "d81877be3717d9b2",
+      "path": "tests/test_language_fixtures.py",
+      "name": "test_core_declarations_carry_a_usable_signature",
+      "text": "The signature is what an agent reads to decide whether a declaration is worth opening, so an empty one costs a round trip. 中文：签名是 agent 用来判断某个声明值不值得打开的东西，空签名的代价是一次额外往返。"
+    },
+    "tests/test_language_fixtures.py:83:test_no_phantom_units_are_invented": {
+      "hash": "33bbac5e909d2178",
+      "code_hash": "37a6eeded2549b75",
+      "path": "tests/test_language_fixtures.py",
+      "name": "test_no_phantom_units_are_invented",
+      "text": "A declaration the parser invented cannot be opened, cannot be verified, and pollutes every ranking it appears in. 中文：解析器凭空造出来的声明打不开、无法核实，并且污染它出现的每一次排序。"
+    },
+    "tests/test_language_fixtures.py:91:test_spec_excluded_constructs_are_not_indexed": {
+      "hash": "c4c738d024502bde",
+      "code_hash": "dfd3218065edfe1c",
+      "path": "tests/test_language_fixtures.py",
+      "name": "test_spec_excluded_constructs_are_not_indexed",
+      "text": "The constructs the specification deliberately leaves out, asserted as absent, because a scope stated only in prose quietly grows. 中文：规范刻意排除的构造，以「不存在」来断言——一个只写在散文里的边界会悄悄扩张。"
+    },
+    "tests/test_language_fixtures.py:99:test_the_ruler_itself_is_well_formed": {
+      "hash": "b0942946c9925912",
+      "code_hash": "34c4ba62e88805a2",
+      "path": "tests/test_language_fixtures.py",
+      "name": "test_the_ruler_itself_is_well_formed",
+      "text": "A ruler that quietly stopped describing real fixtures would report improvement by losing its own questions. 中文：一把悄悄不再描述真实夹具的尺子，会靠丢掉自己的题目来报告进步。"
+    },
+    "tests/test_metadata.py:151:test_the_documented_fixture_counts_are_the_real_ones": {
+      "hash": "aca2dcf8d23dce72",
+      "code_hash": "a3f3382edee3d535",
+      "path": "tests/test_metadata.py",
+      "name": "test_the_documented_fixture_counts_are_the_real_ones",
+      "text": "Numbers stated in prose, checked against the data they describe. A count copied one line up survived for releases, because a figure in a sentence is exactly the kind of claim no gate looks at. 中文：散文里陈述的数字，对着它所描述的数据核对。一个从上一行抄错的计数活过了好几个版本——因为句子里的数字，恰恰是没有任何闸门会去看的那类断言。"
     }
   }
 }

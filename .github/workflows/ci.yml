@@ -52,6 +52,11 @@ jobs:
         # development look like a retrieval regression; the structural checks
         # that keep the ruler honest live in tests/test_repo_queries.py.
         run: python -m benchmarks.repo_queries --output repo-queries-result.json
+      - name: Questions this repository cannot answer, reported not asserted
+        # Silence moves with the corpus the same way hit rates do, so the floor
+        # that must not rot is asserted in tests/test_absent_queries.py and the
+        # figure is merely recorded here.
+        run: python -m benchmarks.repo_queries --questions benchmarks/absent_queries.json --output absent-queries-result.json
 
       - name: Assert the published quality numbers still hold
         run: |

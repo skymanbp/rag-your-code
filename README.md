@@ -199,9 +199,9 @@ and left Chinese retrieval unchanged.
 
 ### Measured on this repository
 
-This project describes its own implementation: every unit under `src/` carries
-an agent-written bilingual description, committed to the repo, and 68 of them
-have been promoted into the source as doc comments.
+This project describes its own implementation: all 163 units under `src/` carry
+an agent-written bilingual description, committed to the repo, and 155 of those
+163 declarations also carry the author's own documentation in the source.
 
 Seventy natural-language questions about this codebase, in English and
 Chinese, each listing every unit that genuinely answers it
@@ -209,13 +209,13 @@ Chinese, each listing every unit that genuinely answers it
 
 | | generated descriptions | agent-written |
 |---|---|---|
-| hit@1 | 0.271 | **0.500** |
-| hit@3 | 0.486 | **0.800** |
-| MRR | 0.367 | **0.631** |
-| answered with no shared word at all | 12.9% | **0%** |
+| hit@1 | 0.314 | **0.500** |
+| hit@3 | 0.457 | **0.729** |
+| MRR | 0.379 | **0.583** |
+| questions declined for want of evidence | 13.0% | **4.3%** |
 
-Roughly double the first-place accuracy. Fourteen questions still fail, which
-is what makes the set usable for measuring the next change;
+Half again the first-place accuracy. Nineteen questions still fail, which is
+what makes the set usable for measuring the next change;
 `tests/test_repo_queries.py` asserts that some question always does, and that
 the written column beats the generated one.
 
@@ -255,6 +255,77 @@ the code it tests, because it repeats that code's vocabulary and adds its own.
 **What this is:** it moves the semantic work from query time to index time.
 Matching stays lexical. It is LLM-authored keyword expansion, and its reach is
 bounded by how many ways of saying the thing the agent thought to write down.
+
+### The question a ranking cannot answer
+
+Both rulers above ask questions that *have* an answer, so both can only score
+whether it was found. Neither can see the opposite failure. A ranking always
+produces a least-bad unit and hands it back with a score and a rank that read
+exactly like an answer — and it does that whether or not the repository
+contains anything relevant at all.
+
+So there is a third ruler: thirty questions about subjects neither repository
+implements, where the only correct reply is nothing
+([`benchmarks/absent_queries.json`](benchmarks/absent_queries.json)). Before
+1.0.0 it scored **zero**. All thirty answered, on both repositories, in both
+languages:
+
+| asked of a repository with no such code | answered with | on the evidence of |
+|---|---|---|
+| `where are CUDA kernels dispatched to the device` | a test about word counting | `are` `the` `to` `where` |
+| `准入控制为什么会拒绝没有资源限额的容器组` | the UTF-8 console setup | `拒绝` `控制` `没有` |
+| `how is the OAuth refresh token rotated` | a description-store method | `before` `is` `refresh` `the` |
+
+Not a Chinese problem and not a ranking problem — a missing question. Nothing
+in the pipeline asked *is any of this evidence*; it only asked which ranks
+highest. Retrieval now asks both, and returns nothing when the answer to the
+first is no:
+
+| | before | now |
+|---|---|---|
+| unanswerable questions correctly met with silence, this repository | 0.000 | **0.733** |
+| the same, on the foreign repository | 0.000 | **0.800** |
+| results resting on no lexical evidence at all, all three rulers | 0.029 – 0.129 | **0.000** |
+| hit@1 / hit@3 / MRR on the foreign ruler | 0.257 / 0.400 / 0.314 | **unchanged** |
+| hit@1 / hit@3 / MRR on this repository | 0.471 / 0.686 / 0.557 | **unchanged** |
+
+The bar is the share of a question's **discriminating** words that occur in
+the index — words the repository uses everywhere are dropped from both sides
+of that fraction, which is the part that does the work. Half of `where are
+CUDA kernels dispatched to the device` matches, and it looks like evidence
+until you notice which half. Counting only words that distinguish silenced 18
+of 30 unanswerable English questions that no plain coverage threshold reached
+at all, at identical cost in real answers — 97 of 98 either way.
+
+It is a ratio inside the query rather than a threshold on a score, because a
+score threshold is tied to whatever scale the ranking currently produces —
+this project has already had one of those stop meaning anything the moment
+BM25F changed the scale. `search.min_coverage` sets it; `0` restores the old
+behaviour exactly.
+
+**What it costs:** one question of the 158 measured. `控制台编码不是 UTF-8
+会怎么样` was reaching `_use_utf8_streams`, and the only words in it this
+repository contains are `utf` and `8`, both of which it uses everywhere. The
+gate says too little of that question is distinctive, which is defensible, and
+it was getting the right answer on a coincidence.
+
+**What it does not fix:** an English question whose words genuinely occur here
+in another sense. `how is the OAuth refresh token rotated` matches `refresh`
+because this repository refreshes *indexes*, and no threshold separates those.
+Six of fifteen English absent questions still get answered for that reason.
+That is the case a real embedding model exists for, and it is measurable now
+that the ruler exists.
+
+An empty answer says which kind of empty it is, because each is recovered by a
+different move:
+
+```json
+{"results": [],
+ "diagnosis": {"reason": "only_ubiquitous_terms_matched",
+               "matched_terms": [], "ubiquitous_terms": ["the", "to"],
+               "coverage": 0.0, "min_coverage": 0.4,
+               "hint": "The only words that matched are ones this repository uses throughout ..."}}
+```
 
 Descriptions live in `rag-your-code.descriptions.json` at the repository root
 and are meant to be committed, so one person's pass benefits everyone who
@@ -305,22 +376,27 @@ per-release counts are in [CHANGELOG.md](CHANGELOG.md).
 
 ## Configuration
 
-Twelve settings in `rag-your-code.toml` at the repository root:
+21 settings in `rag-your-code.toml` at the repository root:
 
 ```bash
 rag-your-code config init                     # a commented file, all defaults
 rag-your-code config list                     # effective values and their source
 rag-your-code config set index.ignore '["vendor", "generated"]'
-rag-your-code config set search.vector_weight 0.25
+rag-your-code config set search.min_coverage 0.25
 ```
 
 | section | settings |
 |---|---|
 | `[index]` | `ignore`, `suffixes`, `max_file_bytes` |
-| `[embedding]` | `dimensions` |
-| `[search]` | `vector_weight`, `limit`, `max_chars` |
+| `[embedding]` | `dimensions`, `provider`, `endpoint`, `model`, `api_key_env`, `batch`, `timeout`, `retries` |
+| `[search]` | `min_coverage`, `vector_weight`, `vector_recall`, `limit`, `max_chars` |
 | `[agent]` | `max_open_bytes`, `max_open_chars` |
 | `[describe]` | `languages`, `batch`, `max_chars` |
+
+This table is asserted against the settings table in `config.py`, in both
+directions, by `tests/test_metadata.py` — it had already fallen nine settings
+behind by 1.0.0, and a section listing three quarters of what exists is worse
+than none, because it reads as complete.
 
 Resolution is CLI flag > file > built-in default. There is no environment
 layer: an index is an artifact of a repository, not of a shell.
@@ -331,9 +407,10 @@ silently dropped is indistinguishable from one that had no effect.
 suffix it cannot read is walked, parsed to nothing, and reported as a clean
 index of zero units.
 
-The four settings under `[index]` and `[embedding]` decide what an index
-*contains*, so a digest of them is stored in the index and a change forces a
-full rebuild. The rest take effect immediately and invalidate nothing.
+The settings under `[index]` and `[embedding]` that decide what an index
+*contains* — including which provider and model computed its vectors — have a
+digest stored in the index, and changing one forces a full rebuild. The rest
+take effect immediately and invalidate nothing.
 
 ## Agent protocol
 

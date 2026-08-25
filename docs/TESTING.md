@@ -101,7 +101,7 @@ read, parsed to nothing, and reported as a clean index. And the 3.10 TOML
 reader is checked against `tomllib` over sixteen inputs on every version that
 ships one, so the fallback cannot drift away from the real grammar in silence.
 
-## The three rulers
+## The four rulers
 
 `benchmarks/golden.json` grades ranking over the five-file synthetic fixture
 and is asserted in CI. It is a regression tripwire, and it cannot resolve a
@@ -117,6 +117,28 @@ path and declaration name, never on line, so the ruler survives the edit that
 orphaned nineteen descriptions in 0.4.1. Run it with `--cold` and it grades
 the same questions against units built with no description store, which is
 what a repository nobody has run `describe` on contains.
+
+`benchmarks/absent_queries.json` grades thirty questions whose answer is in
+neither repository, where returning nothing is the only correct reply. The
+other three are structurally blind to this: all of them ask questions that
+have an answer, so all of them can only score whether it was found. Scored on
+silence, never folded into hit@k -- averaging a question that should return
+something with one that should return nothing yields a figure that improves
+when either half gets worse. It read 0.000 on both repositories when it was
+first run, which is the measurement that motivated the coverage bar.
+
+Its own honesty is enforced by `tests/test_absent_queries.py`, and this is the
+ruler that most needs it: the claim "nothing here answers this" rots in the
+opposite direction to every other question in the suite, so the day this
+repository grows a DNS resolver, a correct answer would score as a failure to
+stay quiet. Each question therefore carries the `subject` vocabulary that makes
+it the question it is, and a test asserts none of those words reaches a single
+unit. It fired the first time it ran, on three separate causes: `webhook` and
+`hostname` had been in this repository all along and were written into the
+ruler by eye rather than by the check, and `cuda`/`kernels` became present
+*because the source explains the coverage bar using that example*. The GPU
+questions were retired for it. Documentation and ruler cannot own the same
+vocabulary.
 
 `benchmarks/cold_queries.json` grades thirty-five questions about
 **cc-enforcer**, a repository nobody here wrote, indexed with no descriptions

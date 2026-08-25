@@ -229,7 +229,7 @@ reported as a clean index of zero units.
 
 ## Configuration
 
-Twelve settings live in one table in `config.py`. The loader, the validator,
+Twenty-one settings live in one table in `config.py`. The loader, the validator,
 the fingerprint, the `config` subcommand and the generated template all read
 that table, so a value is named, defaulted, bounded and classified exactly
 once. Resolution is CLI flag > `rag-your-code.toml` > built-in default.
@@ -377,9 +377,60 @@ it is larger.
 
 Results combine a weighted lexical score (exact symbols, error names, rare
 domain terms) with cosine similarity (ranking among lexical matches). The JSON
-response includes score, matched terms, location, description and source.
-Agents should treat retrieval as navigation evidence, then open the cited
-source before editing.
+response includes score, matched terms, location and description. Agents
+should treat retrieval as navigation evidence, then open the cited source
+before editing.
+
+### Two questions, not one
+
+Retrieval asks *which of these ranks highest* and, separately, *is any of this
+evidence*. Only the first is a ranking problem, and until 1.0.0 only the first
+was asked. A ranking always has a least-bad candidate and returns it with a
+score and a rank that read exactly like an answer, so a repository answered
+all thirty questions in `benchmarks/absent_queries.json` — every one about a
+subject it does not contain, in both languages, on both graded repositories.
+
+`assess()` answers the second question before any embedding or scoring
+happens, and `search()` returns nothing when the answer is no. What it
+measures is **coverage**: the share of a query's discriminating words that
+occur in the index at all.
+
+- A word reaching more than `COMMON_TERM` of the corpus is dropped from the
+  numerator *and* the denominator. `where are CUDA kernels dispatched to the
+  device` matches four of its eight words — `are`, `the`, `to`, `where` — and
+  half a query matching looks like evidence until you see which half. Counting
+  only words that distinguish silenced 18 of 30 unanswerable English questions
+  that no plain coverage threshold reached at all, at identical cost.
+- `COMMON_TERM_FLOOR` stops that rule inverting on a small index, where a word
+  in one unit of ten is the most discriminating word there is and yet already
+  exceeds any small share.
+- Below `COVERAGE_FULL_STRENGTH` units the bar is eased in proportion. A small
+  repository cannot hold the vocabulary of a sentence: subsampling one
+  repository to eight sizes, coverage of *answerable* questions falls 0.789 →
+  0.731 → 0.559 → 0.410 from 1153 units to 400, 100 and 10, while coverage of
+  unanswerable ones stays flat at 0.13–0.18 whatever the size. The separation
+  survives; only its position moves.
+- A semantic embedder is exempt entirely. A paraphrase sharing no word with
+  its answer is the case a provider was configured for, so lexical coverage is
+  then evidence of nothing. Reasoned, not measured — there is no key here.
+
+A ratio inside the query rather than a threshold on a score, because a score
+threshold is tied to whatever scale the ranking currently produces. This
+project has already lost one of those: `confidence_threshold = 0.8` stopped
+meaning anything the moment BM25F changed the scale, and did it in silence.
+
+The gate also makes the pure-cosine fallback structurally unreachable under
+the feature hash, which is where it did the most harm — a cosine over hashed
+token overlap ranked the whole corpus on noise. It survives for the semantic
+case and for a repository that sets `search.min_coverage` to zero and asks for
+the old behaviour back.
+
+`diagnose()` turns the refusal into something an agent can branch on, because
+the three ways a query can fail are recovered by three different moves:
+`no_query_term_in_index`, `only_ubiquitous_terms_matched` and
+`too_little_of_the_query_matched`. One function computes both the decision and
+the explanation — two copies of a rule is how the ends of a contract start to
+disagree.
 
 ### How a match is scored
 

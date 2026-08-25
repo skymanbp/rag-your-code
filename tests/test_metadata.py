@@ -192,6 +192,30 @@ def test_the_release_workflow_publishes_under_the_name_the_project_declares():
     assert "does not match pyproject version" in workflow, "a tag must not be able to disagree with the package"
 
 
+def test_the_documented_settings_are_the_settings_that_exist():
+    """The README's configuration table, against the settings table itself.
+
+    It shipped 0.8.0 listing twelve of twenty-one, missing every provider
+    setting that release existed to add. Nothing noticed, because a table is
+    read as complete whether or not it is, and a reader has no way to tell a
+    section that omits nine things from one that omits none. Both directions
+    are asserted: a documented setting must exist, and an existing one must be
+    documented, since a setting nobody is told about is not configurable.
+    """
+    from ragyourcode.config import SETTINGS
+
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    documented: set[str] = set()
+    for section, names in re.findall(r"^\| `\[(\w+)\]` \| (.+?) \|$", text, re.M):
+        documented.update(f"{section}.{name}" for name in re.findall(r"`(\w+)`", names))
+    real = {setting.path for setting in SETTINGS}
+    assert documented - real == set(), f"README documents settings that do not exist: {sorted(documented - real)}"
+    assert real - documented == set(), f"settings nobody is told about: {sorted(real - documented)}"
+    stated = re.search(r"(\d+) settings in `rag-your-code\.toml`", text)
+    assert stated, "the README must say how many settings there are"
+    assert int(stated.group(1)) == len(real), f"README says {stated.group(1)} settings, there are {len(real)}"
+
+
 def test_the_documented_provider_settings_actually_configure_a_provider(tmp_path: Path):
     """The README's configuration block, executed rather than trusted.
 
