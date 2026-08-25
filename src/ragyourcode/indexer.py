@@ -18,7 +18,7 @@ from .config import Config
 from .descriptions import DescriptionStore, index_descriptions_fingerprint
 from .embeddings import embed, embedding_metadata
 from .models import CodeUnit
-from .parser import parse_file
+from .parser import PARSER_FINGERPRINT, parse_file
 
 # These names predate the configuration layer and several tests import them.
 # They are derived from the settings table rather than restated, so there is
@@ -60,7 +60,7 @@ class StaleMonitor:
         # under different suffixes, ignores or vector width describes a
         # different corpus; an index built from different descriptions serves
         # text nobody wrote any more. Both are stale regardless of the walk.
-        self.config_changed = index_config_fingerprint(payload) != self.cfg.build_fingerprint
+        self.config_changed = index_build_fingerprint(payload) != build_fingerprint(self.cfg)
         self.inputs_changed = self.config_changed or (
             descriptions_fingerprint is not None and index_descriptions_fingerprint(payload) != descriptions_fingerprint
         )
@@ -86,16 +86,38 @@ class StaleMonitor:
         return self.value
 
 
-def index_config_fingerprint(payload: dict) -> str:
+def build_fingerprint(cfg: Config) -> str:
+    """Digest of everything that decides what a unit *is*.
+
+    Two inputs, one question. The settings under ``[index]`` and
+    ``[embedding]`` decide which files are read and how wide a vector is; the
+    parser decides what counts as a declaration and where it ends. Units
+    produced under either a different configuration or a different parser are
+    not stale units of this repository, they are units of something else, and
+    the action in both cases is identical: discard them.
+
+    Keeping them as two fields would mean two comparisons, two report flags and
+    two chances to add a third input and forget one. The parser was that third
+    input, and it went unrecorded for three releases: reuse is keyed on the
+    file's bytes, but cached units are a function of the bytes *and* the code
+    that parsed them, so upgrading the parser left every unchanged file
+    carrying units the old one produced until that file happened to change.
+    """
+    material = f"{cfg.build_fingerprint}:{PARSER_FINGERPRINT}"
+    return hashlib.sha256(material.encode("utf-8")).hexdigest()
+
+
+def index_build_fingerprint(payload: dict) -> str:
     """The build fingerprint an index was published with.
 
-    An index written before 0.4.0 carries no such key, and by construction it
-    was built with the built-in defaults, so that is what a missing key means.
-    Treating it as unknown instead would force one pointless full rebuild on
-    every upgrade.
+    An index written before this field existed returns the empty string, which
+    matches no current fingerprint and so forces one full rebuild on upgrade.
+    That is the correct reading rather than a cost to avoid: such an index was
+    built by a different parser, and its units are exactly what a rebuild is
+    for.
     """
-    stored = payload.get("config_fingerprint")
-    return stored if isinstance(stored, str) else config_module.defaults().build_fingerprint
+    stored = payload.get("build_fingerprint")
+    return stored if isinstance(stored, str) else ""
 
 
 def iter_source_files(root: Path, cfg: Config | None = None):
@@ -212,7 +234,7 @@ def build_units(
     diagnostics: list[dict] | None = None,
     snapshot: RepositorySnapshot | None = None,
     cfg: Config | None = None,
-    previous_config: str | None = None,
+    previous_build: str | None = None,
     descriptions: "DescriptionStore | None" = None,
 ) -> list[CodeUnit]:
     """Build units, reusing unchanged files and stable serials when possible.
@@ -220,14 +242,14 @@ def build_units(
     Pass the same ``snapshot`` to ``write_index`` so the hashes published
     describe exactly the bytes these units were parsed from.
 
-    ``previous_config`` is the build fingerprint the previous index was
-    published with. When it disagrees with the current one the previous units
-    describe a different corpus -- different suffixes, ignores, size cap or
-    vector width -- so they are discarded rather than reused. Reuse is keyed on
-    file content, which cannot notice that the rules changed.
+    ``previous_build`` is the fingerprint the previous index was published
+    with. When it disagrees, the previous units were produced under different
+    rules -- different suffixes, ignores, size cap, vector width, or a
+    different parser -- so they are discarded rather than reused. Reuse is
+    keyed on file content, which cannot notice that the rules changed.
     """
     cfg = _resolve(root, cfg)
-    if previous_config is not None and previous_config != cfg.build_fingerprint:
+    if previous_build is not None and previous_build != build_fingerprint(cfg):
         previous_units, previous_files = None, None
     dimensions = cfg["embedding.dimensions"]
     snapshot = snapshot or snapshot_repository(root, cfg)
@@ -322,7 +344,7 @@ def write_index(
         "schema": 2,
         "root": str(root.resolve()),
         "fingerprint": repository_fingerprint,
-        "config_fingerprint": cfg.build_fingerprint,
+        "build_fingerprint": build_fingerprint(cfg),
         "descriptions_fingerprint": descriptions_fingerprint,
         "files": files,
         "file_stats": snapshot.stats,

@@ -16,7 +16,7 @@ from .config import BY_PATH, SETTINGS, Config, ConfigError
 from .descriptions import DescriptionStore, guidance, index_descriptions_fingerprint
 from .embeddings import embed, embedding_metadata
 from .graph import build_graph, graph_from_dict, graph_search
-from .indexer import StaleMonitor, build_units, fingerprint, index_config_fingerprint, read_index, snapshot_repository, write_index
+from .indexer import StaleMonitor, build_fingerprint, build_units, fingerprint, index_build_fingerprint, read_index, snapshot_repository, write_index
 from .search import build_search_index, context, search
 
 # Derived from the settings table so the default is written down once.
@@ -48,9 +48,9 @@ def _refresh_index(root: Path, output: Path, full: bool = False, compact: bool |
     # rather than only inside build_units is what lets the reported
     # `incremental` describe what the run actually did: it claimed reuse on
     # exactly the runs where the configuration change had forbidden it.
-    previous_config = index_config_fingerprint(previous_payload) if previous_payload else None
-    config_changed = previous_config is not None and previous_config != cfg.build_fingerprint
-    if config_changed:
+    previous_build = index_build_fingerprint(previous_payload) if previous_payload else None
+    inputs_changed = previous_build is not None and previous_build != build_fingerprint(cfg)
+    if inputs_changed:
         previous_payload, previous_units = {}, []
     diagnostics: list[dict] = []
     # One snapshot for both halves: parsing from one walk and publishing hashes
@@ -64,7 +64,7 @@ def _refresh_index(root: Path, output: Path, full: bool = False, compact: bool |
         diagnostics=diagnostics,
         snapshot=snapshot,
         cfg=cfg,
-        previous_config=None if config_changed else previous_config,
+        previous_build=None if inputs_changed else previous_build,
         descriptions=store,
     )
     graph = build_graph(units)
@@ -75,7 +75,7 @@ def _refresh_index(root: Path, output: Path, full: bool = False, compact: bool |
         "graph_edges": len(graph.edges),
         "warnings": len(diagnostics),
         "incremental": bool(previous_units) and not full,
-        "rebuilt_for_config": config_changed,
+        "rebuilt_for_inputs": inputs_changed,
         "compact": bool(compact),
         "described": len(groups["described"]),
         "pending_descriptions": len(groups["missing"]) + len(groups["superseded"]),
@@ -105,7 +105,7 @@ def _load(args: argparse.Namespace):
         # descriptions mean it serves text nobody wrote any more. Neither moves
         # a tracked file, so each has to report itself.
         stale = payload.get("fingerprint") != fingerprint(root, cfg)
-        stale = stale or index_config_fingerprint(payload) != cfg.build_fingerprint
+        stale = stale or index_build_fingerprint(payload) != build_fingerprint(cfg)
         payload["stale"] = stale or index_descriptions_fingerprint(payload) != store.fingerprint
     except OSError:
         payload["stale"] = True

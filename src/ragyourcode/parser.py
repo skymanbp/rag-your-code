@@ -21,12 +21,41 @@ consume one.
 from __future__ import annotations
 
 import ast
+import hashlib
 import re
 from dataclasses import dataclass
 from pathlib import Path
 
 from .annotate import describe_python
 from .models import CodeUnit
+
+PARSER_VERSION = "3"
+
+
+def _parser_fingerprint() -> str:
+    """A digest of this module, so an index can tell which parser built it.
+
+    Cached units are a function of the file's bytes *and* of the code that
+    parsed them, but reuse was keyed on the bytes alone. Upgrading the parser
+    therefore left every unchanged file carrying units the old parser produced,
+    permanently, until that file happened to change or someone passed --full.
+    The improvement never reached an existing index.
+
+    Digesting the source rather than declaring a version number is deliberate,
+    and follows the rule the rest of this project follows: derive a figure from
+    the data where you can, because a hand-maintained one is a claim nobody
+    checks. A comment-only edit here costs one rebuild; a forgotten version
+    bump costs silently stale structure forever, and those are not comparable.
+    The declared version is the fallback for an installation whose source is
+    unreadable, which cannot be digested and must at least be stable.
+    """
+    try:
+        return hashlib.sha256(Path(__file__).read_bytes()).hexdigest()[:16]
+    except OSError:
+        return f"declared-{PARSER_VERSION}"
+
+
+PARSER_FINGERPRINT = _parser_fingerprint()
 
 EXTENSIONS = {
     ".py": "python", ".pyi": "python", ".js": "javascript", ".jsx": "javascript",
@@ -177,6 +206,83 @@ COMMENT_PREFIXES: dict[str, tuple[str, ...]] = {
 _DEFAULT_COMMENTS = ("//", "*", "/*", "*/")
 # Every language not listed closes a body with braces.
 BLOCK_STYLE: dict[str, str] = {"ruby": "end"}
+
+# Markers that mean "this comment documents what follows" rather than "this
+# comment is a note to whoever is reading the code". Recognised so the block
+# can be trusted; a plain comment block is still taken, because most real
+# documentation in most repositories is written with `//` or `#`.
+_DOC_MARKERS = ("/**", "///", "//!", "##", '"""')
+# Stripped from the front of each collected line, longest first so `///` is not
+# consumed as `//`.
+_MARKER_PREFIXES = ("/**", "*/", "///", "//!", "##", "//", "#", "*")
+# A line that ends this way is code somebody commented out, not prose about the
+# declaration below it. Indexing it invents vocabulary the author disowned.
+# Deliberately only these three: `,` and `)` were here until a measurement
+# showed them rejecting the first line of an ordinary JSDoc block, because
+# prose wraps on a comma far more often than code ends on one.
+_CODE_TAILS = (";", "{", "}")
+# Annotations and attributes sit between a doc comment and its declaration.
+# Without skipping them, `@Override` alone hides the Javadoc above it.
+_ANNOTATION_PREFIXES = ("@", "#[", "[")
+DOC_MAX_LINES = 20
+DOC_MAX_CHARS = 600
+
+
+def _looks_like_prose(text: str) -> bool:
+    """Whether a stripped comment line reads as documentation.
+
+    Conservative on purpose: retrieval over commented-out code produces matches
+    the author would not stand behind, which is worse than missing a line.
+    """
+    if not text or text.strip("-=*_/ ") == "":
+        return False  # a separator rule, carrying no words
+    if text.endswith(_CODE_TAILS):
+        return False
+    return any(character.isalpha() for character in text)
+
+
+def _doc_comment(lines: list[str], start: int, comments: tuple[str, ...]) -> str:
+    """The documentation block written immediately above a declaration.
+
+    Fourteen of the fifteen supported languages put documentation here rather
+    than inside the body, and every one of it was discarded: the unit's span
+    begins at the declaration, so a JSDoc block sat outside the indexed text
+    entirely. The same sentence indexed thirteen searchable words as a Python
+    docstring and two as a JavaScript comment.
+
+    Adjacency is required, so a licence header separated by a blank line is not
+    mistaken for documentation of the first declaration in the file.
+    """
+    collected: list[str] = []
+    index = start - 1
+    while index >= 0 and len(collected) < DOC_MAX_LINES:
+        stripped = lines[index].strip()
+        if stripped.startswith(_ANNOTATION_PREFIXES) and not stripped.startswith(comments):
+            index -= 1
+            continue
+        if not stripped.startswith(comments) and not stripped.startswith(_DOC_MARKERS):
+            break
+        # A doc marker and a plain comment are both taken, and both go through
+        # the same prose filter. Recognising the marker buys nothing once the
+        # filter exists, and most documentation in most repositories is written
+        # without one.
+        text = stripped
+        while text.startswith(_MARKER_PREFIXES):
+            for prefix in _MARKER_PREFIXES:
+                if text.startswith(prefix):
+                    text = text[len(prefix):].lstrip()
+                    break
+        if text.endswith("*/"):
+            text = text[:-2].rstrip()
+        # `@param invoiceId the invoice to charge` keeps its words; only the
+        # tag itself is noise.
+        text = re.sub(r"^@\w+\s*", "", text)
+        if _looks_like_prose(text):
+            collected.append(text)
+        index -= 1
+    if not collected:
+        return ""
+    return " ".join(reversed(collected))[:DOC_MAX_CHARS]
 
 
 def _line_offsets(source: str) -> list[int]:
@@ -383,10 +489,15 @@ def _generic_units(path: Path, source: str, relative: str, language: str) -> lis
             last = _close_brace_span(lines, depths, index, fallback, quotes)
         last = max(index, min(last, len(lines) - 1))
         signature = lines[index].strip()[:500]
+        documented = _doc_comment(lines, index, comments)
         description = (
             f"This {language} {kind} {_humanize_name(name)}. "
             f"Declared as: {signature}"
         )
+        if documented:
+            # Phrased exactly as the Python path phrases a docstring, so the
+            # two routes produce the same shape of text for the same thing.
+            description += f" Documented intent: {documented}"
         units.append(
             CodeUnit(
                 f"{relative}:{index + 1}:{name}", relative, language, kind, name, name,

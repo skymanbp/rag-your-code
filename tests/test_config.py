@@ -132,7 +132,7 @@ def test_a_changed_build_setting_forces_a_full_rebuild(tmp_path, capsys):
     (tmp_path / "rag-your-code.toml").write_text("[embedding]\ndimensions = 256\n", encoding="utf-8")
     assert main(["index", str(tmp_path)]) == 0
     report = json.loads(capsys.readouterr().out)
-    assert report["rebuilt_for_config"] is True
+    assert report["rebuilt_for_inputs"] is True
     # Reporting reuse it did not perform was the defect this pairs with.
     assert report["incremental"] is False
 

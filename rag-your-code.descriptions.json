@@ -78,9 +78,10 @@
       "text": "Reads a slice of a file for an agent, refusing anything outside the repository and bounding the reply twice, by file size and by returned characters. Two bounds because a line count is not a size: a three-line file holding one enormous line satisfied the old line-based limit and returned megabytes on a single output line. Output that hits the character bound is truncated and says so. 中文：为 agent 读取文件的一段，拒绝仓库之外的路径，并按文件大小与返回字符数双重限制。之所以两重：行数不等于体积——一个三行但单行极长的文件满足旧的行数限制，却在一行输出里返回了数兆字节。触及字符上限的输出会被截断并明确标注。"
     },
     "src/ragyourcode/cli.py:32:_refresh_index": {
-      "hash": "e60b3eb84d8e16a4",
+      "hash": "5308c6d95a2614ec",
       "path": "src/ragyourcode/cli.py",
-      "text": "Builds or rebuilds a repository index and publishes it, reusing the previous one where it can. It works out up front whether the settings that decide what an index contains have changed, and when they have it discards the previous work rather than reusing it, so the report can honestly say whether reuse happened. That report previously claimed reuse on exactly the runs that had rebuilt everything, because it was computed from whether a previous index existed rather than from whether its units were kept. It also applies the written descriptions and reports how many units still have none. 中文：构建或重建仓库索引并发布，能复用就复用。它预先判定『决定索引内容的设置』是否变化，变了就整体作废旧成果而非复用，使报告能诚实地说明是否发生了复用。此前该报告恰恰在『全量重建』的那些运行上宣称复用——因为它算的是『有没有旧索引』而不是『旧单元有没有被保留』。同时应用已写描述，并报告还有多少单元没有描述。"
+      "name": "_refresh_index",
+      "text": "Builds or rebuilds a repository index and publishes it, reusing the previous one where it can. It works out up front whether the rules that decide what a unit is have changed — the indexing settings, the vector width, or the parser itself — and when they have it discards the previous work rather than reusing it, so the report can honestly say whether reuse happened. That report previously claimed reuse on exactly the runs that had rebuilt everything, because it was computed from whether a previous index existed rather than from whether its units were kept. It also applies the written descriptions and reports how many units still have none. 中文：构建或重建仓库索引并发布，能复用就复用。它预先判定『决定单元是什么』的规则是否变化——索引设置、向量维度，或解析器本身——变了就整体作废旧成果而非复用，使报告能诚实说明是否发生了复用。此前该报告恰恰在全量重建的那些运行上宣称复用，因为它算的是有没有旧索引而不是旧单元有没有被保留。同时应用已写描述，并报告还有多少单元没有描述。"
     },
     "src/ragyourcode/cli.py:365:_request_int": {
       "hash": "ec34b792bc8db22b",
@@ -113,9 +114,10 @@
       "text": "The index command: scans a repository and writes its index, reporting how many units and relationships were found and how many descriptions are still pending. 中文：index 命令——扫描仓库并写出索引，报告找到多少单元与关系、还有多少描述待写。"
     },
     "src/ragyourcode/cli.py:96:_load": {
-      "hash": "da27495d0b437e20",
+      "hash": "b0d498a0b37fd2dc",
       "path": "src/ragyourcode/cli.py",
-      "text": "Opens a published index for a read-only command and settles whether it is still current. Three things can make it out of date and only one of them is a file edit: the repository content can have moved, the settings that decide what gets indexed can have changed, or the written descriptions can have changed. Neither authored input is an indexed file, so each has to report itself. 中文：为只读命令打开已发布的索引，并判定它是否仍然当前。三件事可使其过期，其中只有一件是文件改动：仓库内容变了、决定索引内容的设置变了、已写描述变了。两项手写输入都不是被索引的文件，因此各自必须自行上报。"
+      "name": "_load",
+      "text": "Opens a published index for a read-only command and settles whether it is still current. Three things can make it out of date and only one of them is a file edit: the repository content can have moved, the rules that decide what a unit is can have changed, or the written descriptions can have changed. Neither authored input nor the parser is an indexed file, so each has to report itself. 中文：为只读命令打开已发布的索引，并判定它是否仍然当前。三件事可使其过期，其中只有一件是文件改动：仓库内容变了、决定单元是什么的规则变了、已写描述变了。两项手写输入与解析器都不是被索引的文件，因此各自必须自行上报。"
     },
     "src/ragyourcode/config.py:156:_coerce": {
       "hash": "5696230b531baf2c",
@@ -388,6 +390,12 @@
       "path": "src/ragyourcode/indexer.py",
       "text": "Walks a repository and yields the files that count as source, skipping configured directories, hidden ones, unsupported suffixes, anything above the size cap, and symbolic links. Links are skipped so a link pointing outside the repository cannot pull foreign files into the index. 中文：遍历仓库并产出算作源码的文件，跳过配置指定的目录、隐藏目录、不支持的后缀、超过大小上限的文件，以及符号链接。跳过链接是为了防止指向仓库之外的链接把外部文件拉进索引。"
     },
+    "src/ragyourcode/indexer.py:110:index_build_fingerprint": {
+      "hash": "84662723254fd4b9",
+      "path": "src/ragyourcode/indexer.py",
+      "name": "index_build_fingerprint",
+      "text": "Reads back the digest an index was published with. An index written before this field existed returns nothing, which matches no current value and so forces one full rebuild on upgrade. That is the correct reading rather than a cost to avoid: such an index was built by a different parser, and its units are exactly what a rebuild exists for. 中文：读回索引发布时记录的digest。此字段出现之前建的索引返回空，与任何当前值都不匹配，因此升级后强制一次全量重建——这不是要规避的代价而是正确解读：那种索引是另一个解析器建的，它的单元正是重建要处理的对象。"
+    },
     "src/ragyourcode/indexer.py:121:RepositorySnapshot": {
       "hash": "6f229dcb56504387",
       "path": "src/ragyourcode/indexer.py",
@@ -418,10 +426,11 @@
       "path": "src/ragyourcode/indexer.py",
       "text": "Gives every unit a repository-wide number, keeping the number a unit already had so that references written down in an earlier session still point at the same code. New units take the lowest numbers not already in use. 中文：给每个单元分配一个仓库范围内的编号，并保留单元原有的编号，使早先会话里记下的引用仍指向同一段代码。新单元取尚未被占用的最小编号。"
     },
-    "src/ragyourcode/indexer.py:208:build_units": {
-      "hash": "1d642a79d5fe0cf0",
+    "src/ragyourcode/indexer.py:230:build_units": {
+      "hash": "6d6ec17d0c254f30",
       "path": "src/ragyourcode/indexer.py",
-      "text": "Builds the full set of indexed units, re-parsing only the files whose content actually changed and reusing everything else along with its number and its vector. Settings that decide what an index contains make a previous index an index of something else rather than a stale one, so when they differ the previous work is discarded outright: reuse is keyed on file content, which cannot notice that the rules changed. Written descriptions are checked against the code they describe and applied before the vector is computed, since the description is part of what gets embedded and doing it after would embed the sentence the agent replaced. 中文：构建完整的索引单元集合，只重新解析内容真正变化的文件，其余连同编号与向量一并复用。决定索引内容的那些设置一旦不同，旧索引就不是『陈旧』而是『另一个东西的索引』，因此旧成果整体作废——复用以文件内容为键，察觉不到规则变了。已写描述会先对照其所述代码校验，并在计算向量之前应用：描述本身就是被嵌入的内容之一，放到之后做就会把 agent 替换掉的那句话嵌进去。"
+      "name": "build_units",
+      "text": "Builds the full set of indexed units, re-parsing only files whose content actually changed and reusing everything else along with its number and its vector. When the rules that produced the previous units differ — different ignores, suffixes, size cap, vector width, or a different parser — the previous work is discarded outright, because reuse is keyed on file content and cannot notice that the rules changed. Authored descriptions are checked against the code they describe and applied before the vector is computed, since the description is part of what gets embedded and doing it afterwards would embed the sentence the agent replaced. 中文：构建完整的索引单元集合，只重新解析内容真正变化的文件，其余连同编号与向量一并复用。当产出旧单元的规则不同时（忽略项、后缀、大小上限、向量维度，或解析器本身），旧成果整体作废——复用以文件内容为键，察觉不到规则变了。已写描述先对照其所述代码校验，并在计算向量之前应用：描述本身就是被嵌入的内容，放到之后做会把 agent 替换掉的那句话嵌进去。"
     },
     "src/ragyourcode/indexer.py:269:fingerprint": {
       "hash": "c43969d994f83628",
@@ -433,10 +442,11 @@
       "path": "src/ragyourcode/indexer.py",
       "text": "Combines per-file hashes into one repository-wide digest in a fixed order, so the same content always yields the same value. 中文：按固定顺序把逐文件哈希合成一个仓库级摘要，相同内容永远得到相同值。"
     },
-    "src/ragyourcode/indexer.py:281:write_index": {
-      "hash": "b88ded2ccec9d268",
+    "src/ragyourcode/indexer.py:303:write_index": {
+      "hash": "8f5de94d1a8ead80",
       "path": "src/ragyourcode/indexer.py",
-      "text": "Publishes the index atomically: vector data is written to a content-addressed side file first, then the readable metadata is swapped into place in one step, so a reader never sees a half-written index. Alongside the content hashes it records digests of both authored inputs, the settings and the descriptions, because neither is an indexed file and a change in either would otherwise be invisible. Compact storage moves the vectors out of verbose text numbers into a compact binary side file while the metadata stays readable. 中文：原子地发布索引——先把向量写入内容寻址的旁文件，再一步换入可读元数据，读者绝不会看到写了一半的索引。除内容哈希外，还记录两项手写输入（配置与描述）的摘要：它们都不是被索引的文件，否则其变化将完全不可见。紧凑存储把向量从冗长的文本数字挪进紧凑二进制旁文件，元数据仍保持可读。"
+      "name": "write_index",
+      "text": "Publishes the index atomically: vector data goes to a content-addressed side file first, then the readable metadata is swapped into place in one step, so a reader never sees a half-written index. Alongside the content hashes it records digests of the two authored inputs, the settings and the descriptions, and of the rules that built the units, because none of those is an indexed file and a change in any of them would otherwise be invisible. Compact storage moves vectors out of verbose text numbers into a binary side file while the metadata stays readable. 中文：原子地发布索引——先把向量写入内容寻址的旁文件，再一步换入可读元数据，读者绝不会看到写了一半的索引。除内容哈希外，还记录两项手写输入（配置与描述）以及产出这批单元的规则的digest：它们都不是被索引的文件，否则其变化完全不可见。紧凑存储把向量从冗长文本数字挪进二进制旁文件，元数据仍保持可读。"
     },
     "src/ragyourcode/indexer.py:31:_resolve": {
       "hash": "e474035b71b4f08d",
@@ -454,24 +464,27 @@
       "text": "Loads a published index back into memory, attaching vectors from the compact side file when one is used. Everything about that side file is verified before it is trusted: it must sit inside the index directory, its declared width must be within bounds, and its length must match the number of units. Any failure degrades to metadata without vectors and says so explicitly, rather than raising, so a damaged side file costs ranking quality instead of availability. 中文：把已发布的索引读回内存，使用紧凑旁文件时顺带挂上向量。旁文件在被信任之前逐项校验：必须位于索引目录内、声明的维度必须在合理范围、长度必须与单元数吻合。任何一项不过就降级为『只有元数据、没有向量』并明确标注，而不是抛错——旁文件损坏付出的是排序质量而非可用性。"
     },
     "src/ragyourcode/indexer.py:41:StaleMonitor": {
-      "hash": "2125bcd9cead54e6",
+      "hash": "d50416143d1e68cc",
       "path": "src/ragyourcode/indexer.py",
+      "name": "StaleMonitor",
       "text": "Answers whether an index still describes the repository, rate-limited so an agent can ask many times a second without re-walking the tree each time. 中文：回答『索引是否仍然描述着当前仓库』，带频率限制，使 agent 每秒问很多次也不会每次都重走一遍目录树。"
     },
     "src/ragyourcode/indexer.py:44:StaleMonitor.__init__": {
-      "hash": "7d8fe1d030533a75",
+      "hash": "61bda7a6103b9ec0",
       "path": "src/ragyourcode/indexer.py",
-      "text": "Prepares the freshness check and settles up front whether either authored input has changed since the index was published. Neither the settings file nor the written descriptions is itself an indexed source file, so no amount of walking the tree could notice a change in them: different suffixes or size caps mean the index describes a different set of files, and different descriptions mean it serves wording nobody wrote any more. Both make it out of date regardless of what the file scan reports. 中文：准备新鲜度检查，并预先判定两项手写输入自索引发布以来是否改变。配置文件与描述文件本身都不是被索引的源文件，因此再怎么遍历目录树也发现不了它们的变化：后缀或大小上限不同意味着索引描述的是另一批文件，描述不同意味着它提供的是无人再写过的措辞。无论文件扫描报告什么，这两者都使索引过期。"
+      "name": "StaleMonitor.__init__",
+      "text": "Prepares the freshness check and settles up front whether the rules that built the index have changed since it was published. Neither the settings file, nor the written descriptions, nor the parser is itself an indexed source file, so no amount of walking the tree could notice a change in any of them: different suffixes or size caps mean the index describes a different set of files, a different parser means its units were carved out differently, and different descriptions mean it serves wording nobody wrote any more. All of them make it out of date regardless of what the file scan reports. 中文：准备新鲜度检查，并预先判定建出这个索引的规则自发布以来是否改变。配置文件、已写描述、解析器，三者本身都不是被索引的源文件，因此再怎么遍历目录树也发现不了它们的变化：后缀或大小上限不同意味着索引描述的是另一批文件，解析器不同意味着单元的切分方式变了，描述不同意味着它提供的是无人再写过的措辞。无论文件扫描报告什么，这三者都使索引过期。"
     },
     "src/ragyourcode/indexer.py:69:StaleMonitor.check": {
       "hash": "b2bfe4728e1cf75c",
       "path": "src/ragyourcode/indexer.py",
       "text": "Reports whether anything has changed, comparing recorded file sizes and modification times against the repository as it now is, and answering from the previous result when asked again within the rate-limit window. A changed authored input short-circuits to out of date immediately. A directory that cannot be read is treated as changed, since not knowing is not the same as knowing nothing moved. 中文：报告是否有变化——把记录下的文件大小与修改时间与当前仓库比对；在限流窗口内再次询问则复用上次结果。手写输入有变时直接短路判定为过期。目录读不了一律当作有变化：『不知道』不等于『确定没动』。"
     },
-    "src/ragyourcode/indexer.py:89:index_config_fingerprint": {
-      "hash": "fbf6c38dfbbcb592",
+    "src/ragyourcode/indexer.py:89:build_fingerprint": {
+      "hash": "6d27293670c685c8",
       "path": "src/ragyourcode/indexer.py",
-      "text": "Reads back the settings digest an index was published with, treating an index written before that field existed as having been built with the defaults, which by construction it was. Read as unknown instead, every upgrade would force one pointless full rebuild. 中文：读回索引发布时记录的配置摘要；此字段出现之前建的索引一律视为用默认设置建成——事实也确实如此。若解读为『未知』，每次升级都会白白触发一次全量重建。"
+      "name": "build_fingerprint",
+      "text": "A digest of everything that decides what a code unit is: the settings that choose which files are read and how wide a vector is, and the parser that decides what counts as a declaration and where it ends. Units produced under a different configuration or a different parser are not stale units of this repository, they are units of something else, and both cases call for discarding them. Keeping the two as separate fields would mean two comparisons and two chances to add a third input and forget one. 中文：把『决定一个代码单元是什么』的全部因素摘成一个digest——选哪些文件、向量多宽的设置，加上判定什么算声明、声明到哪结束的解析器。在不同配置或不同解析器下产出的单元不是本仓库的陈旧单元，而是另一个东西的单元，两种情况都该整体丢弃。分成两个字段就意味着两次比较，也就多一次『加了第三个输入却忘了它』的机会。"
     },
     "src/ragyourcode/models.py:11:CodeUnit": {
       "hash": "ad6eb8a9f9b0f709",
@@ -518,6 +531,18 @@
       "path": "src/ragyourcode/parser.py",
       "text": "Blanks out string and character literals and trailing comments so that braces, semicolons and quotes appearing inside text are not mistaken for structure. Written as a character-by-character scan rather than a pattern on purpose: the alternation a pattern would need backtracks catastrophically on an unterminated quote, which is the exact failure this parser was rewritten to remove. 中文：把字符串、字符字面量与行尾注释抹平，避免文本内部的花括号、分号、引号被当成结构。刻意写成逐字符扫描而非正则：正则所需的交替在遇到未闭合引号时会灾难性回溯，而那正是本解析器重写要根除的故障。"
     },
+    "src/ragyourcode/parser.py:231:_looks_like_prose": {
+      "hash": "fe84cbf91010977f",
+      "path": "src/ragyourcode/parser.py",
+      "name": "_looks_like_prose",
+      "text": "Decides whether a stripped comment line reads as documentation rather than as code somebody commented out or a row of dashes used as a separator. Conservative on purpose: indexing commented-out code invents vocabulary the author disowned, and a false match is worse than a missing line. Only three endings are treated as code, because a measurement showed that also rejecting a trailing comma threw away the first line of an ordinary documentation block — prose wraps on a comma far more often than code ends on one. 中文：判断一行去掉标记后的注释是文档，还是被注释掉的代码或纯分隔线。刻意保守：把注释掉的代码索引进去等于凭空造出作者已经弃用的词汇，假阳性比漏一行更糟。只把三种结尾当作代码——实测表明连逗号也算的话，会把普通文档块的第一行整个扔掉，因为散文在逗号处换行远比代码在逗号处结束常见。"
+    },
+    "src/ragyourcode/parser.py:244:_doc_comment": {
+      "hash": "7f18a7fc5595899d",
+      "path": "src/ragyourcode/parser.py",
+      "name": "_doc_comment",
+      "text": "Collects the documentation block written immediately above a declaration. Fourteen of the fifteen supported languages put documentation there rather than inside the body — JSDoc, Javadoc, KDoc, rustdoc, Go doc comments, XML doc comments, PHPDoc — and every one of them was discarded, because a unit's span begins at the declaration and the comment sits outside it. The same sentence indexed thirteen searchable words as a Python docstring and two as a JavaScript comment. Adjacency is required so a licence header separated by a blank line is not mistaken for documentation of the first declaration, and annotation lines are stepped over so a single override marker cannot hide the block above it. 中文：采集紧贴声明上方的文档块。十五种受支持语言里有十四种把文档写在那里而不是函数体内——JSDoc、Javadoc、KDoc、rustdoc、Go 文档注释、XML 文档注释、PHPDoc——而它们此前全被丢弃，因为单元的跨度从声明那行才开始，注释落在外面。同一句话作为 Python docstring 能索引到十三个可检索词，作为 JavaScript 注释只有两个。要求严格相邻，使被空行隔开的版权头不会被误认成第一个声明的文档；注解行会被跨过，避免一个 override 标记就挡住它上方的整块文档。"
+    },
     "src/ragyourcode/parser.py:250:_brace_depths": {
       "hash": "649e980771db7ced",
       "path": "src/ragyourcode/parser.py",
@@ -543,10 +568,11 @@
       "path": "src/ragyourcode/parser.py",
       "text": "Finds where a Ruby definition ends by looking for the closing keyword at the same indentation the declaration started at, and handles the one-line form that opens and closes on the same line. 中文：按声明起始的缩进层级寻找 Ruby 的结束关键字，从而确定定义在哪结束；同时处理开合同行的单行写法。"
     },
-    "src/ragyourcode/parser.py:337:_generic_units": {
-      "hash": "92030f3ac0ac265f",
+    "src/ragyourcode/parser.py:35:_parser_fingerprint": {
+      "hash": "c533a1d95f7bb143",
       "path": "src/ragyourcode/parser.py",
-      "text": "Extracts declarations from any non-Python language by scanning one line at a time against that language rule table, then closing each body by nesting depth or by the closing keyword. Because a pattern never sees a second line, the reported line number is the loop position and cannot drift, and no declaration can swallow the ones after it. Blank lines, comments and statement continuations are skipped, and shell here-document text is treated as data so documentation inside it is never indexed as code. 中文：对任何非 Python 语言，逐行对照该语言的规则表提取声明，再按嵌套深度或结束关键字闭合每个主体。由于模式永远看不到第二行，报告的行号就是循环位置、不会漂移，声明也无法吞掉它后面的内容。空行、注释与续行被跳过；shell 的 here-document 内容按数据处理，其中的说明文字绝不会被当作代码索引。"
+      "name": "_parser_fingerprint",
+      "text": "A digest of this parser module, so an index can tell which parser produced it. Cached units are a function of a file's bytes and of the code that parsed them, but reuse was keyed on the bytes alone, so upgrading the parser left every unchanged file carrying units the old one produced — permanently, until that file happened to change or somebody forced a rebuild. The improvement never reached an existing index. Digesting the source rather than declaring a version number is deliberate: a comment-only edit costs one rebuild, a forgotten version bump costs silently stale structure forever, and those are not comparable. 中文：对解析器模块自身取digest，让索引知道自己是哪个解析器建的。缓存单元是文件字节与解析代码共同的产物，而复用只按字节判定，于是升级解析器后每个未改动的文件都永久沿用旧解析器的产出，直到该文件恰好变化或有人强制重建——改进从此到不了任何现存索引。摘要源码而非声明版本号是刻意的：只改注释顶多多重建一次，而漏改版本号则是永久的静默陈旧，两者代价不对等。"
     },
     "src/ragyourcode/parser.py:401:_python_units": {
       "hash": "6498097879853741",
@@ -562,6 +588,12 @@
       "hash": "732a298734732d4c",
       "path": "src/ragyourcode/parser.py",
       "text": "Walks the syntax tree and records every function, method and class as a unit, building the dotted qualified name from the enclosing scope, gathering what it calls and imports, and recursing so nested definitions are indexed in their own right. 中文：遍历语法树，把每个函数、方法与类记为一个单元，按外层作用域拼出带点的限定名，收集其调用与导入，并递归下去让嵌套定义各自成为独立单元。"
+    },
+    "src/ragyourcode/parser.py:443:_generic_units": {
+      "hash": "e718e8f30688048c",
+      "path": "src/ragyourcode/parser.py",
+      "name": "_generic_units",
+      "text": "Extracts declarations from any non-Python language by scanning one line at a time against that language's rule table, then closing each body by nesting depth or by the closing keyword, and attaching the documentation block written above it. Because a pattern never sees a second line, the reported line number is the loop position and cannot drift, and no declaration can swallow the ones after it. Blank lines, comments and statement continuations are skipped, and shell here-document text is treated as data so documentation inside it is never indexed as code. 中文：对任何非 Python 语言，逐行对照该语言的规则表提取声明，按嵌套深度或结束关键字闭合主体，并把写在其上方的文档块一并附上。由于模式永远看不到第二行，报告的行号就是循环位置、不会漂移，声明也无法吞掉它后面的内容。空行、注释与续行被跳过；shell 的 here-document 内容按数据处理，其中的说明文字绝不会被当成代码索引。"
     },
     "src/ragyourcode/parser.py:466:_humanize_name": {
       "hash": "55cd6bdc65956688",
