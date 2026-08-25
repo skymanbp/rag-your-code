@@ -288,12 +288,19 @@
       "text": "The config command: creates a commented settings file, lists every setting with its effective value and whether it was customised, reads one value, changes one value in place, or reports where the file lives. Changing a value refuses anything out of range before writing, so a rejected change leaves the file exactly as it was, and the reply says whether the change forces a full rebuild. Creating refuses to overwrite an existing file unless told to. 中文：config 命令——生成带注释的配置文件、列出每项设置的生效值与是否被改过、读取单项、就地修改单项、或报告文件位置。修改前先校验越界并在写盘前拒绝，因此被拒的修改不会改动文件分毫；应答会说明该改动是否强制全量重建。创建时除非明确要求，否则拒绝覆盖已有文件。",
       "code_hash": "5e9525fddea54644"
     },
-    "src/ragyourcode/cli.py:177:_cmd_search": {
-      "hash": "f496262cdfe8cc12",
-      "code_hash": "fe11b5f564f3c0b8",
+    "src/ragyourcode/cli.py:188:_describe_nudge": {
+      "hash": "bb9ffce6c942c2db",
+      "code_hash": "99a4d4bf26b365b5",
+      "path": "src/ragyourcode/cli.py",
+      "name": "_describe_nudge",
+      "text": "The one line worth printing when a question came back empty and the vocabulary that would have answered it was never written. Counts how many declarations still carry only the sentence the parser generated and points at the command that starts writing them. Deliberately tied to a refusal rather than to a weak-looking or low-scoring result, because judging results poor would need a threshold on a score and a refusal is a fact; stays quiet when the reason is that the matched words are scattered, since more descriptions cannot reach a subject the repository does not implement, and quiet again once nothing is left undescribed. 中文：当一次提问返回空、而本可以回答它的词汇根本没人写下来时，值得打印的那一行提示。统计还有多少声明只带着解析器自动生成的句子，并指出从哪个命令开始补写。刻意绑定在「拒答」而不是「结果看起来弱」上——判定结果差需要对分数设阈值，而拒答是事实；当理由是命中的词彼此分散时保持沉默，因为仓库根本没实现的主题再多描述也够不到；全部写完之后同样不再打扰。"
+    },
+    "src/ragyourcode/cli.py:213:_cmd_search": {
+      "hash": "99cc40bf79bd669d",
+      "code_hash": "e95e6602e0d77c95",
       "path": "src/ragyourcode/cli.py",
       "name": "_cmd_search",
-      "text": "Serves the search subcommand: loads the index, runs plain or graph retrieval with the repository's configured evidence bars, and prints either ranked results or an explanation of the silence. When nothing comes back it always attaches a diagnosis, because an empty answer that does not say which kind of empty it is leaves the caller guessing between the subject being absent, the question being phrased in the wrong words, and the index being broken — three situations with three different next moves. 中文：负责 search 子命令：加载索引，按仓库配置的证据门槛执行普通检索或图检索，然后打印排好序的结果，或者打印这次沉默的解释。没有结果时一定附上诊断——一个不说明「是哪一种空」的空回复，会让调用方在「主题根本不存在」「问法用错了词」「索引坏了」之间瞎猜，而这三种情况对应三种不同的下一步。"
+      "text": "Serves the search subcommand: loads the index, runs plain or graph retrieval with the repository's configured evidence bars, and prints either ranked results or an explanation of the silence. When nothing comes back it always attaches a diagnosis, because an empty answer that does not say which kind of empty it is leaves the caller guessing between the subject being absent, the question being phrased in the wrong words, and the index being broken — three situations with three different next moves. For a person reading the terminal it adds one more line when the missing piece is written descriptions; the machine-readable reply gains nothing, since a caller branches on the diagnosis rather than on prose about it. 中文：负责 search 子命令：加载索引，按仓库配置的证据门槛执行普通检索或图检索，然后打印排好序的结果，或者打印这次沉默的解释。没有结果时一定附上诊断——一个不说明「是哪一种空」的空回复，会让调用方在「主题根本不存在」「问法用错了词」「索引坏了」之间瞎猜，而这三种情况对应三种不同的下一步。面向终端前的人，还会在缺的东西其实是「没写描述」时多打一行；机读回复则一个字都不加，因为调用方分支的是诊断字段本身，而不是关于它的散文。"
     },
     "src/ragyourcode/cli.py:270:_cmd_describe": {
       "hash": "bc80c3de23167e73",

@@ -7,6 +7,14 @@ description: Index and search the current codebase with local, explainable RAG r
 
 Use this skill when repository context is broad or a symbol's implementation is difficult to locate.
 
+Four commands cover the same ground explicitly, and a user can reach them
+without this skill firing at all: `/rag-your-code:index`,
+`/rag-your-code:search`, `/rag-your-code:describe`, `/rag-your-code:status`.
+Offer the one that fits rather than narrating the steps, and offer
+`/rag-your-code:describe` whenever coverage is the thing holding retrieval
+back — it is the largest available improvement and the one nobody discovers on
+their own.
+
 ## Workflow
 
 0. Make sure the package is importable. A plugin install copies this skill but

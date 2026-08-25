@@ -28,12 +28,12 @@ Everything the 1.0.0 roadmap listed as still open, and what happened to it.
 | item | outcome |
 |---|---|
 | Qualified names outside Python | **Fixed** in 1.1.0, all 15 languages, from the spans the closer already produced. |
-| Descriptions cover 297 of 524 units | **Decided.** Test-function descriptions cost five real answers and six false silences; the table is under 1.0.0 in [ROADMAP-history.md](ROADMAP-history.md). Now 303 of 557. |
+| Descriptions cover 297 of 524 units | **Decided.** Test-function descriptions cost five real answers and six false silences; the table is under 1.0.0 in [ROADMAP-history.md](ROADMAP-history.md). Now 304 of 569. |
 | No stemming | **Measured and rejected.** Helps both own-repository rulers, costs the foreign one 3 of 35 hit@3. |
 | A test declaration outranks the code it tests | **Misdiagnosed, and corrected.** See below. |
 | English questions answered from words used here in another sense | **Fixed** by the concentration bar, 0.53 → 0.93 English silence. One residual, below. |
 | Whether the skill fires unprompted in a fresh session | **Still not verifiable from a command.** See below. |
-| Vectors are 55% of an index and earn nothing | **Diagnosed** (1.1.0) and **kept**: 65.4%, ±1 question, and the same storage is what makes the optional model work. |
+| Vectors are 55% of an index and earn nothing | **Diagnosed** (1.1.0) and **kept**: 65.3%, ±1 question, and the same storage is what makes the optional model work. |
 | Tree-sitter parsing | **Decided against as a default**, and the policy for it settled. See non-goals. |
 | SQLite / ANN storage layer | Same. |
 

@@ -60,12 +60,10 @@ weight tried (hit@1 0.257 to 0.171 to 0.114 to 0.086) because borrowed
 vocabulary makes every neighbour match every neighbour's question.
 
 Two mechanism-level results are worth keeping. Corpus-learned semantics need
-orders of magnitude more text than a repository has: 65% of the foreign
-corpus's 6000 terms appear in four or fewer units, so a co-occurrence row is a
-handful of sightings rather than a distribution. And on a described corpus the
-shipped hash helps *because* it is blunt -- mean cosine between random unit
-pairs is around 0.38, an undifferentiated echo of description words -- so
-every scheme that sharpened it lost ground there.
+orders of magnitude more text than a repository has -- 65% of the foreign
+corpus's 6000 terms appear in four or fewer units -- and on a described corpus
+the shipped hash helps *because* it is blunt, so every scheme that sharpened it
+lost ground there.
 
 ### What the vector is actually contributing
 
@@ -96,7 +94,7 @@ Which is the general result, and it is why no better hash would have worked: a
 vector computed from the same words cannot know anything those words do not
 already say. Information the words lack has to come from a model, and the
 vectors are kept in the schema so that switching to one changes a setting
-rather than a format — at a measured cost of 65.4% of an index's bytes.
+rather than a format — at a measured cost of 65.3% of an index's bytes.
 
 ## Current end-to-end path
 
@@ -479,8 +477,8 @@ and unanswerable distributions sit at 0.469 and 0.418.
 Cost is bounded by what a discriminating term *is*: concentration reads the
 posting list of every distinctive word, and a word stays distinctive only while
 it is under `COMMON_TERM` of the corpus, so the work is a few percent of the
-index per query word. Measured, refusing an unanswerable query takes 0.01 ms
-against 0.44 ms to answer one — turning a query away is forty times cheaper
+index per query word. Measured, refusing an unanswerable query takes 0.03 ms
+against 0.83 ms to answer one — turning a query away is some twenty-five times cheaper
 than serving it.
 
 The gate also makes the pure-cosine fallback structurally unreachable under
@@ -665,12 +663,28 @@ wheel still carries its licence and typing marker, and installs the built
 artifact into a clean environment to run the documented commands before
 uploading anything.
 
-The **Claude Code plugin** contains one skill and nothing else: no hooks, no
+The **Claude Code plugin** contains four commands and one skill: no hooks, no
 agents, no MCP server. Measured with `claude plugin details` on an installed
-copy, it adds **~39 tokens to every session** and ~1.4k only when the skill
-fires. That asymmetry is the reason the plugin carries no code: an always-on
-cost is paid by every session in every repository, whether or not anyone
-searches anything, while the implementation is only needed once someone does.
+copy it adds **~249 tokens to every session** — the skill ~30, each command
+~50–60 — and 590 to 2,400 only when one fires. That asymmetry is why the plugin
+carries no code: an always-on cost is paid by every session in every repository
+whether or not anyone searches, while the implementation is needed only once
+someone does.
+
+Through 1.1.0 that figure was ~39, for one skill alone. The increase is the
+price of being findable: a skill fires when a model judges it relevant, so a
+user who installed this had no entry point they could discover, and the largest
+lever on retrieval quality sat inside a page that loads only after a model has
+already decided to search. An MCP server was rejected for the same job — tool
+schemas are always-on whether or not anyone searches, and the JSON-lines
+`agent` protocol already serves the subprocess case.
+
+A third path costs nothing: when a search is **refused** and declarations are
+still undescribed, the command line says so and names the next step. Tied to a
+refusal rather than to a weak-looking result, because "the results looked poor"
+needs a threshold on a score — the defect `confidence_threshold = 0.8` already
+demonstrated — while a refusal is a fact, and the moment something was lost.
+Silent on `matched_terms_are_scattered`, where descriptions cannot help.
 
 The seam between them is step 0 of the skill, which installs the package if
 importing it fails. That one line has been wrong twice — first naming a module

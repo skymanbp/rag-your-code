@@ -100,7 +100,7 @@ the scale.
 
 The default embedder is a signed feature hash. Ablating it entirely moves the
 three positive rulers by **±1 question in either direction** while the vectors
-occupy **65.4%** of the index. That was known since 0.6.0 and left unexplained.
+occupy **65.3%** of the index. That was known since 0.6.0 and left unexplained.
 The explanation, measured here:
 
 - **Not saturation.** Median 56 distinct tokens per unit into 384 buckets;
@@ -294,9 +294,9 @@ it answers a different question and names a different diagnosis.
 
 | | |
 |---|---|
-| query, median | **0.41 ms** |
-| query, p95 | 0.60 ms |
-| refusing an unanswerable query | **0.01 ms** |
+| query, median | **0.83 ms** |
+| query, p95 | 1.68 ms |
+| refusing an unanswerable query | **0.03 ms** |
 
 Refusal is cheaper than answering by a factor of forty: an unanswerable query
 touches only the posting lists of its own distinctive words, never the corpus.
@@ -335,22 +335,22 @@ declaration spans.
 **On a repository nobody has described, Grep wins.** That is the measured
 result and it is not softened here.
 
-| foreign repository · 35 questions · 1,257 units · no descriptions | Grep loop | rag-your-code |
+| foreign repository · 35 questions · 1,267 units · no descriptions | Grep loop | rag-your-code |
 |---|---|---|
 | right file first | **34.3%** | 31.4% |
 | right file in top 3 | **60.0%** | 48.6% |
-| lines matched across the repo, all questions | 33,115 | — |
-| characters returned, all questions | — | **163,521** |
+| lines matched across the repo, all questions | 33,213 | — |
+| characters returned, all questions | — | **163,294** |
 | questions it answers | 35 | 28 |
 
 **Once the vocabulary exists, it is not close.**
 
-| this repository · 70 questions · 557 units · 303 described | Grep loop | rag-your-code |
+| this repository · 70 questions · 569 units · 304 described | Grep loop | rag-your-code |
 |---|---|---|
-| right file first | 25.7% | **57.1%** |
+| right file first | 25.7% | **58.6%** |
 | right file in top 3 | 64.3% | **75.7%** |
-| lines matched across the repo, all questions | 39,550 | — |
-| characters returned, all questions | — | **278,929** |
+| lines matched across the repo, all questions | 40,150 | — |
+| characters returned, all questions | — | **277,327** |
 | questions it answers | 70 | 60 |
 
 Those two tables are the whole argument of section 3.3, measured against a real
@@ -367,7 +367,7 @@ Three qualifications, because the table would otherwise flatter both sides:
   file; a hit here is a declaration with an exact span, a score, and the words
   it matched on. The agent that reads the result opens 40 lines, not a file.
 - **Grep answers everything.** It never declines, which is why it hands back
-  33,115 matching lines for 35 questions — about 950 lines per question, no
+  33,213 matching lines for 35 questions — about 950 lines per question, no
   ranking, no spans, no indication which match is the definition. This returns
   roughly 5,800 characters per question, ranked. Seven of 35 and ten of 70
   questions come back empty here instead, with a reason.
@@ -498,9 +498,21 @@ measured worse, so it stays off there.
 /reload-plugins
 ```
 
-One skill, no hooks, no agents, no MCP server: **~39 tokens added to every
-session**, ~1.4k only when it fires. The skill installs the package on first
-use.
+Four commands and one skill. No hooks, no agents, no MCP server:
+
+| | |
+|---|---|
+| `/rag-your-code:index` | index, and say which rung this repository is on |
+| `/rag-your-code:search` | ask in plain language; cite `path:line` |
+| `/rag-your-code:describe` | write the vocabulary the source does not contain |
+| `/rag-your-code:status` | stale? coverage? which embedder? what next? |
+
+Measured with `claude plugin details` on an installed copy: **~249 tokens added
+to every session** (skill ~30, each command ~50–60), and 590–2,400 only when
+one of them fires. That is up from ~39 in 1.1.0, and the increase is the price
+of being findable — a skill fires only when a model decides it should, which
+left the whole plugin with no entry point a person could discover. The commands
+install the Python package on first use.
 
 **As a CLI:**
 
@@ -598,7 +610,7 @@ wrong: of the eight inspected, seven are unrelated tests winning on
 prose. A callee-before-caller rerank fires on zero questions and the `name`
 field weight moves nothing, because an underscored test name is a single token.
 
-**The vectors are 65.4% of the index and earn ±1 question** under the default
+**The vectors are 65.3% of the index and earn ±1 question** under the default
 embedder. Not removed: the same storage is what makes an optional model work,
 and the schema stays one shape.
 

@@ -91,7 +91,7 @@ def test_a_refused_search_says_that_descriptions_are_the_missing_piece(tmp_path:
     """
     _undescribed_repository(tmp_path, 220)
     run_cli("index", str(tmp_path), cwd=Path.cwd())
-    refused = run_cli("search", "how is the OAuth refresh token rotated", "--root", str(tmp_path), cwd=Path.cwd())
+    refused = run_cli("search", "how is the mooring winch tension calibrated", "--root", str(tmp_path), cwd=Path.cwd())
     assert "No matching code units." in refused.stdout
     assert "declarations carry only the sentence the parser generated" in refused.stdout
     assert "bootstrap" in refused.stdout
@@ -105,7 +105,7 @@ def test_the_machine_readable_reply_gains_no_prose(tmp_path: Path):
     _undescribed_repository(tmp_path, 220)
     run_cli("index", str(tmp_path), cwd=Path.cwd())
     reply = json.loads(
-        run_cli("search", "how is the OAuth refresh token rotated", "--root", str(tmp_path), "--json", cwd=Path.cwd()).stdout
+        run_cli("search", "how is the mooring winch tension calibrated", "--root", str(tmp_path), "--json", cwd=Path.cwd()).stdout
     )
     assert reply["results"] == []
     assert reply["diagnosis"]["reason"]

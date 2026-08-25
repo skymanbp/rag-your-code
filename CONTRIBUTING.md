@@ -126,9 +126,18 @@ separate things falsified that within an hour of writing it: two subject words
 this repository had always contained, and two more that appeared *because the
 source explains the feature using them as an example*. Documentation and ruler
 cannot own the same vocabulary. The check is mechanical for that reason — and
-it caught the identical mistake again one release later, from the same author
-who had just written this paragraph. Some lessons do not stay learned by being
-written down; that is an argument for the gate, not for more care.
+it has now caught the identical mistake in three consecutive releases, twice
+from the author who had just written this paragraph. Some lessons do not stay
+learned by being written down; that is an argument for the gate, not for more
+care.
+
+The third instance added a detail worth knowing: **a query string inside a test
+is indexed.** Prose documents are exempt because `.md` is not a source suffix,
+so quoting an absent question in README or CHANGELOG is free — but the same
+sentence used as the query argument in `tests/test_e2e_cli.py` put `oauth` into
+the corpus and made that question answerable. Pick test queries out of
+vocabulary nothing else claims, and check it against
+`benchmarks/absent_queries.json` rather than by eye.
 
 **Patch the binding the caller resolved, not the one you imported.** A sweep
 over the `name` field weight scored identically at every setting, which is the

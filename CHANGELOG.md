@@ -3,6 +3,70 @@
 Notable changes per release. Dates are the release date; measurements are from
 the development machine (Windows 11, CPython 3.13) and are directional.
 
+## 1.2.0 — 2026-08-25
+
+Every release through 1.1.0 improved retrieval and none of them made it
+**findable**. The plugin shipped one skill and nothing else, so every path into
+it depended on that skill firing on its own — which `docs/ROADMAP.md` itself
+lists as the one property no command in this repository can verify. A user who
+installed it had no entry point they could discover, and the largest available
+lever on retrieval quality, writing descriptions, was step 5 inside a page that
+only loads once a model has already decided to search.
+
+352 tests (from 346; **+6 added, 0 removed** by node-id set diff against v1.1.0).
+
+### Added
+
+- **Four commands**, the surface a user can actually find:
+
+  | | |
+  |---|---|
+  | `/rag-your-code:index` | index, and report which rung this repository is on |
+  | `/rag-your-code:search` | ask in plain language; cite `path:line`; act on a refusal correctly |
+  | `/rag-your-code:describe` | the description loop, with the brief and the measured reason it matters |
+  | `/rag-your-code:status` | stale? coverage? which embedder? what next? |
+
+  Measured with `claude plugin details` on an installed copy: **~249 always-on
+  tokens**, up from ~39 — the skill ~30, each command ~50–60 — and 590 to 2,400
+  only when one fires. The increase is the honest price of being findable, and
+  it is stated rather than buried. An MCP server was rejected for the same job:
+  tool schemas are always-on whether or not anyone searches, and the JSON-lines
+  `agent` protocol already serves the subprocess case.
+
+- **The command line says when descriptions are the missing piece**, which
+  costs nothing at all and reaches a person who knows about neither the skill
+  nor the commands. When a search is **refused** and declarations are still
+  undescribed, it says how many and names the next step.
+
+  Tied to a refusal rather than to a weak-looking result, deliberately: "the
+  results looked poor" would need a threshold on a score — the failure
+  `confidence_threshold = 0.8` already demonstrated — while a refusal is a fact
+  and is the moment somebody has actually lost something.
+
+  It stays silent on `matched_terms_are_scattered`, because that reason means
+  the words are here but never together, which is what a question about a
+  subject the repository does not implement looks like; advising more
+  descriptions there would be advice that cannot work. It stays silent once
+  nothing is undescribed. **The JSON reply gains nothing** — an agent branches
+  on `diagnosis` and does not need prose about a field it already has.
+
+### Gates
+
+Both new behaviours were verified **RED against a deliberately broken nudge**
+before being trusted green, because a test that only passes on fixed content
+cannot tell a working check from a deleted one.
+
+Command files join the documented-surface checks **by discovery rather than by
+name**, so a fifth command cannot become the one file nothing checks — which is
+exactly how an install line naming a package index this project does not
+publish to shipped twice. Every command must carry a loadable `description`,
+and every `/rag-your-code:…` a document offers must exist, in both directions.
+
+The protocol-action anti-vacuity guard moved from per-file to per-set: a command
+file documents the command line and has no reason to mention the subprocess
+protocol, and requiring one from every document would have made that check pass
+only by forcing irrelevant JSON into user-facing pages.
+
 ## 1.1.0 — 2026-08-25
 
 1.0.0 gave retrieval a way to say it has no answer, and left the open list
@@ -129,7 +193,7 @@ whose contract changed).
   as a *single token*. The name field never carried a test's English words; its
   prose docstring does.
 
-- **Removing the stored vectors**, which are **65.4%** of an index and move the
+- **Removing the stored vectors**, which are **65.3%** of an index and move the
   three positive rulers by ±1 question under the default embedder. Kept,
   because the same storage is what makes the optional model work and the schema
   stays one shape.
