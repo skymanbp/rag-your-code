@@ -3,6 +3,41 @@
 Notable changes per release. Dates are the release date; measurements are from
 the development machine (Windows 11, CPython 3.13) and are directional.
 
+## 1.2.1 — 2026-08-25
+
+A documentation correction, and the claim it corrects had been shipped in three
+releases.
+
+Since 1.0.0 the roadmap has carried a section titled "the one thing a command
+cannot check", saying that whether the bundled skill fires unprompted "needs an
+interactive session with a model deciding, which no test in this repository can
+stand in for". **That was wrong.** `claude plugin eval` runs eval cases against
+a plugin, and its own `--ablation` help names the mechanism exactly: graders
+marked with-only, including `tool_used: Skill`, are a plugin-fired indicator,
+against a no-plugin baseline arm.
+
+The honest status is **measurable, and not measured**, for two reasons that are
+now stated instead of the false one:
+
+- `claude plugin eval` reports `plugin eval is currently in early access` on
+  this account, so neither it nor its `init` scaffold runs. The gate is a
+  server-side entitlement; there is no local flag.
+- The case schema is not publicly documented — the plugins reference covers
+  every other component and not this one — leaving three fragments of `--help`
+  text as the only description.
+
+No suite was written on that basis. One assembled from guessed field names
+could not be executed even once to see whether it loads, and a suite that
+silently fails to load reads as a gate while checking nothing: the exact
+failure this project shipped twice with an install line and once with a
+threshold sweep that scored every setting identically.
+
+What would close it is recorded in `docs/ROADMAP.md`. Since 1.2.0 it also
+matters less: four commands give a deterministic entry path that does not
+depend on a model choosing to fire anything.
+
+No code changed; 352 tests unchanged.
+
 ## 1.2.0 — 2026-08-25
 
 Every release through 1.1.0 improved retrieval and none of them made it

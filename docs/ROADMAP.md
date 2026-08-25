@@ -32,7 +32,7 @@ Everything the 1.0.0 roadmap listed as still open, and what happened to it.
 | No stemming | **Measured and rejected.** Helps both own-repository rulers, costs the foreign one 3 of 35 hit@3. |
 | A test declaration outranks the code it tests | **Misdiagnosed, and corrected.** See below. |
 | English questions answered from words used here in another sense | **Fixed** by the concentration bar, 0.53 → 0.93 English silence. One residual, below. |
-| Whether the skill fires unprompted in a fresh session | **Still not verifiable from a command.** See below. |
+| Whether the skill fires unprompted in a fresh session | **Measurable after all, and not measured.** The old "no command can check this" was wrong — `claude plugin eval` exists for exactly it. Blocked on early access, not on method. See below. |
 | Vectors are 55% of an index and earn nothing | **Diagnosed** (1.1.0) and **kept**: 65.3%, ±1 question, and the same storage is what makes the optional model work. |
 | Tree-sitter parsing | **Decided against as a default**, and the policy for it settled. See non-goals. |
 | SQLite / ANN storage layer | Same. |
@@ -69,14 +69,46 @@ vocabulary collision, and no lexical rule separates it from a real answer
 without costing more than it saves — three further rules were measured and
 each cost more. Chinese sits at 1.000 silence on both repositories.
 
-### The one thing a command cannot check
+### The one thing not checked here — and the claim about it was wrong
 
 Whether the bundled skill fires on its own in a fresh session. Everything
-adjacent is checked — the manifest, the marketplace entry, the install line run
-verbatim by CI, the token cost from `claude plugin details` — but the trigger
-itself needs an interactive session with a model deciding, which no test in
-this repository can stand in for. It is listed here rather than quietly
-dropped.
+adjacent is checked: the manifest, the marketplace entry, the install line run
+verbatim by CI, the component inventory and token cost from `claude plugin
+details`.
+
+Through 1.2.0 this section said the trigger "needs an interactive session with
+a model deciding, which no test can stand in for". **That was wrong, and it had
+been wrong for some time.** `claude plugin eval` runs eval cases against a
+plugin, and its own `--ablation` documentation names the mechanism exactly:
+
+> graders marked with-only, incl. `tool_used: Skill`, are a plugin-fired
+> indicator rather than part of the score
+
+So the property is measurable, with a no-plugin baseline arm for contrast. The
+correct status is **not measured here**, for two stated reasons:
+
+- `claude plugin eval` reports `plugin eval is currently in early access` on
+  this account, so neither `eval` nor its `init` scaffold will run — the gate is
+  a server-side entitlement, not a local flag.
+- The case schema is not publicly documented (`code.claude.com/docs/en/
+  plugins-reference` covers every other component and not this one), and the
+  only description available is three fragments of `--help` text.
+
+An eval suite written from those fragments could not be executed to see whether
+it even loads, and a suite that silently fails to load is worse than none: it
+reads as a gate and checks nothing, which is the exact failure this project has
+already shipped twice with an install line and once with a threshold sweep. So
+it is not written on speculation.
+
+**What would close it:** early access granted, then `claude plugin eval init`
+for the real schema, cases split between questions that should fire the skill
+and matched controls that should not, `--ablation with-without`, `--runs` above
+the default so a stochastic trigger is not read off one sample, and the
+resulting score recorded here.
+
+Since 1.2.0 the property also matters less than it did: four commands give a
+deterministic entry path that does not depend on a model choosing to fire
+anything. It is a quality question now rather than the only way in.
 
 ## 1.1.0 — words that are here, but never together
 

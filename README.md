@@ -622,6 +622,16 @@ need a dependency, and the policy for those is settled: they follow the
 embedding provider's pattern — optional, user-selected, never in the default
 install. Full reasoning in [docs/ROADMAP.md](docs/ROADMAP.md).
 
+**Whether the skill fires unprompted is not measured**, and until 1.2.1 this
+project claimed no command could measure it. That was wrong: `claude plugin
+eval` grades exactly this, with `tool_used: Skill` as a plugin-fired indicator
+and a no-plugin baseline arm. It is unmeasured because the command is in early
+access on the account here and its case schema is undocumented, so a suite
+written from `--help` fragments could not be run even once to see whether it
+loads — and a suite that silently fails to load reads as a gate while checking
+nothing. Since 1.2.0 the four commands give an entry path that does not depend
+on it.
+
 ## 12 · Development
 
 ```bash
