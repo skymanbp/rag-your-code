@@ -3,6 +3,88 @@
 Notable changes per release. Dates are the release date; measurements are from
 the development machine (Windows 11, CPython 3.13) and are directional.
 
+## 0.4.0 — 2026-08-24
+
+0.3.0 made the existing claims true. 0.4.0 is the first release that adds one,
+and it rests on a measurement: the embedder is a signed feature hash, so cosine
+over it is normalised token overlap and carries no semantics. `sum two numbers`
+against `add a pair of integers` scores **0.0000** — the same as against
+`delete the user database table`. A trained model scores that pair around 0.8.
+
+### Added
+
+- **A configuration layer.** Twelve settings in `rag-your-code.toml` at the
+  repository root, resolved CLI flag > file > default, with a `config`
+  subcommand (`init`, `list`, `get`, `set`, `path`). `set` preserves every
+  comment it does not consume. There is no environment layer: an index is an
+  artifact of a repository, not of a shell.
+
+  An unknown key or an out-of-range value is refused with a reason. A setting
+  silently dropped is indistinguishable from one that had no effect.
+
+  The four settings that decide what an index *contains* are fingerprinted into
+  the index, and a change forces a full rebuild — reuse is keyed on file
+  content, which cannot notice that the rules changed. `embedding.dimensions`
+  used to fail in silence, because `search` skips the cosine term when widths
+  disagree rather than raising.
+
+  No new dependency: `tomllib` from 3.11, and below that a subset reader that
+  refuses what it cannot parse and is differential-tested against `tomllib`.
+
+- **Agent-authored descriptions.** `annotate.py` says it in its own first line:
+  it describes a unit *without an LLM*, so it introduces no vocabulary the
+  source did not already contain. The agent already reading this index can
+  supply those words, through `describe_pending`/`describe_put` in the protocol
+  or `describe status|export|import` on the command line. They are stored in
+  `rag-your-code.descriptions.json` at the repository root, meant to be
+  committed.
+
+  Measured on the fixture repository, one generated sentence replaced by an
+  agent-written bilingual one: `exponential backoff`, `double billing safety`
+  and `支付网关超时` each went from no lexical evidence to rank 1.
+
+  **This is not semantic generalisation.** Matching stays lexical; the work
+  moves from query time to index time, and its reach is bounded by how many
+  ways of saying the thing the agent wrote down.
+
+  Each entry is keyed by unit id and a digest of the unit's source. When the
+  code changes the description is not applied and the unit returns to the
+  pending queue — a description outliving its code would be a confident wrong
+  answer, which is the one thing this index exists not to give.
+
+### Fixed
+
+- **The walker's suffix list and the parser's dispatch table were separate**
+  and agreed only by coincidence. A suffix on the first but not the second was
+  walked, read, parsed to nothing, and reported as a clean index of zero units.
+  `index.suffixes` now derives both its default and its permitted values from
+  the parser.
+- **`incremental` in the index report described the wrong thing.** It was
+  computed from whether a previous index existed, not from whether its units
+  were reused, so the run that rebuilt everything was the run that claimed
+  reuse. A `rebuilt_for_config` field now says why.
+- **SKILL.md's install step named a package index this project does not
+  publish to.** The 0.2.0 audit found that step telling an agent to run a
+  module nothing installs; 0.3.0's fix was equally unrunnable and no gate
+  noticed either time. The instruction now names a real source, a test asserts
+  that every documented `pip install` names an installable one, and a CI job
+  runs the command as written.
+- **The query benchmark was too coarse to be evidence.** Ten cold samples of a
+  sub-millisecond call made an unchanged query path look like a real regression
+  across three runs. It now warms up, takes 200 samples, and records the median
+  beside the mean.
+
+### Changed
+
+- `stats` reports `index_behind` alongside `stale`. They answer different
+  questions, and after a `describe_put` the first is true while the second is
+  correctly false.
+- Version consistency is now asserted across `marketplace.json` too, which
+  states it twice and was outside the check.
+- Documentation states what the embedder does and does not do, up front rather
+  than in a footnote. `README.md` no longer describes this as a
+  retrieval-augmented *generation* index: there is no generation here.
+
 ## 0.3.0 — 2026-08-24
 
 A hardening pass following an adversarial audit of 0.2.0. The audit's 94 raw

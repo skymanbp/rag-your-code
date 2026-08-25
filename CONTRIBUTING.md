@@ -29,7 +29,15 @@ if you change behaviour without meaning to.
   deliberately excludes with the rule that excludes each one.
 
 Adding a language means adding rows to the rule table in `parser.py` and a
-fixture with its expected units. The line scanner does not change.
+fixture with its expected units. The line scanner does not change, and
+`index.suffixes` picks the new suffix up automatically because its permitted
+values are the parser's dispatch table.
+
+`tests/test_metadata.py` carries a third kind of contract: it executes the
+documentation. Every subcommand and protocol action named in `README.md` or
+`SKILL.md` must exist, and every `pip install` line must name an installable
+source. Both audits of this project found the same defect in that step — an
+instruction no gate ever ran — so the gate now exists.
 
 ## Ground rules for a change
 
@@ -47,6 +55,23 @@ fixture with its expected units. The line scanner does not change.
 4. **Say what you did not check.** An honest "this path has no coverage" is
    worth more than a confident summary that quietly generalises from a green
    gate to the parts it does not exercise.
+5. **Check the instrument before believing it.** Three runs of the large-repo
+   benchmark once made an unchanged query path look like a real regression;
+   the estimator was ten cold samples of a sub-millisecond call. When a number
+   moves, establish the noise band before deciding what the movement means.
+
+## Adding a setting
+
+`config.py` holds one settings table. Add a row and the loader, the validator,
+the fingerprint, `config list` and the generated template all pick it up — no
+other file needs editing. Two decisions come with the row:
+
+- `affects_build` is true only if the setting changes what an index *contains*.
+  Those force a full rebuild when they change, so marking a retrieval-time knob
+  this way makes the fingerprint an obstacle rather than a safeguard.
+- Bounds are not optional. A value that is out of range must be refused, not
+  clamped: a setting silently adjusted is indistinguishable from one that had
+  no effect.
 
 ## Scope
 
@@ -54,3 +79,10 @@ The evolution plan in `docs/ARCHITECTURE.md` lists what is deliberately not here
 yet: provider-backed embeddings, Tree-sitter parsing, and a SQLite/ANN storage
 layer for repositories past the measured JSON operating envelope. Work toward
 those is welcome; silently making one of them a hard requirement is not.
+
+Note in particular that provider-backed embeddings are not simply "better".
+They would buy true synonym matching at the cost of the properties this project
+is built on — no dependencies, no network, a reproducible index, and output a
+human can read. Agent-authored descriptions are the cheaper answer to the same
+problem and are why that trade has not been made yet. Make it knowingly or not
+at all.

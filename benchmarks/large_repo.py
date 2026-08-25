@@ -107,13 +107,21 @@ def measure(root: Path, files: int, functions: int) -> dict[str, object]:
     target_file = min(files - 1, 250)
     target_function = min(functions - 1, 10)
     query = f"function {target_file} {target_function}"
+    # Warm up before sampling, and take enough samples that the estimator is
+    # sharper than the differences it is used to judge. Ten cold samples of a
+    # sub-millisecond call once made an unchanged query path look like a real
+    # regression across three runs; a warmed 200-sample probe put the two
+    # trees within noise and reversed which was faster between rounds.
+    for _ in range(20):
+        search(incremental_units, query, limit=8, search_index=search_index)
     query_samples: list[float] = []
-    for _ in range(10):
+    for _ in range(200):
         query_start = time.perf_counter()
         results = search(incremental_units, query, limit=8, search_index=search_index)
         query_samples.append((time.perf_counter() - query_start) * 1000)
+    file_stats(root)
     stat_samples: list[float] = []
-    for _ in range(5):
+    for _ in range(20):
         stat_start = time.perf_counter()
         file_stats(root)
         stat_samples.append((time.perf_counter() - stat_start) * 1000)
@@ -140,6 +148,10 @@ def measure(root: Path, files: int, functions: int) -> dict[str, object]:
         "incremental_build_ms": incremental_ms,
         "speedup": full_ms / max(incremental_ms, 0.001),
         "query_ms_mean": sum(query_samples) / len(query_samples),
+        # Recorded beside the mean so a reader can see how much the estimator
+        # is worth: a mean over a handful of cold samples is not evidence.
+        "query_ms_median": sorted(query_samples)[len(query_samples) // 2],
+        "query_samples": len(query_samples),
         "search_index_ms": search_index_ms,
         "stale_stat_ms_mean": sum(stat_samples) / len(stat_samples),
         "stale_cached_ms_mean": sum(cached_stat_samples) / len(cached_stat_samples),

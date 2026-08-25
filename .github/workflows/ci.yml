@@ -21,8 +21,8 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install with the dev extra
@@ -39,8 +39,8 @@ jobs:
     # are not asserted, only recorded.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       - run: python -m pip install -e ".[dev]"
@@ -71,8 +71,8 @@ jobs:
     # published artifact cannot actually serve the documented workflow.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       - name: Build the wheel and sdist
@@ -103,6 +103,39 @@ jobs:
           /tmp/clean/bin/python -m ragyourcode.cli index .
           /tmp/clean/bin/python -m ragyourcode.cli search "charge an amount" --json
           /tmp/clean/bin/python -m ragyourcode.cli annotate
+          /tmp/clean/bin/python -m ragyourcode.cli config init
+          /tmp/clean/bin/python -m ragyourcode.cli config set index.ignore '["vendor"]'
+          /tmp/clean/bin/python -m ragyourcode.cli describe status
+          /tmp/clean/bin/python -m ragyourcode.cli index .
           # The declared console script must work too.
           /tmp/clean/bin/rag-your-code search "charge an amount" --json
           printf '%s\n' '{"action":"stats"}' | /tmp/clean/bin/python -m ragyourcode.cli agent --root .
+
+  install-instruction:
+    # SKILL.md's step 0 is the one command an agent runs before it can run any
+    # other, and it is the one command no other job exercised. 0.3.0 shipped it
+    # pointing at a package index this project does not publish to, which no
+    # gate noticed. This job runs the instruction as written.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Extract the install command from the skill and run it
+        run: |
+          python - <<'PY' > /tmp/install.sh
+          import pathlib, re, sys
+          text = pathlib.Path("skills/rag-your-code/SKILL.md").read_text(encoding="utf-8")
+          found = re.findall(r"(python -m pip install [^\n]+)", text)
+          if len(found) != 1:
+              sys.exit(f"expected exactly one install command in SKILL.md, found {found}")
+          print(found[0])
+          PY
+          cat /tmp/install.sh
+          python -m venv /tmp/asdocumented
+          /tmp/asdocumented/bin/python -m pip install --upgrade pip
+          sed 's|^python |/tmp/asdocumented/bin/python |; s| --user||' /tmp/install.sh > /tmp/run.sh
+          cat /tmp/run.sh
+          sh /tmp/run.sh
+          /tmp/asdocumented/bin/python -c "import ragyourcode; print(ragyourcode.__version__)"

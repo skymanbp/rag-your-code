@@ -137,10 +137,11 @@ and the Python path fills it (`Svc.helper`), but the line scanner sets it equal
 to `name`. A scope stack keyed on brace depth would supply it and would improve
 `contains` edges; it was outside P3's scope, which was root causes A and B.
 
-## Next: 0.4.0
+## 0.4.0
 
 0.3.0 closed the gap between what the code claimed and what it did. 0.4.0 is
-the first pass that adds a claim, and it rests on one measured fact.
+the first pass that adds a claim, and it rests on one measured fact. Both
+phases have landed; what each turned up while being built is recorded below.
 
 ### The measurement that motivates it
 
@@ -164,7 +165,7 @@ and has not expired` matches `verify_session_token` on the single content word
 `expired` (0.3293) ahead of `retry_charge` (0.2401) — whose only matched terms
 are the stopwords `a` and `and`.
 
-### P7 — Configuration layer
+### P7 — Configuration layer *(landed)*
 
 Seven classes of tunable are module constants today and can only be changed by
 editing installed source: ignore list and source suffixes and size cap
@@ -183,7 +184,7 @@ mismatch is currently *silent* — `search.py`'s guard drops the vector score to
 zero rather than raising. The index must record a fingerprint of the
 configuration that produced it and force a full rebuild when it differs.
 
-### P8 — Agent-authored descriptions
+### P8 — Agent-authored descriptions *(landed)*
 
 `annotate.py` says it in its own first line: descriptions are generated
 *without an LLM*. `describe_python` humanises the identifier, lists parameter
@@ -223,6 +224,40 @@ the description also says so. It is LLM-authored keyword expansion, and its
 quality is bounded by how many ways of saying the thing the agent thought to
 write down. Descriptions are bilingual by default (configurable), because the
 row above shows a Chinese query going from unreachable to first.
+
+### What building them turned up
+
+Both phases surfaced defects older than themselves, which is the usual return
+on touching every call site of something.
+
+The walker's suffix list and the parser's dispatch table were separate lists
+agreeing by coincidence. A suffix on the first and not the second is walked,
+read, parsed to nothing, and reported as a clean index of zero units --
+precisely what `suffixes = [".vue"]` produced. `index.suffixes` now takes both
+its default and its permitted values from `parser.EXTENSIONS`.
+
+`incremental` in the index report was computed from whether a previous index
+existed, not from whether its units were reused. A configuration change
+discards them, so the run that rebuilt everything was the run that claimed
+reuse.
+
+SKILL.md's step 0 named a package index this project does not publish to. The
+0.2.0 audit had already found that step telling an agent to run a module
+nothing installs; the 0.3.0 fix was equally unrunnable, and neither time did
+any gate notice, because nothing ever ran it. There is now a test asserting
+every documented `pip install` names an installable source, and a CI job that
+runs the command as written.
+
+The query benchmark was itself too coarse to be evidence: ten cold samples of a
+sub-millisecond call made an unchanged query path look like a real regression
+across three runs, and a direct 1000-sample probe put the two trees within
+noise and reversed which was faster between rounds. It now warms up, takes 200
+samples, and records the median beside the mean.
+
+Two migration traps were caught before release rather than after. An index
+predating each new fingerprint carries no such key; read as "unknown" rather
+than as "defaults" and "no descriptions", every 0.3.0 index would have reported
+itself permanently stale, or forced one pointless full rebuild, on upgrade.
 
 ## Non-goals
 

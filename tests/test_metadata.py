@@ -1,4 +1,6 @@
+import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -17,6 +19,88 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_project_and_plugin_versions_match():
+    """Every place a version is written down, including the marketplace entry.
+
+    The marketplace file states it twice and was outside this check until
+    0.4.0, which is exactly the shape of thing that goes stale: nothing reads
+    it during development, so a drift only surfaces to someone installing the
+    plugin.
+    """
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     plugin = json.loads((ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
-    assert project["project"]["version"] == ragyourcode.__version__ == plugin["version"]
+    market = json.loads((ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
+    version = ragyourcode.__version__
+    assert project["project"]["version"] == version
+    assert plugin["version"] == version
+    assert market["metadata"]["version"] == version
+    assert [entry["version"] for entry in market["plugins"]] == [version]
+
+
+def test_the_manifests_point_at_a_repository_that_exists():
+    """Both manifests declare a home, and they declare the same one."""
+    plugin = json.loads((ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+    market = json.loads((ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
+    urls = {plugin["homepage"], plugin["repository"], market["homepage"], market["repository"]}
+    urls.update(market["plugins"][0][key] for key in ("homepage", "repository"))
+    assert urls == {"https://github.com/skymanbp/rag-your-code"}
+
+
+# --- the documentation an agent is told to follow must be executable --------
+
+DOCS = ("skills/rag-your-code/SKILL.md", "README.md")
+
+
+def _subcommands() -> set[str]:
+    from ragyourcode.cli import build_parser
+
+    for action in build_parser()._actions:
+        if isinstance(action, argparse._SubParsersAction):
+            return set(action.choices)
+    raise AssertionError("the CLI has no subparsers")
+
+
+def _protocol_actions() -> set[str]:
+    """Actions the agent loop actually dispatches on."""
+    source = (ROOT / "src" / "ragyourcode" / "cli.py").read_text(encoding="utf-8")
+    return set(re.findall(r'action == "([a-z_]+)"', source)) | {"search"}
+
+
+def test_every_documented_subcommand_exists():
+    known = _subcommands()
+    for name in DOCS:
+        text = (ROOT / name).read_text(encoding="utf-8")
+        used = set(re.findall(r"(?:python -m ragyourcode\.cli|rag-your-code) ([a-z-]+)", text))
+        unknown = used - known
+        assert not unknown, f"{name} documents subcommands that do not exist: {sorted(unknown)}"
+
+
+def test_every_documented_protocol_action_is_handled():
+    known = _protocol_actions()
+    for name in DOCS:
+        text = (ROOT / name).read_text(encoding="utf-8")
+        used = set(re.findall(r'"action"\s*:\s*"([a-z_]+)"', text))
+        unknown = used - known
+        assert not unknown, f"{name} documents actions the agent loop ignores: {sorted(unknown)}"
+        assert used, f"{name} should show at least one protocol action"
+
+
+def test_no_document_claims_this_package_is_on_an_index_it_is_not_on():
+    """The audit found SKILL.md naming a module nothing installs.
+
+    0.3.0 replaced that with `pip install rag-your-code`, which is a package
+    index this project does not publish to, so the instruction was still
+    unrunnable and nothing checked it. Any install line must name a source
+    that exists: a URL, a path, or an editable checkout.
+    """
+    # Flags first, then an optionally quoted target -- `--user "git+https://..."`
+    # is the documented form, and a target class that excluded the quote made
+    # the flag itself look like the target.
+    pattern = re.compile(r"""pip install\s+(?:(?:--user|-q|--upgrade|--no-deps)\s+)*["']?(?P<target>[^\s`"']+)""")
+    seen = 0
+    for name in DOCS:
+        for target in pattern.findall((ROOT / name).read_text(encoding="utf-8")):
+            seen += 1
+            assert target.startswith(("git+", "http", ".", "/", "-e")) or target.endswith(
+                (".whl", ".tar.gz")
+            ), f"{name}: `pip install {target}` names no installable source"
+    assert seen, "the install instructions vanished; this guard would then pass vacuously"

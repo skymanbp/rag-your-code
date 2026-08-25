@@ -34,10 +34,26 @@ The test suite currently covers:
 - retrieval correctness: `limit` filled when a rare term joins common ones,
   every lexically matching unit reachable, an index self-reporting stale after a
   write between parse and publish, and call edges omitted for foreign module
-  prefixes while local-module and receiver calls still resolve.
+  prefixes while local-module and receiver calls still resolve;
+- configuration: every default restated against the 0.3.0 literal it replaced,
+  nine kinds of bad file refused with a reason, the build fingerprint proved to
+  move for the four settings that decide what an index contains and to stay put
+  for the eight that do not, each setting traced to the behaviour it names, and
+  `config set` shown to preserve every comment it does not consume;
+- descriptions: an authored one reaching three queries the generated one cannot
+  (including a Chinese query), a source edit removing it from use while the
+  entry survives on disk, a mismatched digest never applied, an index predating
+  the feature not reported stale, every rejection reason, and a description
+  taking effect inside the same agent session.
 
 Subprocess tests pin `PYTHONPATH` to `src/` through `cli_env()`, so they
 exercise the working tree rather than whatever copy pip has installed.
+
+Two invariants are asserted rather than assumed. `index.suffixes` must equal
+the parser's own dispatch table, because a suffix on only the walker's list is
+read, parsed to nothing, and reported as a clean index. And the 3.10 TOML
+reader is checked against `tomllib` over twelve inputs on every version that
+ships one, so the fallback cannot drift away from the real grammar in silence.
 
 Run:
 
