@@ -190,3 +190,30 @@ def test_the_release_workflow_publishes_under_the_name_the_project_declares():
     assert "gh-action-pypi-publish" in workflow
     assert "id-token: write" in workflow, "trusted publishing needs an OIDC token"
     assert "does not match pyproject version" in workflow, "a tag must not be able to disagree with the package"
+
+
+def test_the_documented_provider_settings_actually_configure_a_provider(tmp_path: Path):
+    """The README's configuration block, executed rather than trusted.
+
+    An install line naming an index this project did not publish to, and a
+    count copied from the line above it, both shipped because nothing ran
+    them. A settings example is the same kind of claim: it looks right until
+    somebody pastes it.
+    """
+    from ragyourcode import config as config_module
+    from ragyourcode.embeddings import RemoteEmbedder, embedder
+
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    block = re.search(r"```toml\n(# rag-your-code\.toml\n.*?)```", readme, re.S)
+    assert block, "the README must show how to configure a provider"
+    key_line = re.search(r'```toml\n(api_key_env = "[^"]+")', readme)
+    assert key_line, "the README must show that the key is named, not pasted"
+
+    settings = block.group(1).split("\n", 1)[1].rstrip() + "\n" + key_line.group(1) + "\n"
+    (tmp_path / "rag-your-code.toml").write_text(settings, encoding="utf-8")
+    resolved = embedder(config_module.load(tmp_path))
+    assert isinstance(resolved, RemoteEmbedder)
+    assert resolved.semantic is True
+    # The documented block names a variable; a key pasted into it would be the
+    # defect this whole arrangement exists to prevent.
+    assert "sk-" not in settings
