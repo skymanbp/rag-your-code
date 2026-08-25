@@ -497,14 +497,42 @@ def _generic_units(path: Path, source: str, relative: str, language: str) -> lis
 
     depths = _brace_depths(lines, quotes) if style == "brace" else []
     offsets = _line_offsets(source)
-    units: list[CodeUnit] = []
+
+    spans: list[tuple[int, int, str, str]] = []
     for serial, (index, kind, name) in enumerate(hits, 1):
         fallback = hits[serial][0] - 1 if serial < len(hits) else len(lines) - 1
         if style == "end":
             last = _close_end_span(lines, index, fallback)
         else:
             last = _close_brace_span(lines, depths, index, fallback, quotes)
-        last = max(index, min(last, len(lines) - 1))
+        spans.append((index, max(index, min(last, len(lines) - 1)), kind, name))
+
+    # Qualified names, from the spans the closer already produced. The Python
+    # path builds `Svc.helper` from the syntax tree, and every other language
+    # used to set `qualified_name = name`, so a method could not be told from a
+    # free function of the same name and `contains` edges had nothing to key on.
+    #
+    # Containment rather than a brace-depth scope stack, because the span closer
+    # is already the thing that decides how far a declaration reaches, and a
+    # second mechanism answering the same question is a second mechanism to
+    # disagree with the first. A declaration nested inside another's span is
+    # nested in it, whatever the braces did on the way -- which also means Ruby,
+    # closing on `end` rather than on a brace, needs no separate treatment.
+    qualified: list[str] = []
+    for position, (start, last, _, name) in enumerate(spans):
+        owners = [
+            other_name
+            for other_position, (other_start, other_last, other_kind, other_name) in enumerate(spans)
+            if other_position != position
+            and other_kind == "class"
+            and other_start <= start
+            and last <= other_last
+            and not (other_start == start and other_last == last)
+        ]
+        qualified.append(".".join([*owners, name]))
+
+    units: list[CodeUnit] = []
+    for serial, ((index, last, kind, name), dotted) in enumerate(zip(spans, qualified), 1):
         signature = lines[index].strip()[:500]
         documented = _doc_comment(lines, index, comments)
         description = (
@@ -515,12 +543,16 @@ def _generic_units(path: Path, source: str, relative: str, language: str) -> lis
             # Phrased exactly as the Python path phrases a docstring, so the
             # two routes produce the same shape of text for the same thing.
             description += f" Documented intent: {documented}"
+        parent = dotted.rsplit(".", 1)[0] if "." in dotted else None
         units.append(
             CodeUnit(
-                f"{relative}:{index + 1}:{name}", relative, language, kind, name, name,
+                # The id keeps the bare name. It is the anchor a stored
+                # description is keyed on, and re-keying every non-Python unit
+                # would orphan every description ever written against one.
+                f"{relative}:{index + 1}:{name}", relative, language, kind, name, dotted,
                 signature, index + 1, last + 1,
                 _snippet(source, offsets[index], offsets[last + 1]),
-                description, serial,
+                description, serial, parent,
             )
         )
     return units

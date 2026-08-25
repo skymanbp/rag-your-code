@@ -96,6 +96,70 @@ def test_spec_excluded_constructs_are_not_indexed(fixture: str, request: pytest.
     assert leaked == [], f"{fixture}: SPEC-excluded constructs were indexed: {leaked}"
 
 
+# Every entry re-verified by reading the fixture source: the enclosing
+# declaration, the line it opens on, and where its body closes. Spot checks
+# across nine files and two block styles -- braces and Ruby's `end` -- rather
+# than an exhaustive table, because the exhaustive claim is made structurally
+# by the test below it and a second copy of it would rot independently.
+QUALIFIED = {
+    "sample.ts": {"getOrLoad": "TtlCache.getOrLoad", "prune": "TtlCache.prune"},
+    "SyncEngine.kt": {"enqueue": "SyncEngine.enqueue", "flush": "SyncEngine.flush"},
+    # module Webhooks > class Delivery > def perform!, three levels deep.
+    "delivery.rb": {"perform!": "Webhooks.Delivery.perform!", "handler": "Webhooks.handler"},
+    "FeedStore.swift": {"isEmpty": "Page.isEmpty", "refresh": "FeedStore.refresh"},
+    "PriceCatalog.scala": {"plus": "Money.plus", "lookup": "PriceCatalog.lookup"},
+    "InventoryService.java": {"adjust": "InventoryService.adjust"},
+    "ReportBuilder.cs": {"RenderAsync": "ReportBuilder.RenderAsync"},
+    "Invoice.php": {"addLine": "Invoice.addLine"},
+    # Nothing encloses it, so the qualified name is the name.
+    "sample.js": {"computeBackoff": "computeBackoff"},
+}
+
+
+@pytest.mark.parametrize("fixture", sorted(QUALIFIED))
+def test_a_declaration_is_named_by_what_encloses_it(fixture: str):
+    """`CodeUnit.qualified_name` carries the enclosing scope in every language.
+
+    The Python path built `Svc.helper` from the syntax tree while the line
+    scanner set `qualified_name = name`, so for fourteen of fifteen languages a
+    method could not be told from a free function of the same name, `contains`
+    edges had nothing to key on, and two same-named methods in one file were
+    one symbol as far as the graph was concerned.
+    """
+    found = _units_by_name(fixture)
+    for name, expected in QUALIFIED[fixture].items():
+        assert name in found, f"{fixture}: {name} was not parsed at all"
+        assert [unit.qualified_name for unit in found[name]] == [expected], f"{fixture}:{name}"
+
+
+@pytest.mark.parametrize("fixture", sorted(EXPECTED))
+def test_every_qualified_name_is_derived_from_a_real_enclosing_span(fixture: str, request: pytest.FixtureRequest):
+    """The exhaustive half: no unit may claim an owner that does not contain it.
+
+    A hand-written table only checks the cases somebody thought of. This checks
+    every unit in every fixture against the spans the parser itself produced,
+    so a resolver that began inventing owners, or attaching them to the wrong
+    declaration, fails here whether or not anyone extended the table.
+    """
+    _mark_pending(request, fixture)
+    units = parse_file(FIXTURES / fixture, FIXTURES)
+    for unit in units:
+        owners = unit.qualified_name.split(".")
+        assert owners[-1] == unit.name, f"{fixture}: {unit.qualified_name} does not end in {unit.name}"
+        enclosing = [
+            other
+            for other in units
+            if other.kind == "class"
+            and other.start_line <= unit.start_line
+            and unit.end_line <= other.end_line
+            and (other.start_line, other.end_line) != (unit.start_line, unit.end_line)
+        ]
+        assert owners[:-1] == [other.name for other in enclosing], (
+            f"{fixture}: {unit.qualified_name} names owners that do not enclose lines "
+            f"{unit.start_line}-{unit.end_line}"
+        )
+
+
 def test_the_ruler_itself_is_well_formed():
     """A fixture whose expectations do not match its own source proves nothing."""
     for fixture, spec in EXPECTED.items():
