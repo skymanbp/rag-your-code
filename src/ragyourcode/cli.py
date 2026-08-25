@@ -15,10 +15,11 @@ from .agentic import DEFAULT_DOMINANCE, research
 from .config import BY_PATH, SETTINGS, Config, ConfigError
 from .descriptions import index_descriptions_fingerprint
 from .document import plan as plan_documentation, render_patch, summarise as summarise_documentation
-from .embeddings import embed, embedding_metadata
+from .embeddings import embedder
 from .graph import build_graph, graph_from_dict, graph_search
 from .indexer import StaleMonitor, build_fingerprint, build_units, fingerprint, index_build_fingerprint, read_index, snapshot_repository, write_index
 from .models import SearchResult
+from .providers import ProviderError
 from .search import build_search_index, context, search, within_budget
 from .workflow import apply_descriptions, bootstrap, describe_batch, store_descriptions
 
@@ -48,6 +49,10 @@ def _refresh_index(root: Path, output: Path, full: bool = False, compact: bool |
     units still have none.
     """
     cfg = cfg if cfg is not None else config_module.load(root)
+    # Built once and handed to every stage of this run, so the vectors stored,
+    # the metadata published and the queries later asked all come from the
+    # same scheme by construction rather than by three call sites agreeing.
+    embed_with = embedder(cfg)
     previous_payload: dict = {}
     previous_units = []
     if output.exists() and not full:
@@ -55,7 +60,7 @@ def _refresh_index(root: Path, output: Path, full: bool = False, compact: bool |
             previous_payload, previous_units = read_index(output)
         except (OSError, TypeError, ValueError, json.JSONDecodeError):
             previous_payload, previous_units = {}, []
-    if previous_payload.get("embedding") != embedding_metadata(cfg["embedding.dimensions"]):
+    if previous_payload.get("embedding") != embed_with.metadata:
         for unit in previous_units:
             unit.vector = []
     if compact is None:
@@ -83,9 +88,10 @@ def _refresh_index(root: Path, output: Path, full: bool = False, compact: bool |
         cfg=cfg,
         previous_build=None if inputs_changed else previous_build,
         descriptions=store,
+        embed_with=embed_with,
     )
     graph = build_graph(units)
-    write_index(output, root, units, graph.to_dict(), compact=compact, diagnostics=diagnostics, snapshot=snapshot, cfg=cfg, descriptions_fingerprint=store.fingerprint)
+    write_index(output, root, units, graph.to_dict(), compact=compact, diagnostics=diagnostics, snapshot=snapshot, cfg=cfg, descriptions_fingerprint=store.fingerprint, embed_with=embed_with)
     groups = store.classify(units)
     return {
         "indexed_units": len(units),
@@ -175,11 +181,12 @@ def _cmd_search(args: argparse.Namespace) -> int:
     limit = args.limit if args.limit is not None else cfg["search.limit"]
     max_chars = args.max_chars if args.max_chars is not None else cfg["search.max_chars"]
     weight = cfg["search.vector_weight"]
-    search_index = build_search_index(units)
+    search_index = build_search_index(units, embedder(cfg))
+    recall = cfg["search.vector_recall"]
     results = (
-        graph_search(units, args.query, limit, args.hops, graph, search_index, vector_weight=weight)
+        graph_search(units, args.query, limit, args.hops, graph, search_index, vector_weight=weight, vector_recall=recall)
         if args.graph
-        else search(units, args.query, limit, search_index=search_index, vector_weight=weight)
+        else search(units, args.query, limit, search_index=search_index, vector_weight=weight, vector_recall=recall)
     )
     if args.json:
         # Results are navigation and cost almost nothing, so every one that was
@@ -390,11 +397,12 @@ def _request_int(request: dict, key: str, default: int, minimum: int, maximum: i
 def _cmd_agent(args: argparse.Namespace) -> int:
     """Serve one JSON request per line, suitable for a plugin subprocess."""
     payload, units, graph, cfg, store = _load(args)
-    search_index = build_search_index(units)
+    search_index = build_search_index(units, embedder(cfg))
     root = Path(args.root).resolve()
     weight = cfg["search.vector_weight"]
     default_limit = cfg["search.limit"]
     default_chars = cfg["search.max_chars"]
+    recall = cfg["search.vector_recall"]
     stale_monitor = StaleMonitor(root, payload, assume_checked=True, cfg=cfg, descriptions_fingerprint=store.fingerprint)
     # Descriptions stored this session reach the live units immediately but not
     # the published index, which is a different thing from the index being
@@ -420,9 +428,9 @@ def _cmd_agent(args: argparse.Namespace) -> int:
                 hops = _request_int(request, "hops", 1, 0, 3)
                 use_graph = bool(request.get("graph", False))
                 results = (
-                    graph_search(units, query, limit, hops, graph, search_index, vector_weight=weight)
+                    graph_search(units, query, limit, hops, graph, search_index, vector_weight=weight, vector_recall=recall)
                     if use_graph
-                    else search(units, query, limit, search_index=search_index, vector_weight=weight)
+                    else search(units, query, limit, search_index=search_index, vector_weight=weight, vector_recall=recall)
                 )
                 budget = _request_int(request, "max_chars", default_chars, 0, 100000)
                 shown = within_budget(results, budget)
@@ -438,6 +446,7 @@ def _cmd_agent(args: argparse.Namespace) -> int:
                     graph,
                     search_index,
                     vector_weight=weight,
+                    vector_recall=recall,
                     max_chars=_request_int(request, "max_chars", default_chars, 0, 100000),
                 )
                 response["stale"] = payload.get("stale", True)
@@ -479,13 +488,13 @@ def _cmd_agent(args: argparse.Namespace) -> int:
                 # waiting for a refresh the agent has no reason to expect.
                 response["applied"] = apply_descriptions(units, store, cfg)
                 if response["applied"]:
-                    search_index = build_search_index(units)
+                    search_index = build_search_index(units, embedder(cfg))
                 index_behind = index_behind or response["reindex_required"]
             elif action == "refresh":
                 output = Path(args.index) if args.index else _default_index(root)
                 response = _refresh_index(root, output, cfg=cfg)
                 payload, units, graph, cfg, store = _load(args)
-                search_index = build_search_index(units)
+                search_index = build_search_index(units, embedder(cfg))
                 stale_monitor = StaleMonitor(root, payload, assume_checked=True, cfg=cfg, descriptions_fingerprint=store.fingerprint)
                 index_behind = False
             elif action == "stats":
@@ -609,6 +618,12 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
         return args.func(args)
+    except ProviderError as exc:
+        # A provider that cannot be reached or cannot be trusted stops the run
+        # rather than falling back: an index whose vectors come from two
+        # spaces would rank confidently on a number that means nothing.
+        print(f"error: embedding provider: {exc}", file=sys.stderr)
+        return 2
     except ConfigError as exc:
         # Surfaced separately from the generic handler because the fix is
         # always in one named file: say which, so the message is actionable.

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from .graph import CodeGraph, graph_search
 from .models import CodeUnit, SearchResult
-from .search import DEFAULT_VECTOR_WEIGHT, SearchIndex, context, search, within_budget
+from .search import DEFAULT_VECTOR_RECALL, DEFAULT_VECTOR_WEIGHT, SearchIndex, context, search, within_budget
 
 
 def _result_ids(results: list[SearchResult]) -> set[str]:
@@ -80,6 +80,7 @@ def research(
     graph: CodeGraph | None = None,
     search_index: SearchIndex | None = None,
     vector_weight: float = DEFAULT_VECTOR_WEIGHT,
+    vector_recall: int = DEFAULT_VECTOR_RECALL,
     max_chars: int = 12000,
 ) -> dict:
     """Run at most two deterministic retrieval steps and explain the stop.
@@ -96,7 +97,7 @@ def research(
     """
     max_steps = min(2, max(1, max_steps))
     steps: list[dict] = []
-    initial = search(units, query, max(limit, 1), search_index=search_index, vector_weight=vector_weight)
+    initial = search(units, query, max(limit, 1), search_index=search_index, vector_weight=vector_weight, vector_recall=vector_recall)
     steps.append({"action": "search", "query": query, "results": _trace(initial)})
     if not initial:
         return {"query": query, "results": [], "steps": steps, "stop_reason": "no_results", "context": ""}
@@ -105,7 +106,7 @@ def research(
         kept = initial[:limit]
         return {"query": query, "results": _serialize(kept), "steps": steps, "stop_reason": "high_confidence", "context": context(within_budget(kept, max_chars), max_chars)}
 
-    expanded = graph_search(units, query, limit=max(limit * 2, 8), hops=hops, graph=graph, search_index=search_index, vector_weight=vector_weight)
+    expanded = graph_search(units, query, limit=max(limit * 2, 8), hops=hops, graph=graph, search_index=search_index, vector_weight=vector_weight, vector_recall=vector_recall)
     steps.append({"action": "graph_expand", "hops": hops, "results": _trace(expanded[:limit])})
     merged = {result.unit.id: result for result in initial}
     for result in expanded:

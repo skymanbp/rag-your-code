@@ -117,7 +117,74 @@ SETTINGS: tuple[Setting, ...] = (
         affects_build=True,
         minimum=32,
         maximum=4096,
-        help="feature-hash vector width; changing it invalidates every vector",
+        help="vector width; changing it invalidates every vector",
+    ),
+    # The default keeps the whole pipeline offline and dependency-free. The
+    # other value sends each unit's text to an OpenAI-compatible embeddings
+    # endpoint, which may be a vendor or a model server on localhost -- one
+    # request shape covers both, and the local one keeps source on the machine.
+    Setting(
+        "embedding.provider",
+        "str",
+        "signed-feature-hash",
+        affects_build=True,
+        members=frozenset({"signed-feature-hash", "openai-compatible"}),
+        help="who computes vectors; the default never opens a socket",
+    ),
+    Setting(
+        "embedding.endpoint",
+        "str",
+        "",
+        affects_build=True,
+        help="OpenAI-compatible embeddings URL, e.g. http://localhost:11434/v1/embeddings",
+    ),
+    Setting(
+        "embedding.model",
+        "str",
+        "",
+        affects_build=True,
+        help="model name the endpoint expects; part of what an index records",
+    ),
+    # The NAME of an environment variable, never a key. Every other setting
+    # here is meant to be committed so everyone who clones sees what shaped the
+    # index; a credential is the one value with the opposite requirement, so it
+    # is the one value this file only points at. `config list` prints whether
+    # the variable is set, never what it holds.
+    Setting(
+        "embedding.api_key_env",
+        "str",
+        "RAG_YOUR_CODE_API_KEY",
+        help="environment variable holding the endpoint's key; empty means no auth header",
+    ),
+    Setting(
+        "embedding.batch",
+        "int",
+        64,
+        minimum=1,
+        maximum=512,
+        help="units per embeddings request; one request per unit is unusable at scale",
+    ),
+    Setting("embedding.timeout", "int", 60, minimum=1, maximum=600, help="seconds to wait for one embeddings request"),
+    Setting(
+        "embedding.retries",
+        "int",
+        3,
+        minimum=0,
+        maximum=10,
+        help="attempts per request before the build aborts rather than mixing schemes",
+    ),
+    # Only consulted when the vectors carry real semantics. Under the feature
+    # hash a cosine shortlist is noise, and letting it add candidates would
+    # dilute a ranking that measured better without it; with a trained model
+    # it is the one thing that can make a unit retrievable that shares no word
+    # with the query.
+    Setting(
+        "search.vector_recall",
+        "int",
+        50,
+        minimum=0,
+        maximum=500,
+        help="units a semantic provider may add to the candidate set by similarity alone",
     ),
     Setting(
         "search.vector_weight",
@@ -186,6 +253,15 @@ def _coerce(setting: Setting, value: Any) -> Any:
                     f"Adding a language means adding a rule table entry in parser.py."
                 )
         return items
+    if setting.kind == "str":
+        if not isinstance(value, str):
+            raise ConfigError(f"{setting.path} must be a string")
+        text = value.strip()
+        if setting.members is not None and text not in setting.members:
+            raise ConfigError(
+                f"{setting.path}: {text!r} is not one of {', '.join(sorted(setting.members))}"
+            )
+        return text
     if setting.kind == "int":
         if isinstance(value, bool) or not isinstance(value, int):
             raise ConfigError(f"{setting.path} must be an integer")

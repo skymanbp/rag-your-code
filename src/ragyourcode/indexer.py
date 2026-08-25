@@ -16,7 +16,7 @@ from . import config as config_module
 from .annotate import comment_for
 from .config import Config
 from .descriptions import DescriptionStore, index_descriptions_fingerprint
-from .embeddings import embed, embedding_metadata
+from .embeddings import embed, embedder, embedding_metadata
 from .models import CodeUnit
 from .parser import PARSER_FINGERPRINT, parse_file
 
@@ -270,6 +270,7 @@ def build_units(
     cfg: Config | None = None,
     previous_build: str | None = None,
     descriptions: "DescriptionStore | None" = None,
+    embed_with=None,
 ) -> list[CodeUnit]:
     """Build units, reusing unchanged files and stable serials when possible.
 
@@ -315,10 +316,19 @@ def build_units(
             unit.vector = []
         if previous_serials.get(unit.id, unit.serial) != unit.serial or len(unit.vector) != dimensions:
             unit.vector = []
-        if not unit.vector:
-            # Embed the numbered sidecar comment together with source/context so
-            # retrieval is grounded in the same records users can review.
-            unit.vector = embed(comment_for(unit.description, unit.serial, unit.id) + "\n" + unit.searchable_text, dimensions)
+    # Embedded in one batched pass rather than inside the loop above, because a
+    # provider charges a round trip per request: eleven hundred units one at a
+    # time is not a slower version of the same thing, it is an unusable one.
+    # Units whose vectors were reused are not in `pending`, so an incremental
+    # run over an unchanged repository makes no request at all.
+    pending = [unit for unit in units if not unit.vector]
+    if pending:
+        # The numbered sidecar comment goes in with source and context, so
+        # retrieval is grounded in the same records users can review.
+        texts = [comment_for(unit.description, unit.serial, unit.id) + "\n" + unit.searchable_text for unit in pending]
+        vectors = (embed_with or embedder(cfg if cfg is not None else config_module.defaults())).many(texts)
+        for unit, vector in zip(pending, vectors):
+            unit.vector = vector
     return sorted(units, key=lambda item: (item.serial, item.id))
 
 
@@ -350,6 +360,7 @@ def write_index(
     snapshot: RepositorySnapshot | None = None,
     cfg: Config | None = None,
     descriptions_fingerprint: str | None = None,
+    embed_with=None,
 ) -> None:
     """Publishes the index atomically: vector data goes to a content-addressed
     side file first, then the readable metadata is swapped into place in one
@@ -398,7 +409,7 @@ def write_index(
         "files": files,
         "file_stats": snapshot.stats,
         "dimensions": dimensions,
-        "embedding": embedding_metadata(dimensions),
+        "embedding": (embed_with.metadata if embed_with is not None else embedding_metadata(dimensions, cfg["embedding.provider"], cfg["embedding.model"])),
         "units": serialized_units,
         "graph": graph or {"edges": []},
         "diagnostics": diagnostics or [],

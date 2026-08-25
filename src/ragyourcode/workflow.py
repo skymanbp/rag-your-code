@@ -15,7 +15,7 @@ from .annotate import comment_for
 from .config import Config
 from .descriptions import DescriptionStore, guidance
 from .document import plan as plan_documentation, summarise as summarise_documentation
-from .embeddings import embed
+from .embeddings import embedder
 
 def describe_batch(units: list, store: DescriptionStore, cfg: Config, limit: int) -> dict:
     """The work packet handed to an agent: what to describe, and how.
@@ -108,14 +108,21 @@ def apply_descriptions(units: list, store: DescriptionStore, cfg: Config) -> int
     discover that the work had an effect.
     """
     authored = store.applicable(units)
-    changed = 0
+    changed = []
     for unit in units:
         text = authored.get(unit.id)
         if text and unit.description != text:
             unit.description = text
-            unit.vector = embed(comment_for(text, unit.serial, unit.id) + "\n" + unit.searchable_text, cfg["embedding.dimensions"])
-            changed += 1
-    return changed
+            changed.append(unit)
+    if changed:
+        # One batched call rather than one per unit. A described batch is
+        # twenty units by default, and against a remote provider that is the
+        # difference between one round trip and twenty.
+        texts = [comment_for(unit.description, unit.serial, unit.id) + "\n" + unit.searchable_text for unit in changed]
+        for unit, vector in zip(changed, embedder(cfg).many(texts)):
+            unit.vector = vector
+    return len(changed)
+
 
 def bootstrap(units: list, store: DescriptionStore, cfg: Config, root: Path, index_report: dict, limit: int | None = None) -> dict:
     """Report how far this repository is from being searchable, and hand over

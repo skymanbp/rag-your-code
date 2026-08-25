@@ -119,6 +119,7 @@ def test_every_build_setting_is_covered_by_the_test_above():
     """Guard against a new affects_build setting arriving without a case."""
     assert {setting.path for setting in SETTINGS if setting.affects_build} == {
         "index.ignore", "index.suffixes", "index.max_file_bytes", "embedding.dimensions",
+        "embedding.provider", "embedding.endpoint", "embedding.model",
     }
 
 

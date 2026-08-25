@@ -9,12 +9,13 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass
 
 from .config import BY_PATH
-from .embeddings import DEFAULT_DIMENSIONS, embed, tokenize
+from .embeddings import DEFAULT_DIMENSIONS, LocalEmbedder, tokenize
 from .models import CodeUnit, SearchResult
 
 # Named here rather than repeated as a literal so `search.vector_weight` in
 # rag-your-code.toml and the default a direct caller gets cannot drift apart.
 DEFAULT_VECTOR_WEIGHT: float = BY_PATH["search.vector_weight"].default
+DEFAULT_VECTOR_RECALL: int = BY_PATH["search.vector_recall"].default
 
 # How much a word counts for, by the field the author wrote it in. A term in
 # the name is what the declaration is called; the same term inside the body is
@@ -61,13 +62,20 @@ class SearchIndex:
 
     Lists are kept sorted by unit id so membership can be answered by binary
     search. The same structure can later be backed by SQLite/ANN storage.
+
+    The embedder lives here because a query vector and a unit vector have to
+    come from the same scheme to be comparable at all. Keeping it beside the
+    postings is what makes that impossible to get wrong from a call site --
+    comparing a query embedded one way against units embedded another produces
+    numbers that look fine and mean nothing.
     """
 
     units: dict[str, CodeUnit]
     postings: dict[str, tuple[tuple[str, float], ...]]
+    embedder: object = None
 
 
-def build_search_index(units: list[CodeUnit]) -> SearchIndex:
+def build_search_index(units: list[CodeUnit], embed_with=None) -> SearchIndex:
     """Builds the inverted lookup table, recording for each term the units that
     contain it and how much it counts for in each.
 
@@ -109,6 +117,7 @@ def build_search_index(units: list[CodeUnit]) -> SearchIndex:
     return SearchIndex(
         {unit.id: unit for unit in units},
         {term: tuple(sorted(entries)) for term, entries in postings.items()},
+        embed_with if embed_with is not None else LocalEmbedder(len(units[0].vector) if units and units[0].vector else DEFAULT_DIMENSIONS),
     )
 
 
@@ -139,6 +148,7 @@ def search(
     limit: int = 8,
     search_index: SearchIndex | None = None,
     vector_weight: float = DEFAULT_VECTOR_WEIGHT,
+    vector_recall: int = DEFAULT_VECTOR_RECALL,
 ) -> list[SearchResult]:
     """Ranks code units against a natural-language query by combining weighted
     word overlap with vector similarity.
@@ -156,13 +166,27 @@ def search(
     term, since computing a dot product for everything a stopword-class term
     touches is pure cost. With no overlap anywhere it falls back to similarity
     alone.
+
+    When -- and only when -- the embedder carries real semantics, similarity
+    may also *add* candidates the words never reached. That is the one thing a
+    vector can do that ranking cannot: six of thirty-five questions on the
+    foreign ruler have no acceptable answer sharing a single token with the
+    query, and no weighting makes those reachable. Under the feature hash the
+    same widening is measurably harmful, because a cosine over hashed token
+    overlap ranks unrelated units confidently, so it stays switched off there.
+    Lexical evidence remains dominant either way: a unit found by similarity
+    alone scores at most `vector_weight`, so it surfaces where the words found
+    little and yields where they found a lot.
     """
     query_tokens = set(tokenize(query))
     if limit <= 0 or not query_tokens:
         return []
-    query_vector = embed(query, len(units[0].vector) if units and units[0].vector else DEFAULT_DIMENSIONS)
-    query_features = [(index, value) for index, value in enumerate(query_vector) if value]
     search_index = search_index or build_search_index(units)
+    # The query goes through the index's own embedder, never the module-level
+    # one: a query vector from a different scheme than the units it is
+    # compared against yields numbers that look like scores and are not.
+    query_vector = search_index.embedder.one(query)
+    query_features = [(index, value) for index, value in enumerate(query_vector) if value]
     postings = [(token, search_index.postings.get(token, ())) for token in query_tokens]
     document_count = len(search_index.units) or 1
 
@@ -206,6 +230,23 @@ def search(
     # With no lexical overlap anywhere, fall back to pure cosine so a genuine
     # paraphrase still retrieves something.
     candidate_ids = lexical_scores.keys() if lexical_scores else search_index.units.keys()
+    # Semantics may add candidates; hashed token overlap may not. This is the
+    # single place a vector can change what is *found* rather than what order
+    # things are returned in, and it is gated on the embedder because the same
+    # widening measured worse under the feature hash.
+    if lexical_scores and vector_recall > 0 and query_features and getattr(search_index.embedder, "semantic", False):
+        width = len(query_vector)
+        nearest = heapq.nlargest(
+            vector_recall,
+            (
+                (sum(value * unit.vector[index] for index, value in query_features), unit_id)
+                for unit_id, unit in search_index.units.items()
+                if unit_id not in lexical_scores and len(unit.vector) == width
+            ),
+        )
+        if nearest:
+            vector_ids.update(unit_id for _, unit_id in nearest)
+            candidate_ids = list(lexical_scores) + [unit_id for _, unit_id in nearest]
     scored: list[tuple[float, str]] = []
     for unit_id in candidate_ids:
         unit = search_index.units[unit_id]
