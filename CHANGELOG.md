@@ -3,6 +3,88 @@
 Notable changes per release. Dates are the release date; measurements are from
 the development machine (Windows 11, CPython 3.13) and are directional.
 
+## 0.6.0 — 2026-08-25
+
+0.5.0 asked where retrieval's vocabulary comes from. This release asks what
+happens to that vocabulary once it is there, and the answer was: not much. The
+score was the fraction of a query's words a unit contained. Every word weighed
+the same, nothing corrected for size, and it made no difference whether a word
+was the declaration's name or the two-hundredth line of its body.
+
+None of the existing rulers could see this. They all graded a repository
+written by the same people who wrote the questions, on an index where every
+unit under `src/` carries a hand-written bilingual description. Indexed cold
+against a foreign repository — 1153 units, no descriptions — the same code
+scored 0.086 hit@1 against the 0.457 this project had been reporting.
+
+### Added
+
+- **A third ruler, over code nobody here wrote.**
+  `benchmarks/cold_queries.json` asks thirty-five questions about cc-enforcer,
+  in English and Chinese, phrased in a user's words rather than in the words
+  of the docstring that answers them. Answers were verified one at a time
+  against real declarations. The graded repository is external, so the ruler
+  is skipped when it is absent rather than silently scored as zero.
+- **`repo_queries.py --cold`**, which grades the existing seventy questions
+  against units built with no description store — the portable half of the
+  same question, and the one that runs anywhere.
+- **`omitted_for_budget`** in both JSON search responses, saying how many
+  results the context budget dropped.
+
+### Changed
+
+- **Ranking is BM25 over weighted fields.** A term's worth now comes from how
+  rare it is in the corpus being searched, its count is normalised against the
+  average length of the field it appeared in, and fields are weighted: name 8,
+  signature 4, description 3, relations 2, body 1. Rarity is derived rather
+  than listed, so there is no stopword table to maintain and the mechanism
+  works on Chinese bigrams exactly as it does on English words.
+
+  Measured on identical content, three rulers, nine metrics, all up:
+
+  | ruler | hit@1 | hit@3 | MRR |
+  |---|---|---|---|
+  | cold, foreign repository (35) | 0.086 → **0.257** | 0.229 → **0.400** | 0.157 → **0.314** |
+  | cold, this repository (70) | 0.200 → **0.271** | 0.357 → **0.486** | 0.271 → **0.367** |
+  | described, this repository (70) | 0.457 → **0.500** | 0.657 → **0.800** | 0.545 → **0.631** |
+
+- **`CodeUnit.searchable_fields`** is the single definition of what retrieval
+  may match, and `searchable_text` is now derived from it. The unit vectors
+  are unchanged, bit for bit: the join differs by one whitespace character and
+  the tokenizer does not distinguish them.
+- **The context budget bounds the results, not only the context.** `search
+  --json` at its default limit served 65,025 characters against a stated
+  budget of 12,000, because the cap applied to the context string while every
+  result was serialised beside it in full — and the results are the half an
+  agent reads. The same budget now decides how many results there are. The
+  first result is always returned even when it alone exceeds the budget,
+  because finding something and returning nothing is worse than one oversized
+  answer.
+
+### Measured and rejected
+
+Four changes were implemented and dropped, which is what three rulers are for.
+Excluding curated text from a unit's length, counting authored words instead
+of tokeniser output, and lowering `b` each moved one to four questions in both
+directions at once. **Splitting identifiers into words** — the largest-looking
+win available, since `retry_charge` currently tokenizes to one opaque term —
+was equal or worse on all three rulers once the query and the stored vectors
+were rebuilt together: the pieces are `get`, `find`, `check`, `test`, which
+rarity weighting immediately discounts to nothing.
+
+### Known limits
+
+A test declaration often outranks the code it tests: 11 of 35 top-1 results on
+the cold ruler, improved from 14. It repeats that code's vocabulary and adds
+its own assertions, which BM25 counts as evidence. A path heuristic would fix
+the number and be wrong in principle.
+
+Ablating the vector layer now costs nothing measurable on a foreign repository
+and one question of seventy here, where it used to cost 0.114 of hit@1. That
+earlier contribution was term frequency and length normalisation delivered
+through a lossy hash — the two things BM25 now does properly — and never
+semantics. The vectors remain 55% of an index's size.
+
 ## 0.5.0 — 2026-08-25
 
 0.4.0 asked where retrieval's vocabulary comes from and answered "whatever an

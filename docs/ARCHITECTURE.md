@@ -23,11 +23,33 @@ and cosine over it is a normalised measure of *token overlap*, not of meaning:
 
 A trained embedding model scores row 2 around 0.8. Here the synonym pair and
 the unrelated pair are indistinguishable, because no shared token is no shared
-token. What makes retrieval work regardless is that identifiers and docstrings
-are already natural language: `retry_charge` contains *retry* and *charge*.
-What it cannot do is reach a concept nobody wrote down — which is what
+token. What makes retrieval work regardless is that the prose people write
+about code — docstrings, comments, descriptions — is already natural language.
+
+Identifiers are *not* part of that, and it is worth being exact about it.
+`retry_charge` tokenizes to one opaque term, not to `retry` and `charge`; so
+does `TestRetryCharge`, and so does `_find_hardcoded_secret`. Splitting them
+was implemented and measured against all three rulers, with the query and the
+stored vectors rebuilt together so the comparison was not confounded, and it
+was **equal or worse on every one**: the pieces it produces are `get`, `find`,
+`check`, `test`, `handler`, which are exactly the words rarity weighting then
+discounts to nothing, while the exact-identifier signal is diluted among them.
+The words already reach retrieval through docstrings and through the
+humanised name in the generated description.
+
+What none of this can do is reach a concept nobody wrote down — which is what
 agent-authored descriptions exist to fix, and why they are described below as
 keyword expansion rather than as semantics.
+
+### What the vector is actually contributing
+
+`vector[bucket(term)] += sign` accumulates a term frequency, and the vector is
+then divided by its own magnitude. So the cosine is term frequency with length
+normalisation — the two things the old lexical score lacked — delivered
+through 384 lossy buckets. That is why switching it off used to cost 0.114 of
+hit@1, and why, once BM25 did those two things properly, the same ablation
+costs **nothing at all on a foreign repository** and one question of seventy
+on this one. It carries no semantics and never did.
 
 ## Current end-to-end path
 
@@ -251,10 +273,52 @@ fingerprint covers.
 
 ## Retrieval strategy
 
-Results combine lexical overlap (exact symbols, error names) with cosine
-similarity (ranking among lexical matches). The JSON response includes score,
-matched terms, location, description and source. Agents should treat retrieval
-as navigation evidence, then open the cited source before editing.
+Results combine a weighted lexical score (exact symbols, error names, rare
+domain terms) with cosine similarity (ranking among lexical matches). The JSON
+response includes score, matched terms, location, description and source.
+Agents should treat retrieval as navigation evidence, then open the cited
+source before editing.
+
+### How a match is scored
+
+BM25F: for each query term, how often it occurs in each of a unit's fields,
+divided by how long that field is against the average for that same field,
+scaled by what the field is worth, saturated so a repeated word cannot run
+away, and weighted by how rare the term is across the corpus.
+
+| field | weight | why |
+|---|---|---|
+| `name` | 8 | what the author decided to call the thing |
+| `signature` | 4 | what it takes and returns |
+| `description` | 3 | what it is for, generated or written |
+| `relations` | 2 | what it calls and imports |
+| `body` | 1 | everything it happens to mention |
+
+Three properties matter, and none of them was present before 0.6.0:
+
+- **Rarity, derived from the corpus, not from a stopword list.** A word in
+  nearly every unit says nothing about which unit is wanted. On a foreign
+  repository `calls` reached 97% of units and `the` 49%, while `daemon`
+  reached two and `warm` none — and the score was four-sixths decided by the
+  words carrying no information. Deriving this from the corpus is what makes
+  it work in any language: a Chinese bigram earns its weight the same way.
+- **Length, per field rather than per unit.** The largest declaration held 539
+  distinct terms against a median of 52, so it could contain any query by
+  accident, and it came back for four questions out of six. Normalising each
+  field against its own average is the part that matters: measured against one
+  length for the whole unit, a long body's advantage in raw count almost
+  exactly cancelled its penalty for being long.
+- **Where the word is.** A term in a name is what a declaration is called; the
+  same term two hundred lines into a body is a mention.
+
+`CodeUnit.searchable_fields` is the single definition of what retrieval may
+match, and `searchable_text` — what a unit is embedded from — is derived from
+it, so a field added for ranking cannot go missing from the vector. A test
+asserts the weight table covers every field.
+
+The known limit is that a test declaration often outranks the code it tests,
+because it repeats that code's vocabulary and adds assertions of its own. On
+the foreign ruler that is 11 of 35 top-1 results, down from 14.
 
 Two candidate sets, with distinct jobs. Every unit reached by any query term is
 scored, so recall is complete. A *selective* subset — the units reached by a term

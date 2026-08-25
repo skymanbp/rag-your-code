@@ -52,6 +52,15 @@ The test suite currently covers:
 - the parser as a recorded input: a changed parser forcing a rebuild, an index
   predating the field rebuilding once, and the fingerprint being derived from
   the module rather than declared;
+- ranking: a word in almost every unit shown unable to decide an ordering, a
+  two-hundred-line declaration shown not to win on size in a corpus large
+  enough that no vector score is computed, the same word shown to count for
+  more in a name than in a body, every searchable field shown to carry a
+  weight, and the evidence list shown to survive postings that now carry a
+  weight beside each id;
+- the context budget: shown to bound the results an agent reads and not only
+  the string beside them, and shown to return the first result even when that
+  result alone is larger than the budget;
 - promotion: a patch `git apply` actually applies for four language families,
   every supported language having a documentation convention, an already
   documented declaration left alone, CRLF endings preserved, several
@@ -67,7 +76,7 @@ read, parsed to nothing, and reported as a clean index. And the 3.10 TOML
 reader is checked against `tomllib` over sixteen inputs on every version that
 ships one, so the fallback cannot drift away from the real grammar in silence.
 
-## The two rulers
+## The three rulers
 
 `benchmarks/golden.json` grades ranking over the five-file synthetic fixture
 and is asserted in CI. It is a regression tripwire, and it cannot resolve a
@@ -80,15 +89,50 @@ this repository's own source, in English and Chinese, each listing every unit
 that genuinely answers it rather than one expected file — a single expected
 answer once made a correct result read as a miss. Questions are keyed on file
 path and declaration name, never on line, so the ruler survives the edit that
-orphaned nineteen descriptions in 0.4.1.
+orphaned nineteen descriptions in 0.4.1. Run it with `--cold` and it grades
+the same questions against units built with no description store, which is
+what a repository nobody has run `describe` on contains.
 
-`tests/test_repo_queries.py` guards the ruler rather than the score. Every
+`benchmarks/cold_queries.json` grades thirty-five questions about
+**cc-enforcer**, a repository nobody here wrote, indexed with no descriptions
+at all. It exists because the other two cannot see what a first-time user
+gets. Every defect fixed in 0.6.0 was invisible to them and obvious here:
+scoring by the fraction of query words present put the single largest
+declaration in the top three for four questions out of six, and left `calls`
+(97% of units) outweighing `daemon` (two units). Its questions are phrased in
+a user's words rather than in the words of the docstring that answers them, so
+a hit means retrieval bridged a paraphrase instead of echoing a string it was
+handed. The graded repository is external: when it is absent the ruler is
+skipped, never silently scored as zero.
+
+A change that helps one ruler and hurts another is a trade, not an
+improvement, and that is not visible from a single one. Three variations on
+length normalisation were measured across all three before 0.6.0 settled, and
+two were dropped because they moved one to four questions in both directions
+at once — this instrument's noise.
+
+`tests/test_repo_queries.py` guards the rulers rather than the score. Every
 acceptable answer must name a unit that exists, both languages must be
-present, and at least one question must still fail — a ruler everything
-passes cannot measure an improvement. The score itself is asserted nowhere: it
-falls whenever the repository gains code nobody has described yet, which is
-ordinary development and not a regression. It caught a rename the moment it
-happened, loudly, instead of quietly scoring lower.
+present, ids must be unique, and at least one question must still fail — a
+ruler everything passes cannot measure an improvement. The score itself is
+asserted nowhere: it falls whenever the repository gains code nobody has
+described yet, which is ordinary development and not a regression. It caught a
+rename the moment it happened, loudly, instead of quietly scoring lower. The
+one comparison that *is* asserted is the relative one: written descriptions
+must beat generated ones, which used to be a comment quoting two numbers that
+had both gone stale.
+
+### What the ranking still gets wrong
+
+A test declaration often outranks the code it tests. It repeats that code's
+vocabulary and adds the vocabulary of its assertions, and BM25 counts that as
+evidence — correctly, by its own lights. On the foreign ruler this is 11 of 35
+top-1 results, improved from 14 but not solved. A path heuristic would fix the
+number and be wrong in principle, since sometimes the test *is* the answer.
+
+Identifier splitting was the obvious candidate fix and is measured *not* to
+work; the reasoning and the numbers are in
+[ARCHITECTURE.md](ARCHITECTURE.md#what-this-is-precisely).
 
 ## Tests that read the documentation
 
@@ -118,6 +162,13 @@ Stated plainly, because a green suite says nothing about what it never runs.
   seventy-question ruler, whose questions were written by the same party that
   wrote the descriptions. That measures "can retrieval find the thing the
   author meant", not "is the author's meaning discoverable by a stranger".
+  The cold ruler removes one half of that circle — nobody here wrote the code
+  it grades — but not the other: the questions are still ours.
+- **Retrieval on a repository with no English in it.** Both cold rulers score
+  Chinese questions at zero, because the code they grade contains no Chinese
+  for a Chinese query to match. That is a property of those repositories, not
+  a measurement of the CJK path, and nothing here covers the case of a
+  codebase commented in Chinese and queried in English.
 - **Repositories much past 10,000 units.** The measured envelope is the
   synthetic benchmark's; beyond roughly 100k units the JSON storage layer is
   expected to be the limit, and that expectation is untested.

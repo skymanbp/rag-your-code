@@ -84,6 +84,20 @@ documentation, so writing that description into the source as a docstring
 discarded it. Before adding a check, ask what it is protecting against and
 whether the thing it watches can actually cause that harm.
 
+**A ruler over your own repository cannot see the first-time user.** Rarity
+weighting was implemented in 0.5.0, measured on this project's own questions,
+and dropped as "no evidence". It was measured in the one place the defect is
+masked: an index where every unit carries a hand-written bilingual
+description. On a foreign repository with none, the same change tripled hit@1.
+If a feature exists to help someone who has not set anything up yet, measure
+it on a repository that has not been set up.
+
+**Before comparing two configurations, check they are comparable.** Measuring
+a tokenizer change against stored indexes made the query vectors and the unit
+vectors disagree, and the resulting numbers described nothing. The comparison
+only became honest once both sides were rebuilt together — and it then
+reversed the conclusion.
+
 ## Adding a setting
 
 `config.py` holds one settings table. Add a row and the loader, the validator,

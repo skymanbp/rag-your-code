@@ -171,18 +171,48 @@ Chinese, each listing every unit that genuinely answers it
 
 | | generated descriptions | agent-written |
 |---|---|---|
-| hit@1 | 0.171 | **0.500** |
-| hit@3 | 0.314 | **0.729** |
-| MRR | 0.240 | **0.605** |
-| answered with no shared word at all | 15.7% | **0%** |
+| hit@1 | 0.271 | **0.500** |
+| hit@3 | 0.486 | **0.800** |
+| MRR | 0.367 | **0.631** |
+| answered with no shared word at all | 12.9% | **0%** |
 
-Roughly a threefold improvement in first-place accuracy. Nineteen questions
-still fail, which is what makes the set usable for measuring the next change;
-`tests/test_repo_queries.py` asserts that some question always does.
+Roughly double the first-place accuracy. Fourteen questions still fail, which
+is what makes the set usable for measuring the next change;
+`tests/test_repo_queries.py` asserts that some question always does, and that
+the written column beats the generated one.
 
 One failure is worth naming: a query saying `catastrophic backtracking` does
 not reach a description saying `backtracks catastrophically`. There is no
 stemming — exactly the limit documented above.
+
+### Measured on a repository nobody here wrote
+
+The table above is the warmest case this project supports: its own code, its
+own descriptions, and questions written by the same party. It cannot say what
+a first-time user gets. So there is a second ruler — thirty-five questions
+about [cc-enforcer](https://github.com/skymanbp/cc-enforcer), 1153 units, no
+descriptions at all, each question phrased in a user's words rather than in
+the words of the docstring that answers it
+([`benchmarks/cold_queries.json`](benchmarks/cold_queries.json)):
+
+| | before 0.6.0 | now |
+|---|---|---|
+| hit@1 | 0.086 | **0.257** |
+| hit@3 | 0.229 | **0.400** |
+| MRR | 0.157 | **0.314** |
+
+Three times the first-place accuracy, and the same change moved both other
+rulers in the same direction. What it fixed was ranking: scoring used to be
+the fraction of query words a unit contained, so `the` counted for as much as
+`daemon`, and nothing corrected for size — the single largest declaration in
+that repository came back in the top three for four questions out of six. It
+is now BM25 over weighted fields, where a word's worth comes from how rare it
+is in *your* corpus and a word in a declaration's name outweighs the same word
+buried in a body.
+
+Twenty-one of the thirty-five still fail, and the largest remaining cause is
+named in [docs/TESTING.md](docs/TESTING.md): a test declaration often outranks
+the code it tests, because it repeats that code's vocabulary and adds its own.
 
 **What this is:** it moves the semantic work from query time to index time.
 Matching stays lexical. It is LLM-authored keyword expansion, and its reach is

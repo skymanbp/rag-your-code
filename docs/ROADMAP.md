@@ -162,11 +162,20 @@ decision.
 There is no stemming. A description saying `backtracks catastrophically` does
 not answer a query saying `catastrophic backtracking`, and that appears in the
 measured results as a miss. A conservative suffix stripper was tried and
-measured: on the eight-question set it fixed that query and broke another, and
-term-rarity weighting changed nothing at all because the query's two
-informative words matched no unit under any weighting. Both were dropped for
-want of evidence, not for want of an implementation, and the seventy-question
-ruler now exists to settle them.
+measured on the eight-question set: it fixed that query and broke another.
+That set could not resolve the difference, and the question is still open.
+
+Term-rarity weighting was in the same paragraph, dropped for the same stated
+reason, and that was **wrong** — see 0.6.0 below. It was measured on this
+repository, where every unit carries a hand-written bilingual description and
+the defect is masked. On a foreign repository with no descriptions the same
+mechanism tripled hit@1. The lesson is recorded in CONTRIBUTING.md.
+
+A test declaration often outranks the code it tests: 11 of 35 top-1 results on
+the cold ruler, down from 14 but not solved. Excluding `tests/` by path would
+move the number and be wrong in principle, since sometimes the test is the
+answer. No mechanism that separates them on evidence rather than on location
+has been found yet.
 
 ## 0.4.0
 
@@ -372,6 +381,59 @@ that made an unchanged query path look like a regression in 0.4.0. So seventy
 questions were written before anything else, and its own score is asserted
 nowhere: it falls whenever the repository gains undescribed code, which is
 ordinary development.
+
+## 0.6.0 — ranking, measured somewhere it could fail
+
+Every ruler this project had graded a repository its own authors wrote, and
+0.5.0's own summary said the score was 0.457 hit@1. Indexed cold against
+cc-enforcer — 1153 units, no descriptions, questions in a user's words — the
+same code scored **0.086**, and the reason was not the vocabulary the previous
+release worked on. It was ranking.
+
+| defect | how it showed | fix |
+|---|---|---|
+| Every query word weighed the same | `calls` reached 97% of units and `the` 49%, against `daemon` at two and `warm` at none; the score was four-sixths noise | inverse document frequency, derived from the corpus, so it needs no stopword list and works in any language |
+| Nothing corrected for size | largest declaration held 539 distinct terms against a median of 52, and led the top three for four questions of six | BM25 length normalisation, per field |
+| A word counted the same wherever it was | test declarations outranked the code they test | field weights: name 8, signature 4, description 3, relations 2, body 1 |
+
+Measured on identical content, all three rulers moved in the same direction:
+
+| ruler | hit@1 | hit@3 | MRR |
+|---|---|---|---|
+| cold, foreign repository (35) | 0.086 → **0.257** | 0.229 → **0.400** | 0.157 → **0.314** |
+| cold, this repository (70) | 0.200 → **0.271** | 0.357 → **0.486** | 0.271 → **0.367** |
+| described, this repository (70) | 0.457 → **0.500** | 0.657 → **0.800** | 0.545 → **0.631** |
+
+### What was measured and rejected
+
+Four changes were implemented, measured, and dropped — which is the point of
+having three rulers rather than one.
+
+- **Excluding curated text from a unit's length**, on the argument that a
+  written description is deliberate rather than incidental: one question
+  better on two rulers, three worse on the third.
+- **Counting authored words rather than tokeniser output**, so a run of
+  Chinese expanded into bigrams would not read as five times the text:
+  identical on two rulers of three.
+- **Lowering `b` to 0.5 or 0.3**: worse than the standard 0.75 on the cold
+  ruler.
+- **Splitting identifiers into words** — `retry_charge` into `retry` and
+  `charge`. This looked like the largest available win, since identifiers are
+  the densest vocabulary in code and are currently opaque. Measured with query
+  and stored vectors rebuilt together, it was equal or worse on all three
+  rulers: the pieces are `get`, `find`, `check`, `test`, which rarity
+  weighting immediately discounts, while the exact-identifier signal is
+  diluted among them.
+
+### What the vector turned out to be
+
+Ablating it used to cost 0.114 of hit@1, which read as evidence that the
+feature hash was doing something. It was: `vector[bucket] += sign` followed by
+a division by the magnitude is term frequency with length normalisation, the
+two things the lexical score lacked. Once BM25 supplied both properly, the
+same ablation costs **nothing measurable on a foreign repository**. The
+vectors are 55% of an index's size and are now earning almost none of it.
+Removing them is a schema decision, not a ranking one, and has not been taken.
 
 ## Non-goals
 
