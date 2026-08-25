@@ -1,0 +1,476 @@
+{
+  "k": 3,
+  "repository": "cc-enforcer",
+  "why": "Grades retrieval on a repository nobody here wrote. The seventy questions in repo_queries.json are asked about this project's own source, by the same party that wrote both the code and its descriptions, on an index where every unit under src/ carries a hand-written bilingual description. That is the warmest case there is, and it cannot see what a first-time user sees: a foreign repository, zero descriptions, ranking decided by nothing but the words the author happened to use.",
+  "caveat": "The questions are phrased in a user's words on purpose, not in the words of the docstring that answers them, so a hit means retrieval bridged a paraphrase rather than echoing a string it was handed. Answers were verified one by one against the declarations in the graded repository. The repository itself is external: when it is absent this ruler is skipped, never silently scored as zero.",
+  "queries": [
+    {
+      "id": "cold-secret-en",
+      "language": "en",
+      "kind": "concept",
+      "query": "what stops an API key from being pasted straight into a file",
+      "acceptable": [
+        [
+          "hooks/scripts/read_guard.py",
+          "_find_hardcoded_secret"
+        ]
+      ]
+    },
+    {
+      "id": "cold-secret-zh",
+      "language": "zh",
+      "kind": "concept",
+      "query": "怎么拦住把密钥写死在代码里",
+      "acceptable": [
+        [
+          "hooks/scripts/read_guard.py",
+          "_find_hardcoded_secret"
+        ]
+      ]
+    },
+    {
+      "id": "cold-homepath",
+      "language": "en",
+      "kind": "concept",
+      "query": "keep somebody's own home folder out of the source",
+      "acceptable": [
+        [
+          "hooks/scripts/read_guard.py",
+          "_find_path_dependency"
+        ]
+      ]
+    },
+    {
+      "id": "cold-swallow",
+      "language": "en",
+      "kind": "why",
+      "query": "catch an error handler that silently swallows the failure",
+      "acceptable": [
+        [
+          "hooks/scripts/read_guard.py",
+          "_scan_bare_try_except_pass"
+        ]
+      ]
+    },
+    {
+      "id": "cold-suppress",
+      "language": "en",
+      "kind": "concept",
+      "query": "a suppression comment with no explanation written beside it",
+      "acceptable": [
+        [
+          "hooks/scripts/read_guard.py",
+          "_find_unjustified_patch_marker"
+        ],
+        [
+          "hooks/scripts/read_guard.py",
+          "_has_rationale_at"
+        ],
+        [
+          "hooks/scripts/read_guard.py",
+          "_inline_reason_is_substantive"
+        ]
+      ]
+    },
+    {
+      "id": "cold-editsize",
+      "language": "en",
+      "kind": "concept",
+      "query": "decide whether this change is a tiny tweak or a real rewrite",
+      "acceptable": [
+        [
+          "hooks/scripts/read_guard.py",
+          "_classify_change"
+        ]
+      ]
+    },
+    {
+      "id": "cold-rolling-zh",
+      "language": "zh",
+      "kind": "why",
+      "query": "同一个文件被反复小修小补怎么发现",
+      "acceptable": [
+        [
+          "hooks/scripts/lib/state.py",
+          "try_record_small_edit"
+        ],
+        [
+          "hooks/scripts/read_guard.py",
+          "_handle_pre_tool_use._check_rolling_patch"
+        ],
+        [
+          "hooks/scripts/read_guard.py",
+          "_classify_change"
+        ]
+      ]
+    },
+    {
+      "id": "cold-forcepush",
+      "language": "en",
+      "kind": "symbol",
+      "query": "refuse a force push unless it is the safe lease variant",
+      "acceptable": [
+        [
+          "hooks/scripts/bash_guard.py",
+          "_detect_force_push"
+        ]
+      ]
+    },
+    {
+      "id": "cold-wipe",
+      "language": "en",
+      "kind": "why",
+      "query": "block a delete that would take out the whole machine",
+      "acceptable": [
+        [
+          "hooks/scripts/bash_guard.py",
+          "_is_catastrophic_rm"
+        ],
+        [
+          "hooks/scripts/bash_guard.py",
+          "_is_dangerous_rm_target"
+        ]
+      ]
+    },
+    {
+      "id": "cold-perm",
+      "language": "en",
+      "kind": "symbol",
+      "query": "reject making a file writable by everyone",
+      "acceptable": [
+        [
+          "hooks/scripts/bash_guard.py",
+          "_is_chmod_777"
+        ]
+      ]
+    },
+    {
+      "id": "cold-oldstate",
+      "language": "en",
+      "kind": "concept",
+      "query": "throw away leftovers from sessions that finished long ago",
+      "acceptable": [
+        [
+          "hooks/scripts/gc_state.py",
+          "prune_old_sessions"
+        ]
+      ]
+    },
+    {
+      "id": "cold-i18n-en",
+      "language": "en",
+      "kind": "concept",
+      "query": "has the translation fallen behind the original",
+      "acceptable": [
+        [
+          "hooks/scripts/i18n_check.py",
+          "check_sync"
+        ]
+      ]
+    },
+    {
+      "id": "cold-i18n-zh",
+      "language": "zh",
+      "kind": "concept",
+      "query": "翻译版文档和英文版有没有脱节",
+      "acceptable": [
+        [
+          "hooks/scripts/i18n_check.py",
+          "check_sync"
+        ]
+      ]
+    },
+    {
+      "id": "cold-clip",
+      "language": "en",
+      "kind": "why",
+      "query": "drop entries so the injected text fits inside the size limit",
+      "acceptable": [
+        [
+          "hooks/scripts/inject_context.py",
+          "_clip_edicts"
+        ],
+        [
+          "hooks/scripts/inject_context.py",
+          "build_context"
+        ]
+      ]
+    },
+    {
+      "id": "cold-sessionid",
+      "language": "en",
+      "kind": "concept",
+      "query": "where does the identifier for this session come from",
+      "acceptable": [
+        [
+          "hooks/scripts/inject_context.py",
+          "_session_id_from"
+        ]
+      ]
+    },
+    {
+      "id": "cold-doneclaim",
+      "language": "en",
+      "kind": "concept",
+      "query": "did the assistant announce that it had finished",
+      "acceptable": [
+        [
+          "hooks/scripts/stop_guard.py",
+          "_has_done_claim"
+        ]
+      ]
+    },
+    {
+      "id": "cold-hedge",
+      "language": "en",
+      "kind": "why",
+      "query": "an uncertain word sitting right next to a claim of completion",
+      "acceptable": [
+        [
+          "hooks/scripts/stop_guard.py",
+          "_has_hedge_near_done"
+        ]
+      ]
+    },
+    {
+      "id": "cold-tldr",
+      "language": "en",
+      "kind": "concept",
+      "query": "is there a short plain summary at the end of the answer",
+      "acceptable": [
+        [
+          "hooks/scripts/stop_guard.py",
+          "_has_tldr"
+        ]
+      ]
+    },
+    {
+      "id": "cold-tldrlong",
+      "language": "en",
+      "kind": "concept",
+      "query": "a summary item that runs past its character cap",
+      "acceptable": [
+        [
+          "hooks/scripts/stop_guard.py",
+          "_find_overlong_tldr"
+        ]
+      ]
+    },
+    {
+      "id": "cold-transcript",
+      "language": "en",
+      "kind": "concept",
+      "query": "pull the assistant's last message out of the conversation log",
+      "acceptable": [
+        [
+          "hooks/scripts/stop_guard.py",
+          "_last_assistant_message_from_transcript"
+        ]
+      ]
+    },
+    {
+      "id": "cold-fileclaim",
+      "language": "en",
+      "kind": "why",
+      "query": "confirm the file it says it changed was really touched",
+      "acceptable": [
+        [
+          "hooks/scripts/stop_guard.py",
+          "_extract_file_claims"
+        ],
+        [
+          "hooks/scripts/stop_guard.py",
+          "_verify_claims"
+        ],
+        [
+          "hooks/scripts/lib/state.py",
+          "record_baseline"
+        ]
+      ]
+    },
+    {
+      "id": "cold-table-zh",
+      "language": "zh",
+      "kind": "concept",
+      "query": "把每一层通过与否渲染成表格",
+      "acceptable": [
+        [
+          "hooks/scripts/stop_guard.py",
+          "_render_status_table"
+        ]
+      ]
+    },
+    {
+      "id": "cold-syncgroup",
+      "language": "en",
+      "kind": "concept",
+      "query": "which other files have to be updated alongside this one",
+      "acceptable": [
+        [
+          "hooks/scripts/lib/sync_gate.py",
+          "evaluate"
+        ]
+      ]
+    },
+    {
+      "id": "cold-glob",
+      "language": "en",
+      "kind": "symbol",
+      "query": "does this path match any of the patterns",
+      "acceptable": [
+        [
+          "hooks/scripts/lib/sync_gate.py",
+          "matches_any"
+        ]
+      ]
+    },
+    {
+      "id": "cold-projroot",
+      "language": "en",
+      "kind": "concept",
+      "query": "work out where the top of the repository is",
+      "acceptable": [
+        [
+          "hooks/scripts/lib/projroot.py",
+          "looks_like_project_root"
+        ],
+        [
+          "hooks/scripts/lib/projroot.py",
+          "cwd_if_project_root"
+        ]
+      ]
+    },
+    {
+      "id": "cold-shellsplit",
+      "language": "en",
+      "kind": "concept",
+      "query": "split one command line into the separate commands it runs",
+      "acceptable": [
+        [
+          "hooks/scripts/lib/shellcmd.py",
+          "segments"
+        ],
+        [
+          "hooks/scripts/lib/shellcmd.py",
+          "tokenize"
+        ]
+      ]
+    },
+    {
+      "id": "cold-gitsub",
+      "language": "en",
+      "kind": "symbol",
+      "query": "which git subcommand is this invocation running",
+      "acceptable": [
+        [
+          "hooks/scripts/lib/shellcmd.py",
+          "git_subcommand"
+        ]
+      ]
+    },
+    {
+      "id": "cold-lang",
+      "language": "en",
+      "kind": "concept",
+      "query": "guess the programming language from the file name",
+      "acceptable": [
+        [
+          "hooks/scripts/lib/srclex.py",
+          "lang_for_path"
+        ]
+      ]
+    },
+    {
+      "id": "cold-mask",
+      "language": "en",
+      "kind": "why",
+      "query": "blank out string contents so a scan cannot look inside them",
+      "acceptable": [
+        [
+          "hooks/scripts/lib/srclex.py",
+          "mask_literals"
+        ]
+      ]
+    },
+    {
+      "id": "cold-comments",
+      "language": "en",
+      "kind": "concept",
+      "query": "find where the human-written comments are in a file",
+      "acceptable": [
+        [
+          "hooks/scripts/lib/srclex.py",
+          "comment_text"
+        ],
+        [
+          "hooks/scripts/lib/srclex.py",
+          "doc_spans"
+        ]
+      ]
+    },
+    {
+      "id": "cold-continuation",
+      "language": "en",
+      "kind": "why",
+      "query": "join lines that carry on because a bracket is still open",
+      "acceptable": [
+        [
+          "hooks/scripts/lib/srclex.py",
+          "logical_lines"
+        ]
+      ]
+    },
+    {
+      "id": "cold-toml-zh",
+      "language": "zh",
+      "kind": "why",
+      "query": "老版本没有 tomllib 的时候怎么读配置文件",
+      "acceptable": [
+        [
+          "hooks/scripts/lib/tomlio.py",
+          "parse_toml_file"
+        ]
+      ]
+    },
+    {
+      "id": "cold-fence",
+      "language": "en",
+      "kind": "concept",
+      "query": "is this line sitting inside a fenced code block",
+      "acceptable": [
+        [
+          "hooks/scripts/lib/mdctx.py",
+          "fence_marker"
+        ],
+        [
+          "hooks/scripts/lib/mdctx.py",
+          "lines"
+        ]
+      ]
+    },
+    {
+      "id": "cold-dedupe",
+      "language": "en",
+      "kind": "why",
+      "query": "collapse repeated export lines and keep only the last one",
+      "acceptable": [
+        [
+          "hooks/scripts/lib/envfile.py",
+          "dedupe_text"
+        ]
+      ]
+    },
+    {
+      "id": "cold-edictscan",
+      "language": "en",
+      "kind": "concept",
+      "query": "check an edit against the rules the user wrote themselves",
+      "acceptable": [
+        [
+          "hooks/scripts/lib/edicts.py",
+          "find_edit_violation"
+        ]
+      ]
+    }
+  ]
+}

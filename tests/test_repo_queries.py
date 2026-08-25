@@ -21,14 +21,21 @@ from ragyourcode import descriptions as descriptions_module
 from ragyourcode.indexer import build_units
 
 ROOT = Path(__file__).resolve().parents[1]
+COLD_PATH = ROOT / "benchmarks" / "cold_queries.json"
 
 
 @pytest.fixture(scope="module")
 def units():
     # With the description store, because that is how the CLI builds an index.
-    # Without it the same ruler scores 0.171 rather than 0.500 on hit@1, which
-    # would be measuring a configuration nobody runs.
     return build_units(ROOT, descriptions=descriptions_module.load(ROOT))
+
+
+@pytest.fixture(scope="module")
+def cold_units():
+    """The same repository as a first-time user's index sees it: parsed, with
+    only the sentence the parser generates and nothing anybody wrote.
+    """
+    return build_units(ROOT)
 
 
 def test_every_acceptable_answer_names_code_that_exists(units):
@@ -36,21 +43,49 @@ def test_every_acceptable_answer_names_code_that_exists(units):
     assert not problems, "the ruler has drifted from the code:\n  " + "\n  ".join(problems)
 
 
-def test_the_ruler_is_well_formed():
-    questions = load_questions()
+@pytest.mark.parametrize("path", [QUERIES_PATH, COLD_PATH], ids=["repository", "cold"])
+def test_the_ruler_is_well_formed(path: Path):
+    questions = load_questions(path)
     entries = questions["queries"]
-    assert len(entries) >= 50, "too few questions to distinguish a change from noise"
+    assert len(entries) >= 30, "too few questions to distinguish a change from noise"
     assert questions["k"] >= 1
+    seen: set[str] = set()
     for entry in entries:
         assert entry["query"].strip(), f"{entry['id']}: empty question"
+        assert entry["id"] not in seen, f"{entry['id']}: duplicate question id"
+        seen.add(entry["id"])
         assert entry["language"] in {"en", "zh"}
         assert entry["kind"] in {"concept", "why", "symbol"}
+        assert entry["acceptable"], f"{entry['id']}: no acceptable answer listed"
         assert all(len(pair) == 2 for pair in entry["acceptable"])
     # Both languages have to be represented, because the CJK path through the
     # tokenizer is the one place a query can share no character class with the
     # text it must match.
     languages = {entry["language"] for entry in entries}
     assert languages == {"en", "zh"}
+
+
+def test_the_cold_ruler_says_which_repository_it_grades():
+    """It grades code that is not in this repository, so it has to name it and
+    say why a ruler asked about this project cannot stand in for it.
+    """
+    questions = load_questions(COLD_PATH)
+    assert questions["repository"], "a ruler over foreign code must name that code"
+    assert questions["caveat"].strip()
+    assert questions["why"].strip()
+
+
+def test_written_descriptions_beat_generated_ones(units, cold_units):
+    """The reason `describe` exists, asserted rather than stated.
+
+    This used to be a comment quoting two numbers, which is exactly the kind of
+    claim that rots: both had already moved by the time anybody looked.
+    """
+    questions = load_questions()
+    warm = evaluate(units, questions)["aggregate"]
+    cold = evaluate(cold_units, questions)["aggregate"]
+    assert warm["hit_at_1"] > cold["hit_at_1"], (warm, cold)
+    assert warm["mrr"] > cold["mrr"], (warm, cold)
 
 
 def test_the_ruler_has_headroom(units):

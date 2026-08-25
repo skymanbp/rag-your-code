@@ -17,6 +17,13 @@ not silently invalidate the ruler.
 Every acceptable answer is checked against the index before anything is scored.
 A ruler that quietly stopped referring to real code would report improvement by
 losing its own questions.
+
+The same runner grades `cold_queries.json`, whose questions are about a
+repository nobody here wrote and whose index carries no written descriptions.
+Both rulers are needed and neither substitutes for the other: this one measures
+the warmest case the project supports, and that one measures what a first-time
+user actually gets. A change that helps one and hurts the other is a trade, not
+an improvement, and it cannot be seen at all from a single ruler.
 """
 
 from __future__ import annotations
@@ -140,20 +147,34 @@ def _report(report: dict) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Grade retrieval on questions about this repository.")
+    parser = argparse.ArgumentParser(description="Grade retrieval on a set of questions about a repository.")
     parser.add_argument("--index", help="an existing index to grade; defaults to this repository's own")
+    parser.add_argument("--questions", help=f"question set to grade against (default {QUERIES_PATH.name})")
+    parser.add_argument(
+        "--cold",
+        action="store_true",
+        help="parse this repository ignoring any written descriptions, which is what a first-time user's index contains",
+    )
     parser.add_argument("--output", help="write the full report here as JSON")
     parser.add_argument("--vector-weight", type=float, default=None)
     parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args()
 
+    if args.index and args.cold:
+        print("ruler: --cold parses this repository, so it cannot also grade a prebuilt --index", file=sys.stderr)
+        return 2
     if args.index:
         _, units = read_index(Path(args.index))
+    elif args.cold:
+        # No description store is passed, so every unit carries only the
+        # sentence the parser generated. That is the state of a repository
+        # nobody has run `describe` on yet.
+        units = build_units(ROOT)
     else:
         default = ROOT / ".rag-your-code" / "index.json"
         _, units = read_index(default) if default.is_file() else (None, build_units(ROOT))
 
-    questions = load_questions()
+    questions = load_questions(Path(args.questions) if args.questions else QUERIES_PATH)
     problems = check_ruler(questions, units)
     if problems:
         for problem in problems:
