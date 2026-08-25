@@ -3,6 +3,51 @@
 Notable changes per release. Dates are the release date; measurements are from
 the development machine (Windows 11, CPython 3.13) and are directional.
 
+## 0.4.2 — 2026-08-25
+
+A closing pass. Every distribution path is now walked end to end, the
+documentation is rewritten around what the project is for rather than how it is
+built, and one more prose claim turned out to be wrong.
+
+### Fixed
+
+- **`docs/TESTING.md` stated 96 deliberately-excluded constructs; the fixtures
+  hold 89.** The wrong figure was the count of expected units, copied from the
+  line above. It survived because a number in a sentence is exactly the kind of
+  claim no gate looks at — the same cause as the install line that was wrong in
+  two consecutive releases. All five fixture counts are now asserted against
+  `expected.json` itself, in whichever document states them.
+
+### Changed
+
+- `README.md` is rewritten for someone arriving without context: what the
+  problem is, what installing it gets you, how it works, what the embedding
+  genuinely does and does not do, and every measured result in one place. The
+  Claude Code plugin is now the primary documented install path.
+- `docs/ARCHITECTURE.md` gains a section on distribution, including why the
+  plugin deliberately ships one skill and no code: an always-on cost is paid by
+  every session in every repository, and the measured figure is ~39 tokens.
+- `docs/ROADMAP.md` records the verified distribution paths and states the
+  three remaining gaps outright — qualified names outside Python, descriptions
+  for `tests/` and `benchmarks/`, and the absence of stemming.
+- `docs/TESTING.md` gains a section on what the suites do *not* cover, since a
+  green suite says nothing about what it never runs.
+
+### Verified
+
+| path | how |
+|---|---|
+| CI | 3.10–3.13 × Linux and Windows, 11 of 11 jobs |
+| release artifacts | downloaded from the release page, installed into a clean environment, documented commands run |
+| PyPI | `pip install rag-your-code` by name into a clean environment |
+| Claude Code plugin | installed through `/plugin`, present in both local registries, `claude plugin details` reporting one skill and ~39 always-on tokens |
+
+Still unverified, and stated rather than implied: whether the skill fires on
+its own in a fresh session, which needs an interactive session rather than a
+command.
+
+Suite: 208 tests.
+
 ## 0.4.1 — 2026-08-25
 
 The first release published to PyPI, and two defects that only appeared once

@@ -124,6 +124,36 @@ def test_no_document_claims_this_package_is_on_an_index_it_is_not_on():
     assert seen, "the install instructions vanished; this guard would then pass vacuously"
 
 
+def test_the_documented_fixture_counts_are_the_real_ones():
+    """Numbers stated in prose, checked against the data they describe.
+
+    `docs/TESTING.md` claimed 96 deliberately-excluded constructs where the
+    fixtures hold 89 -- the count of expected units, copied one line up. It
+    survived because a number in a sentence is exactly the kind of claim no
+    gate looks at. Each label below is checked only where a document states
+    it, so wording stays free while the figures cannot drift.
+    """
+    fixtures = json.loads((ROOT / "tests" / "fixtures" / "languages" / "expected.json").read_text(encoding="utf-8"))
+    units = [unit for spec in fixtures.values() for unit in spec["expected"]]
+    truth = {
+        r"(\d+) (?:realistic )?fixture files": len(fixtures),
+        r"(\d+) expected units": len(units),
+        r"\((\d+) core": sum(1 for unit in units if unit.get("tier", "core") == "core"),
+        r"(\d+) stretch": sum(1 for unit in units if unit.get("tier", "core") != "core"),
+        r"(\d+) negative cases": sum(len(spec["negatives"]) for spec in fixtures.values()),
+        r"(\d+) constructs": sum(len(spec["spec_exclusions"]) for spec in fixtures.values()),
+    }
+    stated = 0
+    for name in ("docs/TESTING.md", "README.md"):
+        text = (ROOT / name).read_text(encoding="utf-8")
+        for pattern, expected in truth.items():
+            for groups in re.findall(pattern, text):
+                found = next(value for value in (groups if isinstance(groups, tuple) else (groups,)) if value)
+                stated += 1
+                assert int(found) == expected, f"{name}: {pattern!r} says {found}, the fixtures hold {expected}"
+    assert stated >= len(truth), "the documented counts vanished; this guard would then pass vacuously"
+
+
 def test_the_release_workflow_publishes_under_the_name_the_project_declares():
     """A tag, a package name and a trusted-publisher claim that disagree.
 

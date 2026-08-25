@@ -59,6 +59,16 @@ instruction no gate ever ran — so the gate now exists.
    benchmark once made an unchanged query path look like a real regression;
    the estimator was ten cold samples of a sub-millisecond call. When a number
    moves, establish the noise band before deciding what the movement means.
+6. **A number in prose is a claim, and claims get gates.** Two of this
+   project's defects were sentences nobody checked: an install line that named
+   a package index it did not publish to, and a count of excluded constructs
+   copied from the line above it. Both are now asserted in
+   `tests/test_metadata.py`. If you state a figure in a document, prefer
+   deriving it from the data, and if you cannot, assert it.
+7. **Compare item sets, not totals.** A pass count that stayed at six while
+   one test was deleted and another added looks exactly like no change. When
+   claiming nothing regressed, diff the node ids, the keys, or the names — this
+   rule caught a silently removed test during the 0.4.2 documentation pass.
 
 ## Adding a setting
 

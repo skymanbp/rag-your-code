@@ -292,6 +292,31 @@ regression across three runs. It now warms up and takes 200 samples, and
 records the median beside the mean so a reader can judge what the number is
 worth.
 
+## Distribution
+
+Two artifacts ship from one repository, and they are deliberately separate.
+
+The **Python package** on PyPI is the whole implementation. Publishing goes
+through trusted publishing, so no API token exists to leak or rotate, and the
+workflow refuses a tag that disagrees with the declared version, verifies the
+wheel still carries its licence and typing marker, and installs the built
+artifact into a clean environment to run the documented commands before
+uploading anything.
+
+The **Claude Code plugin** contains one skill and nothing else: no hooks, no
+agents, no MCP server. Measured with `claude plugin details` on an installed
+copy, it adds **~39 tokens to every session** and ~1.4k only when the skill
+fires. That asymmetry is the reason the plugin carries no code: an always-on
+cost is paid by every session in every repository, whether or not anyone
+searches anything, while the implementation is only needed once someone does.
+
+The seam between them is step 0 of the skill, which installs the package if
+importing it fails. That one line has been wrong twice — first naming a module
+nothing installed, then naming a package index this project did not publish
+to — both times because no gate ever ran it. It is now executed verbatim by a
+CI job that extracts it from the skill, and a test asserts that every
+documented install target names a source that resolves.
+
 ## Evolution plan
 
 1. **Provider adapters:** optional OpenAI/Ollama/sentence-transformer

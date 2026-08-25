@@ -130,12 +130,40 @@ pointing at `https://github.com/skymanbp/rag-your-code`. They were left empty
 through P6 because the repository had no remote and a URL that resolves to
 nothing is worse than an absent field; the remote now exists.
 
+## Distribution, closed
+
+Every path a stranger can take to this project has been walked end to end, on
+a machine other than the one that built it where that was possible.
+
+| path | verified by |
+|---|---|
+| GitHub repository, CI on 3.10-3.13 x Linux/Windows | 11 of 11 jobs green |
+| release artifacts | downloaded from the release page, installed into a clean environment, documented commands run |
+| PyPI (`pip install rag-your-code`) | installed by name into a clean environment; a CI job now runs the skill's own install line verbatim |
+| Claude Code plugin | installed via `/plugin marketplace add` + `/plugin install`; present in both local registries; `claude plugin details` reports one skill, ~39 always-on tokens |
+
+The one thing still unverified is whether the skill fires on its own in a fresh
+session, which needs an interactive session rather than a command.
+
 ## Still open
 
 Qualified names for non-Python languages. `CodeUnit` carries `qualified_name`,
 and the Python path fills it (`Svc.helper`), but the line scanner sets it equal
 to `name`. A scope stack keyed on brace depth would supply it and would improve
 `contains` edges; it was outside P3's scope, which was root causes A and B.
+Tree-sitter would supply it too, which is why the two are listed together on
+the evolution plan rather than fixed separately.
+
+Descriptions exist for `src/` only. The 229 units under `tests/` and
+`benchmarks/` still carry generated ones; test names in this repository are
+already full sentences, so the marginal return there is small, but it is a
+gap and not a decision.
+
+There is no stemming. A description saying `backtracks catastrophically` does
+not answer a query saying `catastrophic backtracking`, and both appear in the
+measured results below as a miss. Stemming would close that class at the cost
+of a dependency or a hand-maintained rule set, and has not been weighed
+properly yet.
 
 ## 0.4.0
 
@@ -258,6 +286,31 @@ Two migration traps were caught before release rather than after. An index
 predating each new fingerprint carries no such key; read as "unknown" rather
 than as "defaults" and "no descriptions", every 0.3.0 index would have reported
 itself permanently stale, or forced one pointless full rebuild, on upgrade.
+
+### What 0.4.1 turned up
+
+Describing this repository's own `src/` was meant as dogfooding, and found two
+defects a single-unit fixture could not.
+
+A description was orphaned when its code merely moved. Unit ids embed the line
+a declaration starts on, so adding a seven-line comment to `config.py` gave
+every declaration below it a new id and orphaned nineteen descriptions -- of
+code that had not changed by a byte. The digest already answered "is this the
+same code?"; it now answers "where did that code go?" as well. Pruning had the
+matching hazard and would have deleted exactly the entries that lookup exists
+to rescue.
+
+`describe.max_chars` was set inside the normal range rather than above it. Over
+the 120 descriptions written here the median is 349 characters and the 90th
+percentile is 662, so a 600 cap rejected roughly one good-faith description in
+eight -- and rejected them at the complex units retrieval most needs help with,
+since nothing is truncated to fit.
+
+A third followed in 0.4.2, from the same cause as the install line: a number
+stated in prose that nothing compared to the data. `docs/TESTING.md` claimed 96
+deliberately-excluded constructs where the fixtures hold 89, the count of
+expected units copied one line up. The counts are now asserted against
+`expected.json` itself.
 
 ## Non-goals
 

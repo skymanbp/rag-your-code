@@ -52,8 +52,38 @@ exercise the working tree rather than whatever copy pip has installed.
 Two invariants are asserted rather than assumed. `index.suffixes` must equal
 the parser's own dispatch table, because a suffix on only the walker's list is
 read, parsed to nothing, and reported as a clean index. And the 3.10 TOML
-reader is checked against `tomllib` over twelve inputs on every version that
+reader is checked against `tomllib` over sixteen inputs on every version that
 ships one, so the fallback cannot drift away from the real grammar in silence.
+
+## Tests that read the documentation
+
+`tests/test_metadata.py` treats the documentation as something to execute
+rather than to trust. It asserts that every subcommand and protocol action
+named in `README.md` or `SKILL.md` exists, that every documented `pip install`
+names a source that resolves — the project's own distribution name being
+allowed only while a workflow here actually uploads under it — and that the
+fixture counts stated in prose match `expected.json`.
+
+Each of those guards exists because the claim it checks had already gone wrong.
+The install line was wrong in two consecutive releases, both times because
+nothing ran it; the exclusion count was wrong because nothing counted it. A
+number in a sentence is exactly the kind of claim no gate looks at, until one
+does.
+
+## What the suites do not cover
+
+Stated plainly, because a green suite says nothing about what it never runs.
+
+- **Whether the bundled skill fires on its own.** Installation is verified end
+  to end, and the commands the skill prescribes are executed verbatim by CI,
+  but whether an agent decides to load the skill in a fresh session is a
+  property of the host, not of anything here.
+- **Description quality.** Coverage is measured and applicability is enforced;
+  whether a written description is a *good* one is judged only by the ten-query
+  before-and-after comparison recorded in `CHANGELOG.md`.
+- **Repositories much past 10,000 units.** The measured envelope is the
+  synthetic benchmark's; beyond roughly 100k units the JSON storage layer is
+  expected to be the limit, and that expectation is untested.
 
 Run:
 
@@ -71,8 +101,13 @@ this project has no runtime dependencies and its wheel builds with
 `tests/fixtures/languages/` holds 15 realistic fixture files across JavaScript,
 TypeScript, Go, Rust, Java, Kotlin, C#, Scala, C, C++, Ruby, PHP, Swift and
 shell, plus `expected.json`: 96 expected units (91 core, 5 stretch), 237
-negative cases, and 96 constructs the spec deliberately excludes with the rule
+negative cases, and 89 constructs the spec deliberately excludes with the rule
 that excludes each one.
+
+Those five numbers are asserted against `expected.json` itself by
+`test_the_documented_fixture_counts_are_the_real_ones`. The exclusion count
+read 96 until 0.4.2 — copied from the count of expected units — because
+nothing compared it to the data.
 
 `SPEC.md` states the eligibility rule once — *a unit is a named declaration that
 owns a body span* — so "what counts as a unit" is not re-invented per language.
