@@ -380,14 +380,66 @@ it stopped.
 Nothing authored lives under `.rag-your-code/` — that directory is what people
 delete to clear the cache.
 
-## Not here yet
+## Bringing your own model
 
-Provider-backed embeddings, Tree-sitter parsing, and a SQLite/ANN storage layer
-for repositories past the measured JSON envelope. Agent-authored descriptions
-are deliberately the cheaper answer to the same problem provider embeddings
-solve: they keep the zero-dependency, offline, reproducible-index properties,
-and produce text a human can read and correct rather than opaque floats. See
-[docs/ROADMAP.md](docs/ROADMAP.md).
+Everything above works with no model at all. If you would rather have real
+semantics, point the index at any OpenAI-compatible embeddings endpoint —
+which includes a model server on your own machine:
+
+```toml
+# rag-your-code.toml
+[embedding]
+provider   = "openai-compatible"
+endpoint   = "http://localhost:11434/v1/embeddings"   # ollama, LM Studio, vLLM…
+model      = "nomic-embed-text"
+dimensions = 768                                      # must match the model
+```
+
+A hosted service is the same three lines with an `https://` endpoint, plus the
+name of the environment variable holding your key:
+
+```toml
+api_key_env = "OPENAI_API_KEY"    # the NAME of the variable, never the key
+```
+
+**The key is never a setting.** `rag-your-code.toml` is meant to be committed
+so everyone who clones can see what shaped the index; a credential is the one
+value with the opposite requirement, so the file only ever names the variable
+it lives in. Sending a key over plain `http://` to anything but your own
+machine is refused rather than warned about.
+
+Three things follow from turning this on, and it is worth knowing all three
+before you do:
+
+- **Your source leaves the machine**, unless the endpoint is local. That is
+  the whole reason the local case is written first here.
+- **Similarity may now find things, not just order them.** With the local
+  hash a cosine shortlist is measurably noise, so it is confined to
+  re-ranking. A real model earns the right to add candidates the words never
+  reached, which is the one gap no amount of ranking closes:
+  `search.vector_recall` sets how many. Lexical evidence still dominates — a
+  unit found by similarity alone scores at most `search.vector_weight`.
+- **A failure stops the build.** Falling back to the local hash would leave an
+  index whose vectors come from two incompatible spaces, and ranking would act
+  on the meaningless cosine between them with full confidence.
+
+Switching provider, model or width discards the old vectors and rebuilds, so
+an index can never be a mixture. An incremental run over unchanged files makes
+no request at all.
+
+**What is not measured:** whether this helps *your* repository, and by how
+much. No number here is from a real model — this project has no key, and a
+figure produced by a stub would be fiction. The instrument ships instead:
+point `benchmarks/repo_queries.py --index` at your own index and grade it. You
+will probably also want a higher `search.vector_weight` than the 0.15 tuned
+for a hash that carries no meaning.
+
+## Still not here
+
+Tree-sitter parsing, and a SQLite/ANN storage layer for repositories past the
+measured JSON envelope. Note also that `search.vector_recall` scans every
+unit's vector on every query, which is fine at the measured envelope and is
+the thing an ANN index would replace. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Development
 

@@ -74,6 +74,18 @@ The test suite currently covers:
   to be resumable rather than remembered, every rung shown to say why and how,
   and the command line and the agent protocol shown to report the same rung
   from the same implementation;
+- the provider boundary: the default shown to open no socket at all by making
+  the transport raise, an OpenAI-compatible stub on loopback shown to supply
+  the vectors an index then records, one request shown to cover a whole batch,
+  an unchanged repository shown to cost no request, a changed model shown to
+  discard the old vectors, a width the settings refuse shown to be named with
+  both numbers, a rejected credential shown not to be retried, a transient
+  failure shown to be retried with growing backoff and then to give up rather
+  than fall back, out-of-order rows shown to be reordered by the index they
+  report, a credential shown never to appear in a failure report and never to
+  cross a cleartext connection to anything but loopback, and semantics shown
+  to make a unit retrievable that the words never reach while the hash is
+  shown not to;
 - promotion: a patch `git apply` actually applies for four language families,
   every supported language having a documentation convention, an already
   documented declaration left alone, CRLF endings preserved, several

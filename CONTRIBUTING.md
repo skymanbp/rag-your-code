@@ -121,13 +121,19 @@ other file needs editing. Two decisions come with the row:
 ## Scope
 
 The evolution plan in `docs/ARCHITECTURE.md` lists what is deliberately not here
-yet: provider-backed embeddings, Tree-sitter parsing, and a SQLite/ANN storage
-layer for repositories past the measured JSON operating envelope. Work toward
-those is welcome; silently making one of them a hard requirement is not.
+yet: Tree-sitter parsing, and a SQLite/ANN storage layer for repositories past
+the measured JSON operating envelope. Work toward those is welcome; silently
+making one of them a hard requirement is not.
 
-Note in particular that provider-backed embeddings are not simply "better".
-They would buy true synonym matching at the cost of the properties this project
-is built on — no dependencies, no network, a reproducible index, and output a
-human can read. Agent-authored descriptions are the cheaper answer to the same
-problem and are why that trade has not been made yet. Make it knowingly or not
-at all.
+Provider-backed embeddings arrived in 0.8.0 and the trade was made the only
+way it could be: **as something a user turns on.** The default opens no
+socket, adds no dependency, and produces the same reproducible index it always
+did, and a test asserts that by making the transport raise. If you touch the
+provider path, that test is the one that matters — everything else in
+`tests/test_providers.py` is only worth having if the default still works with
+the network switched off.
+
+Agent-authored descriptions remain the cheaper answer to the same problem, and
+they are not made redundant by a model: they put missing vocabulary into the
+index once instead of hoping an embedding bridges it, and a human can read and
+correct them.

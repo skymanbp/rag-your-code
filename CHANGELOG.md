@@ -3,6 +3,80 @@
 Notable changes per release. Dates are the release date; measurements are from
 the development machine (Windows 11, CPython 3.13) and are directional.
 
+## 0.8.0 — 2026-08-25
+
+0.7.0 measured eight ways to give the vector half real semantics without a
+model and adopted none of them, then named what was left: a real model as
+something a user opts into, or accepting that retrieval reaches only what
+somebody wrote down. This is the first, and it is off unless you turn it on.
+
+### Added
+
+- **`embedding.provider`.** Set it to `openai-compatible` and vectors come
+  from any endpoint speaking that shape — a hosted service, or `ollama`,
+  LM Studio, vLLM or llama.cpp on your own machine. One request shape covers
+  both, and the local one keeps the property this project was built on: the
+  source never leaves the machine.
+
+  ```toml
+  [embedding]
+  provider   = "openai-compatible"
+  endpoint   = "http://localhost:11434/v1/embeddings"
+  model      = "nomic-embed-text"
+  dimensions = 768
+  api_key_env = "OPENAI_API_KEY"   # the NAME of the variable, never the key
+  ```
+
+- **`search.vector_recall`.** Similarity may now *add* candidates rather than
+  only reorder them — the architectural constraint 0.7.0 identified as the
+  reason no embedding change could help. It is gated on the embedder rather
+  than on a preference: under the feature hash the same widening measured
+  worse, while six of thirty-five foreign-ruler questions have no acceptable
+  answer sharing a single token with the query. Lexical evidence still
+  dominates; a unit found by similarity alone scores at most
+  `search.vector_weight`.
+- **`embedding.batch`, `timeout`, `retries`**, and a `str` kind in the
+  settings table.
+
+### Changed
+
+- Embedding is one batched pass over the units that need vectors, not a call
+  inside the parse loop. Eleven hundred units one round trip at a time is not
+  a slower version of the same thing. An incremental run over unchanged files
+  makes no request at all.
+- `SearchIndex` carries the embedder. A query vector and a unit vector have to
+  come from the same scheme to be comparable, and this project already
+  produced one wrong conclusion from exactly that mismatch.
+- An index records the provider and the model as well as the width, so
+  switching any of them discards the stored vectors instead of mixing two
+  spaces.
+
+### Safety properties, each asserted
+
+- **The default opens no socket.** The test makes the transport raise, then
+  runs a full index and search. Everything else here is only worth having
+  while that passes.
+- **The credential is never a setting.** `rag-your-code.toml` is meant to be
+  committed; the file names an environment variable and the variable holds the
+  key. That is not the environment layer `config.py` deliberately does not
+  have — it is one secret kept out of a shared file.
+- **A key is never sent in cleartext to anything but loopback**, and never
+  appears in an error message.
+- **A rejected key or unknown model is not retried**; a rate limit or a
+  transport failure is, with growing backoff, and then the build stops rather
+  than falling back to the hash. A mixed index would rank confidently on a
+  cosine that means nothing.
+- **Rows are ordered by the index they report**, because the response schema
+  promises an index and not a sequence.
+
+### Not measured
+
+Whether this helps a real repository, and by how much. There is no key here,
+and a number produced by a stub would be fiction. The instrument ships
+instead: `benchmarks/repo_queries.py --index` grades any index. The 0.15
+default for `search.vector_weight` was tuned against a hash that carries no
+meaning and is very likely wrong for a model.
+
 ## 0.7.0 — 2026-08-25
 
 0.6.0 fixed how results are ranked. This fixes what a reply *carries*, ends the

@@ -44,12 +44,19 @@ Use this skill when repository context is broad or a symbol's implementation is 
    modules are relevant. Prefer one hop; use two only when the first path
    provides concrete edge evidence.
 
-   **Matching is lexical.** The embedder is a feature hash, so a query sharing
-   no word with a unit scores zero against it — synonyms do not match. Query in
-   the vocabulary the code uses: prefer `retry charge gateway timeout` over
-   "重试扣款失败", and try two or three wordings before concluding something is
-   absent. A result with an empty `matched_terms` and a near-zero score is the
-   no-lexical-overlap fallback, which means nothing actually matched.
+   **Matching is lexical by default.** The embedder is a feature hash, so a
+   query sharing no word with a unit scores zero against it — synonyms do not
+   match. So query in the vocabulary the code uses: prefer `retry charge
+   gateway timeout` over "重试扣款失败", and try two or three wordings before
+   concluding something is absent. A result with an empty `matched_terms` and
+   a near-zero score is the no-lexical-overlap fallback, which means nothing
+   actually matched.
+
+   A repository's owner may have set `embedding.provider` to
+   `openai-compatible`, in which case similarity carries real meaning and can
+   reach units the words miss. `config list` says which is in force. Do not
+   turn it on for them: it can send their source to a third party, and that is
+   theirs to decide.
 
 3. Read the returned file and line locations directly before editing. Treat
    retrieved snippets as navigation and context, not as permission to change

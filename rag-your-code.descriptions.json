@@ -28,11 +28,11 @@
       "text": "How far the best answer leads the second-best, as a fraction of the best. A ratio between two numbers produced by the same query under the same scoring rule, so scaling every score changes nothing -- which is the entire point. The absolute threshold it replaced was tied to a scoring scale; when ranking changed, the scale moved out from under it and the decision it guarded silently stopped happening. 中文：最好的答案领先第二名多少，按最好者的比例计。它是同一次查询、同一套打分下两个数的比值，因此整体缩放分数不改变结果——这正是要点。它取代的绝对阈值绑在打分量纲上，排序一改量纲就移走了，它守护的判断于是悄无声息地不再发生。"
     },
     "src/ragyourcode/agentic.py:73:research": {
-      "hash": "4607549238fd16e1",
-      "code_hash": "c3c5220da2af1d2e",
+      "hash": "2a51c0f2ebb60d09",
+      "code_hash": "f8a9fe3cc986cbdb",
       "path": "src/ragyourcode/agentic.py",
       "name": "research",
-      "text": "Answers an ambiguous question in at most two observable retrieval rounds, and says why it stopped. Deliberately bounded: it searches, and only if the leader is not clearly ahead does it spend a second round walking the call graph outward. The reply carries the code once, under the same budget every other reply uses. 中文：用至多两轮可观察的检索回答一个含糊的问题，并说明为何停下。刻意设了上限：先检索，只有当领先者优势不明显时才花第二轮沿调用图向外走。回复只带一份代码，用的是与其它回复相同的预算。"
+      "text": "Answers an ambiguous question in at most two observable retrieval rounds and says why it stopped. Deliberately bounded: it searches, and only if the leader is not clearly ahead of the runner-up does it spend a second round walking the call graph outward. The reply carries the code once, in a context block under the same budget every other reply uses. 中文：用至多两轮可观察的检索回答一个含糊的问题，并说明为何停下。刻意设了上限：先检索，只有当领先者相对第二名优势不明显时，才花第二轮沿调用图向外走。回复只带一份代码，放在与其它回复共用同一预算的上下文块里。"
     },
     "src/ragyourcode/annotate.py:14:describe_python": {
       "hash": "7a20909be9ec39b5",
@@ -71,12 +71,12 @@
       "text": "The config command: creates a commented settings file, lists every setting with its effective value and whether it was customised, reads one value, changes one value in place, or reports where the file lives. Changing a value refuses anything out of range before writing, so a rejected change leaves the file exactly as it was, and the reply says whether the change forces a full rebuild. Creating refuses to overwrite an existing file unless told to. 中文：config 命令——生成带注释的配置文件、列出每项设置的生效值与是否被改过、读取单项、就地修改单项、或报告文件位置。修改前先校验越界并在写盘前拒绝，因此被拒的修改不会改动文件分毫；应答会说明该改动是否强制全量重建。创建时除非明确要求，否则拒绝覆盖已有文件。",
       "code_hash": "5e9525fddea54644"
     },
-    "src/ragyourcode/cli.py:166:_cmd_search": {
-      "hash": "ff7e4285272a4427",
-      "code_hash": "5e80da7d4539a4a4",
+    "src/ragyourcode/cli.py:172:_cmd_search": {
+      "hash": "ab660d0464551017",
+      "code_hash": "b043cf7668acf5e2",
       "path": "src/ragyourcode/cli.py",
       "name": "_cmd_search",
-      "text": "Answers one question from the published index and prints it, either as a readable block for a person or as machine-readable output for an agent. Result count, context budget and the balance between word overlap and vector similarity all fall back to the repository settings. It prints the staleness warning that StaleMonitor raises; deciding whether the index is stale is not its job. 中文：从已发布的索引回答一个问题并输出——给人是可读块，给 agent 是机器可读格式。返回条数、上下文预算、词面与向量的配比都回落到仓库设置。它负责打印 StaleMonitor 提出的过时警告；判断索引是否过时不归它管。"
+      "text": "Answers one question from the published index and prints it, as a readable block for a person or machine-readable output for an agent. Result count, context budget, the balance between word overlap and similarity, and how far similarity may widen the candidate set all fall back to the repository settings. It prints the staleness warning StaleMonitor raises; deciding whether the index is stale is not its job. 中文：从已发布的索引回答一个问题并输出——给人是可读块，给 agent 是机器可读格式。返回条数、上下文预算、词面与相似度的配比、以及相似度可把候选集放宽多少，都回落到仓库设置。它负责打印 StaleMonitor 提出的过时警告；判断索引是否过时不归它管。"
     },
     "src/ragyourcode/cli.py:270:_cmd_describe": {
       "hash": "bc80c3de23167e73",
@@ -97,25 +97,25 @@
       "text": "Reads a slice of a file for an agent, refusing anything outside the repository and bounding the reply twice, by file size and by returned characters. Two bounds because a line count is not a size: a three-line file holding one enormous line satisfied the old line-based limit and returned megabytes on a single output line. Output that hits the character bound is truncated and says so. 中文：为 agent 读取文件的一段，拒绝仓库之外的路径，并按文件大小与返回字符数双重限制。之所以两重：行数不等于体积——一个三行但单行极长的文件满足旧的行数限制，却在一行输出里返回了数兆字节。触及字符上限的输出会被截断并明确标注。",
       "code_hash": "25f4a7b35f67f714"
     },
-    "src/ragyourcode/cli.py:32:_refresh_index": {
-      "hash": "5308c6d95a2614ec",
-      "path": "src/ragyourcode/cli.py",
-      "name": "_refresh_index",
-      "text": "Builds or rebuilds a repository index and publishes it, reusing the previous one where it can. It works out up front whether the rules that decide what a unit is have changed — the indexing settings, the vector width, or the parser itself — and when they have it discards the previous work rather than reusing it, so the report can honestly say whether reuse happened. That report previously claimed reuse on exactly the runs that had rebuilt everything, because it was computed from whether a previous index existed rather than from whether its units were kept. It also applies the written descriptions and reports how many units still have none. 中文：构建或重建仓库索引并发布，能复用就复用。它预先判定『决定单元是什么』的规则是否变化——索引设置、向量维度，或解析器本身——变了就整体作废旧成果而非复用，使报告能诚实说明是否发生了复用。此前该报告恰恰在全量重建的那些运行上宣称复用，因为它算的是有没有旧索引而不是旧单元有没有被保留。同时应用已写描述，并报告还有多少单元没有描述。",
-      "code_hash": "5308c6d95a2614ec"
-    },
     "src/ragyourcode/cli.py:365:_request_int": {
       "hash": "ec34b792bc8db22b",
       "path": "src/ragyourcode/cli.py",
       "text": "Clamps a numeric field from an incoming request into its allowed range. The clamp has to survive values that are not ordinary numbers: an enormous literal becomes infinity, and converting infinity to a whole number raises an error that is neither of the two the request loop originally caught, so a single such request terminated the whole session. Saturating at the bound is the reading the caller intended anyway. 中文：把请求中的数值字段夹到允许范围内。这个夹取必须扛得住非常规数值：极大的字面量会变成无穷大，而把无穷大转成整数抛出的错误不属于请求循环原本捕获的那两类，一条这样的请求就终止了整个会话。饱和到边界本来也就是调用方想表达的意思。",
       "code_hash": "60976c98a4c983ea"
     },
-    "src/ragyourcode/cli.py:390:_cmd_agent": {
-      "hash": "619f75cbb6f3ff63",
-      "code_hash": "69a4313339ee0c1c",
+    "src/ragyourcode/cli.py:397:_cmd_agent": {
+      "hash": "4b5f6e03b10b6b2c",
+      "code_hash": "1bb28b2f6ba912a8",
       "path": "src/ragyourcode/cli.py",
       "name": "_cmd_agent",
       "text": "Serves one JSON request per line for as long as an agent keeps the process alive, so a session pays the parse-and-embed cost once instead of per question. Every failure is reported in-band and the loop survives it: a malformed request, an out-of-range number or an unanticipated exception must not be able to end a session an agent depends on. 中文：只要 agent 让进程活着，就按行服务 JSON 请求，使一次会话只付一次解析与嵌入的代价，而不是每问一次付一次。所有失败都在带内回报且循环存活：畸形请求、越界数值或未预料的异常，都不该终结一个 agent 正依赖着的会话。"
+    },
+    "src/ragyourcode/cli.py:39:_refresh_index": {
+      "hash": "de5f27fc3ba06f73",
+      "code_hash": "dd2804cb5364a188",
+      "path": "src/ragyourcode/cli.py",
+      "name": "_refresh_index",
+      "text": "Builds or rebuilds a repository index and publishes it, reusing what it can. It settles up front whether the rules deciding what a unit is have changed — the indexing settings, the vector width, the parser, or who computes the vectors — and discards the previous work when they have, so the report can honestly say whether reuse happened. One embedder is built here and handed to every stage, so the vectors stored, the metadata published and the queries later asked all come from the same scheme by construction rather than by three call sites agreeing. 中文：构建或重建仓库索引并发布，尽可能复用既有成果。它先行判定「什么算一个单元」的规则是否变过——索引设置、向量宽度、解析器，或由谁来算向量——变了就丢弃旧成果，使报告能如实说明是否发生了复用。嵌入器在此处建一次并交给各阶段，因此存下的向量、发布的元数据、之后发起的查询都由构造保证同源，而不是靠三个调用点彼此约定。"
     },
     "src/ragyourcode/cli.py:514:build_parser": {
       "hash": "90796b536516e0a4",
@@ -130,11 +130,12 @@
       "text": "Pins the process input and output to the encoding the protocol promises, instead of inheriting whatever the console locale happens to be. Without it a non-Western console cost correctness twice: printing a result containing a character the console could not represent raised an error and killed a long-running agent, and an incoming query was mis-decoded into text matching nothing, returning an empty answer with a success code. A stream that refuses to be reconfigured keeps its own encoding rather than failing the command. 中文：把进程输入输出钉在协议承诺的编码上，而不是继承控制台区域设置。没有它，非西文控制台会两次损害正确性：输出含控制台无法表示的字符时抛错并杀死常驻 agent；传入的查询被错误解码成匹配不到任何东西的乱码，返回空结果却带成功退出码。拒绝重配的流保留自身编码，而不是让整条命令失败。",
       "code_hash": "676231d439b411c6"
     },
-    "src/ragyourcode/cli.py:559:main": {
-      "hash": "d86ce9685aeb18d0",
+    "src/ragyourcode/cli.py:610:main": {
+      "hash": "5172d4d2c7bc4025",
+      "code_hash": "bd818290bb0f651f",
       "path": "src/ragyourcode/cli.py",
-      "text": "The program entry point: pins the streams, parses the command line, runs the chosen command, and turns an expected failure into a message and a non-zero exit code instead of a stack trace. A settings problem is reported separately and names the file, because that fix is always in one known place. 中文：程序入口——钉住流编码、解析命令行、执行所选命令，并把可预期的失败转成一条消息与非零退出码，而不是一段调用栈。配置类问题单独报出并点名文件，因为那类修复永远在一个已知位置。",
-      "code_hash": "d86ce9685aeb18d0"
+      "name": "main",
+      "text": "The single entry point for every command, and where failures become exit codes instead of tracebacks. A bad settings file and an unreachable embedding provider are each surfaced separately from the generic handler, because each has a fix in one known place and a message naming it is actionable where a stack trace is not. 中文：所有命令的唯一入口，也是失败在此变成退出码而非堆栈回溯的地方。配置文件有误与嵌入 provider 不可达各自从通用处理中单独拎出——因为两者的修复都在一个已知的地方，点名说出它的消息是可行动的，而堆栈回溯不是。"
     },
     "src/ragyourcode/cli.py:88:_cmd_index": {
       "hash": "e390fc591ae4e46b",
@@ -148,12 +149,6 @@
       "name": "_load",
       "text": "Opens a published index for a read-only command and settles whether it is still current. Three things can make it out of date and only one of them is a file edit: the repository content can have moved, the rules that decide what a unit is can have changed, or the written descriptions can have changed. Neither authored input nor the parser is an indexed file, so each has to report itself. 中文：为只读命令打开已发布的索引，并判定它是否仍然当前。三件事可使其过期，其中只有一件是文件改动：仓库内容变了、决定单元是什么的规则变了、已写描述变了。两项手写输入与解析器都不是被索引的文件，因此各自必须自行上报。",
       "code_hash": "b0d498a0b37fd2dc"
-    },
-    "src/ragyourcode/config.py:156:_coerce": {
-      "hash": "5696230b531baf2c",
-      "path": "src/ragyourcode/config.py",
-      "text": "Validates one supplied value against what a setting accepts, and refuses anything outside it with a message naming the setting and the bound. Booleans are rejected for numeric settings on purpose, because a boolean is a kind of integer in Python and a true would otherwise quietly mean one. A value drawn from a closed set, such as a file suffix, is checked against that set and the error lists what is supported. Values are refused rather than clamped: a number silently adjusted to fit looks identical to one that had no effect. 中文：校验一个值是否符合某设置的要求，越界即拒并在消息中点明设置名与边界。数值型设置刻意拒绝布尔值——布尔在 Python 里是整数的子类，否则 true 会悄悄变成 1。取自封闭集合的值（例如文件后缀）会对照集合检查，错误信息列出全部受支持项。越界拒绝而非截断：被悄悄改成合法值的数字，看起来和完全没生效一模一样。",
-      "code_hash": "b1e17e60e0cfbe80"
     },
     "src/ragyourcode/config.py:196:Config": {
       "hash": "319c88382093e530",
@@ -178,6 +173,13 @@
       "path": "src/ragyourcode/config.py",
       "text": "Layers explicitly supplied values on top of the resolved ones, ignoring any left unset. An unset command-line flag has to mean no opinion rather than clear this, or every flag would need its own sentinel default duplicating the settings table. 中文：把显式给定的值叠加在已解析设置之上，未给定的一律忽略。命令行未传的开关必须解读为『无意见』而非『清空』，否则每个开关都要自带哨兵默认值，等于把设置表复制一遍。",
       "code_hash": "12569ad4ede6c0ab"
+    },
+    "src/ragyourcode/config.py:236:_coerce": {
+      "hash": "74e8130a9da25c5b",
+      "code_hash": "76bbf6d135603503",
+      "path": "src/ragyourcode/config.py",
+      "name": "_coerce",
+      "text": "Validates one configured value against its declared kind and bounds, or refuses it with a reason. A value out of range is rejected rather than clamped, because a setting silently adjusted is indistinguishable from one that had no effect. Booleans are refused for the numeric kinds on purpose: bool subclasses int in Python, so a size limit set to true would otherwise be accepted and silently mean one byte. 中文：按声明的类型与边界校验一个配置值，否则带理由拒绝。越界的值是拒绝而非钳制，因为被悄悄调整过的设置与从未生效的设置无从分辨。数值类型刻意拒绝布尔值：Python 里 bool 是 int 的子类，否则把大小上限设成 true 会被接受并悄悄意味着一个字节。"
     },
     "src/ragyourcode/config.py:239:defaults": {
       "hash": "bc131b04c3f5a6ef",
@@ -448,11 +450,82 @@
       "text": "Breaks a paragraph into lines that fit a comment's available width, accounting for the indentation and the marker each line carries. 中文：把一段文字折成适合注释可用宽度的行，计入缩进与每行携带的标记长度。",
       "code_hash": "d3c01a88c5e36785"
     },
-    "src/ragyourcode/embeddings.py:22:embedding_metadata": {
-      "hash": "7758f4ee92b96adb",
+    "src/ragyourcode/embeddings.py:105:LocalEmbedder.__init__": {
+      "hash": "d9171d191e4d3731",
+      "code_hash": "d9171d191e4d3731",
       "path": "src/ragyourcode/embeddings.py",
-      "text": "Reports which embedding scheme and version produced an index, and how wide its vectors are. Stored inside the index so vectors built by an incompatible scheme are detected and discarded instead of being silently mixed in. 中文：报告索引是由哪种嵌入方案、哪个版本、多少维生成的。写进索引，用于发现并丢弃不兼容方案产出的旧向量，避免静默混用。",
-      "code_hash": "7758f4ee92b96adb"
+      "name": "LocalEmbedder.__init__",
+      "text": "Fixes the vector width this embedder will produce, and records that its provider is the local hash and that it has no model. Those two values go into what an index publishes about itself, which is how a later run tells vectors of one scheme from another. 中文：确定该嵌入器将产出的向量宽度，并记录其 provider 为本地哈希、无模型。这两个值会进入索引对自身的记录，后续运行正是据此分辨不同方案产出的向量。"
+    },
+    "src/ragyourcode/embeddings.py:110:LocalEmbedder.one": {
+      "hash": "61275f66319a4987",
+      "code_hash": "61275f66319a4987",
+      "path": "src/ragyourcode/embeddings.py",
+      "name": "LocalEmbedder.one",
+      "text": "One text's vector, computed here and now with no network. This is the call a query goes through, and it exists on both embedders so a query never has to know which one it is talking to. 中文：一段文本的向量，就地计算、不走网络。查询走的就是这个调用；两种嵌入器都有它，因此查询无需知道自己面对的是哪一种。"
+    },
+    "src/ragyourcode/embeddings.py:113:LocalEmbedder.many": {
+      "hash": "27c7209f13c4c191",
+      "code_hash": "27c7209f13c4c191",
+      "path": "src/ragyourcode/embeddings.py",
+      "name": "LocalEmbedder.many",
+      "text": "Vectors for a batch, which for the local hash is simply each in turn: there is no round trip to amortise. The method exists so the indexer can treat both embedders the same way, and so batching becomes the provider's concern rather than the caller's. 中文：一批文本的向量；对本地哈希而言就是逐个计算，没有往返可以摊薄。这个方法存在，是为了让索引器以同样的方式对待两种嵌入器，把成批处理变成 provider 自己的事而非调用方的事。"
+    },
+    "src/ragyourcode/embeddings.py:117:LocalEmbedder.metadata": {
+      "hash": "901e3395ec64ab98",
+      "code_hash": "901e3395ec64ab98",
+      "path": "src/ragyourcode/embeddings.py",
+      "name": "LocalEmbedder.metadata",
+      "text": "What an index should record about how its vectors were made: the scheme, the version and the width. Stored so that vectors built by an incompatible scheme are detected and discarded instead of silently mixed in. 中文：索引应当记录的、关于其向量如何产生的信息：方案、版本、宽度。存下来是为了让不兼容方案产出的向量被检测出并丢弃，而不是被悄悄混入。"
+    },
+    "src/ragyourcode/embeddings.py:121:RemoteEmbedder": {
+      "hash": "83bdec5670d5e875",
+      "code_hash": "3a20e124006ad89d",
+      "path": "src/ragyourcode/embeddings.py",
+      "name": "RemoteEmbedder",
+      "text": "Vectors from a model somebody else runs, reached over an OpenAI-compatible API that may be a vendor or a server on localhost. Being semantic is what earns it the right to add candidates rather than only reorder them: it is the only mechanism that can reach a unit sharing no word with the question. Requests are batched, and a repository whose vectors were all reused costs nothing. 中文：向量来自别人运行的模型，经 OpenAI 兼容接口取得，对端可以是厂商也可以是本机服务。携带语义正是它有资格新增候选而不仅是重排的原因：它是唯一能够到与问题零共享词的单元的机制。请求成批发出；向量全部复用的仓库不产生任何开销。"
+    },
+    "src/ragyourcode/embeddings.py:137:RemoteEmbedder.__init__": {
+      "hash": "5b7df595bff10a6c",
+      "code_hash": "5b7df595bff10a6c",
+      "path": "src/ragyourcode/embeddings.py",
+      "name": "RemoteEmbedder.__init__",
+      "text": "Refuses an incomplete or unsafe configuration before any request is made: an endpoint or model left empty is named as the setting that is missing, and a credential bound for a cleartext connection to anything but this machine is rejected outright. Failing here rather than mid-build is the difference between a clear message and a half-written index. 中文：在发出任何请求之前拒绝不完整或不安全的配置：端点或模型为空时点名缺的是哪一项设置；凭证若要走明文连接发往本机以外，直接拒绝。在此处失败而不是构建到一半失败，是清晰报错与半成品索引之间的差别。"
+    },
+    "src/ragyourcode/embeddings.py:147:RemoteEmbedder.one": {
+      "hash": "a6b9033a31400335",
+      "code_hash": "a6b9033a31400335",
+      "path": "src/ragyourcode/embeddings.py",
+      "name": "RemoteEmbedder.one",
+      "text": "One text's vector, fetched as a batch of one. A query takes this path, which is why the query and the units it will be compared against are guaranteed to come from the same model. 中文：一段文本的向量，按只有一条的批次取回。查询走的就是这条路径，这正是查询与它将被比对的那些单元一定同源于同一个模型的原因。"
+    },
+    "src/ragyourcode/embeddings.py:150:RemoteEmbedder.many": {
+      "hash": "e4a743342feb1b07",
+      "code_hash": "e4a743342feb1b07",
+      "path": "src/ragyourcode/embeddings.py",
+      "name": "RemoteEmbedder.many",
+      "text": "Vectors for many texts, split into requests of the configured size. Batching is the whole reason this method exists rather than a loop over the single-text call: against a remote endpoint a round trip per unit turns a two-second index into an unusable one. 中文：多段文本的向量，按配置的批量大小切分成若干请求。成批处理正是这个方法存在、而非对单条调用做循环的全部理由：面对远端端点，每个单元一个往返会把两秒的索引变成不可用的东西。"
+    },
+    "src/ragyourcode/embeddings.py:167:RemoteEmbedder.metadata": {
+      "hash": "901e3395ec64ab98",
+      "code_hash": "901e3395ec64ab98",
+      "path": "src/ragyourcode/embeddings.py",
+      "name": "RemoteEmbedder.metadata",
+      "text": "What an index records about vectors that came from a model somebody else runs: the provider, the version, the width and the model name. The model name is there for the same reason the provider is — two models behind one endpoint are two vector spaces, and a change to either has to discard the stored vectors rather than mix them. 中文：索引对来自他人所运行模型的向量所记录的信息：provider、版本、宽度、模型名。模型名在内的理由与 provider 相同——同一端点后面的两个模型是两个向量空间，任一改变都必须丢弃已存向量而不是把它们混在一起。"
+    },
+    "src/ragyourcode/embeddings.py:171:embedder": {
+      "hash": "ae4281b10c3154f4",
+      "code_hash": "a4e680f5149c4428",
+      "path": "src/ragyourcode/embeddings.py",
+      "name": "embedder",
+      "text": "Returns whichever embedder a repository's settings ask for. The credential is read from the environment and the settings file holds only the variable's name, because every other setting is meant to be committed so that everyone who clones can see what shaped the index, and a credential is the one value with exactly the opposite requirement. That is why this is not the environment-variable layer the configuration module deliberately does not have. 中文：按仓库设置返回相应的嵌入器。凭证从环境变量读取，配置文件里只存变量名——因为其余每一项设置都意在提交，好让所有克隆者看清是什么塑造了这个索引，而凭证恰恰是唯一要求相反的值。这也正是它并非配置模块刻意不设的那个环境变量层的原因。"
+    },
+    "src/ragyourcode/embeddings.py:25:embedding_metadata": {
+      "hash": "f01bf406aac28a35",
+      "code_hash": "fad27f3055e6e6bd",
+      "path": "src/ragyourcode/embeddings.py",
+      "name": "embedding_metadata",
+      "text": "Reports which scheme, which model and which version produced an index and how wide its vectors are, stored inside the index so vectors from an incompatible scheme are detected and discarded rather than silently mixed in. The model name is part of it for the same reason the provider is: two models behind one endpoint occupy different vector spaces. 中文：报告是哪套方案、哪个模型、哪个版本产出了这个索引，以及向量多宽；该信息存进索引，使来自不兼容方案的向量被检测出并丢弃，而不是被悄悄混入。模型名之所以在内，理由与 provider 相同：同一端点后面的两个模型占据不同的向量空间。"
     },
     "src/ragyourcode/embeddings.py:26:tokenize": {
       "hash": "e22f91a8839b15af",
@@ -478,6 +551,13 @@
       "text": "Similarity between two already-normalised vectors, as a plain dot product. Returns zero rather than raising when either side is empty or the widths disagree, which is how an index whose vectors were built at a different width degrades quietly to word-overlap-only ranking instead of failing loudly. 中文：两个已归一化向量的相似度，即点积。任一为空或维度不一致时返回零而非抛错——这也是为什么用不同维度建的旧向量只会静默退化成纯词面排序，而不会报错。",
       "code_hash": "a5095b2b383289c7"
     },
+    "src/ragyourcode/embeddings.py:93:LocalEmbedder": {
+      "hash": "a41919baebe265a6",
+      "code_hash": "0fda6ac171976073",
+      "path": "src/ragyourcode/embeddings.py",
+      "name": "LocalEmbedder",
+      "text": "The default embedder: a signed feature hash computed here, offline, with no dependency and no socket. That it carries no semantics is the load-bearing fact about it -- cosine over these vectors measures shared tokens, so a synonym pair and an unrelated pair are indistinguishable at exactly 0.0000. Retrieval therefore treats it as a tie-breaker among units the words already found, and never lets it decide what is found. 中文：默认嵌入器：本地计算的带符号特征哈希，离线、零依赖、不开 socket。它不携带语义这一点才是关于它最要紧的事实——这些向量之间的余弦度量的是共享词，因此同义词对与无关词对在 0.0000 处无从分辨。所以检索只把它当作已由词面找到的单元之间的平局裁决者，绝不让它决定什么被找到。"
+    },
     "src/ragyourcode/graph.py:112:build_graph": {
       "hash": "2dfe02244b90e40d",
       "path": "src/ragyourcode/graph.py",
@@ -490,17 +570,18 @@
       "text": "Rebuilds the relationship graph from what an index stored, skipping any entry whose shape it does not recognise. A scanned repository can ship its own index file, so a malformed entry must be ignored rather than trusted. 中文：从索引中存储的内容重建关系图，跳过任何形状不合的条目。被扫描的仓库可能自带索引文件，因此格式错误的条目必须忽略而非信任。",
       "code_hash": "cb95938d8ed7a191"
     },
-    "src/ragyourcode/graph.py:168:graph_search": {
-      "hash": "635be591087c0102",
-      "path": "src/ragyourcode/graph.py",
-      "text": "Retrieval that also follows relationships: finds seed units by query, then walks calls, imports and containment outward, giving each neighbour a decayed share of its seed score so distance costs relevance. Answers questions plain retrieval cannot, such as what calls the retry handler, and attaches the exact edge path to every expanded result as evidence. 中文：会沿关系扩展的检索——先按查询找到种子单元，再沿调用、导入、包含向外走，邻居按衰减比例继承种子分数，距离越远相关度越低。它能回答纯检索答不了的问题（例如『谁调用了重试处理器』），并把确切的边路径作为证据附在每条扩展结果上。",
-      "code_hash": "0057c452405e5b53"
-    },
     "src/ragyourcode/graph.py:19:CodeEdge": {
       "hash": "804c47f5528089da",
       "path": "src/ragyourcode/graph.py",
       "text": "One directed relationship between two code units, carrying its kind and a human-readable label. Kinds are deliberately few and conservative: one unit calls another, imports it, or contains it. 中文：两个代码单元之间的一条有向关系，带类型与可读标签。类型刻意保持极少且保守：调用、导入、包含。",
       "code_hash": "804c47f5528089da"
+    },
+    "src/ragyourcode/graph.py:208:graph_search": {
+      "hash": "3a6381f1f2212d78",
+      "code_hash": "38616a073b6c8380",
+      "path": "src/ragyourcode/graph.py",
+      "name": "graph_search",
+      "text": "Retrieves by words first, then follows calls, imports and containment outward from what was found, so a question about a workflow reaches the functions that participate in it rather than only the one that names it. Every expanded result carries the exact chain of edges that reached it, because a relationship a caller cannot check is a relationship it should not act on. 中文：先按词面检索，再从命中项沿调用、导入与包含关系向外走，使一个关于工作流的问题能够到参与其中的各个函数，而不只是名字里带那个词的那一个。每个被扩展出来的结果都带上到达它的确切边链，因为调用方无法核查的关系，就是它不该据以行动的关系。"
     },
     "src/ragyourcode/graph.py:25:CodeEdge.to_dict": {
       "hash": "8cab8c6fc49a0500",
@@ -593,12 +674,12 @@
       "text": "Gives every unit a repository-wide number, keeping the number a unit already had so that references written down in an earlier session still point at the same code. New units take the lowest numbers not already in use. 中文：给每个单元分配一个仓库范围内的编号，并保留单元原有的编号，使早先会话里记下的引用仍指向同一段代码。新单元取尚未被占用的最小编号。",
       "code_hash": "cad8a19baf1674cd"
     },
-    "src/ragyourcode/indexer.py:230:build_units": {
-      "hash": "6d6ec17d0c254f30",
+    "src/ragyourcode/indexer.py:264:build_units": {
+      "hash": "89276203210b57de",
+      "code_hash": "f2d88087e2ef1cd7",
       "path": "src/ragyourcode/indexer.py",
       "name": "build_units",
-      "text": "Builds the full set of indexed units, re-parsing only files whose content actually changed and reusing everything else along with its number and its vector. When the rules that produced the previous units differ — different ignores, suffixes, size cap, vector width, or a different parser — the previous work is discarded outright, because reuse is keyed on file content and cannot notice that the rules changed. Authored descriptions are checked against the code they describe and applied before the vector is computed, since the description is part of what gets embedded and doing it afterwards would embed the sentence the agent replaced. 中文：构建完整的索引单元集合，只重新解析内容真正变化的文件，其余连同编号与向量一并复用。当产出旧单元的规则不同时（忽略项、后缀、大小上限、向量维度，或解析器本身），旧成果整体作废——复用以文件内容为键，察觉不到规则变了。已写描述先对照其所述代码校验，并在计算向量之前应用：描述本身就是被嵌入的内容，放到之后做会把 agent 替换掉的那句话嵌进去。",
-      "code_hash": "62cb05fd10b98f63"
+      "text": "Parses a repository into units, reusing unchanged files and keeping serial numbers stable across runs, then gives every unit that needs one a vector. Embedding happens in a single batched pass rather than inside the parse loop, because a provider charges a round trip per request and eleven hundred units one at a time is not a slower version of the same thing but an unusable one. Units whose vectors were reused are not in that pass, so an incremental run over an unchanged repository makes no request at all. 中文：把仓库解析成单元，复用未变动的文件并让编号跨运行保持稳定，再给每个需要的单元算向量。嵌入放在一次成批的独立过程里而非解析循环内，因为 provider 每个请求收一个往返，一千一百个单元逐个来不是同一件事的慢版本，而是不可用的版本。复用了向量的单元不进入那一批，因此对未变动仓库的增量运行不会发出任何请求。"
     },
     "src/ragyourcode/indexer.py:269:fingerprint": {
       "hash": "c43969d994f83628",
@@ -612,13 +693,6 @@
       "text": "Combines per-file hashes into one repository-wide digest in a fixed order, so the same content always yields the same value. 中文：按固定顺序把逐文件哈希合成一个仓库级摘要，相同内容永远得到相同值。",
       "code_hash": "3ced1591267525c6"
     },
-    "src/ragyourcode/indexer.py:303:write_index": {
-      "hash": "8f5de94d1a8ead80",
-      "path": "src/ragyourcode/indexer.py",
-      "name": "write_index",
-      "text": "Publishes the index atomically: vector data goes to a content-addressed side file first, then the readable metadata is swapped into place in one step, so a reader never sees a half-written index. Alongside the content hashes it records digests of the two authored inputs, the settings and the descriptions, and of the rules that built the units, because none of those is an indexed file and a change in any of them would otherwise be invisible. Compact storage moves vectors out of verbose text numbers into a binary side file while the metadata stays readable. 中文：原子地发布索引——先把向量写入内容寻址的旁文件，再一步换入可读元数据，读者绝不会看到写了一半的索引。除内容哈希外，还记录两项手写输入（配置与描述）以及产出这批单元的规则的digest：它们都不是被索引的文件，否则其变化完全不可见。紧凑存储把向量从冗长文本数字挪进二进制旁文件，元数据仍保持可读。",
-      "code_hash": "8f5de94d1a8ead80"
-    },
     "src/ragyourcode/indexer.py:31:_resolve": {
       "hash": "e474035b71b4f08d",
       "path": "src/ragyourcode/indexer.py",
@@ -630,6 +704,13 @@
       "path": "src/ragyourcode/indexer.py",
       "text": "Deletes this index own outdated vector side files. Which files to remove is worked out from the naming scheme publication itself uses, and never from a path read back out of the index being replaced. A scanned repository can ship its own index file, so trusting a path stored inside one turned publishing into deleting an arbitrary file in the tree. Working it out instead also reclaims side files orphaned by an earlier run whose index was unreadable, and a file that cannot be removed is left alone since nothing points at it. 中文：删除本索引自己过期的向量旁文件。删哪些是按发布流程自身的命名规则推算出来的，绝不取自被替换索引里读到的路径——被扫描的仓库可以自带索引文件，信任其中存储的路径会把『发布』变成『删除目录树里的任意文件』。改用推算还能回收更早一次运行遗留的孤儿旁文件；删不掉的文件直接放着，因为没有任何索引指向它。",
       "code_hash": "94dcfaea4c67de82"
+    },
+    "src/ragyourcode/indexer.py:353:write_index": {
+      "hash": "29b82dc1bea1d165",
+      "code_hash": "47e78a343c2103ea",
+      "path": "src/ragyourcode/indexer.py",
+      "name": "write_index",
+      "text": "Publishes an index atomically: the vector data goes to a content-addressed side file first, then the readable metadata is swapped into place in one move, so a reader never sees a half-written index. What it records includes who computed the vectors and with which model, which is what lets a later run tell a stale index apart from an index of a different vector space. 中文：原子地发布索引：向量数据先写入按内容寻址的旁挂文件，随后可读的元数据一次性换入，读者因此永远看不到写到一半的索引。它记录的内容包含向量由谁计算、用的哪个模型——正是这一点让后续运行能分辨「过时的索引」与「另一个向量空间的索引」。"
     },
     "src/ragyourcode/indexer.py:375:read_index": {
       "hash": "6da06559fc6db023",
@@ -830,6 +911,41 @@
       "text": "Registers one shared set of rules for several languages at once, since families such as Java, Kotlin, C-sharp and Scala declare things the same way. 中文：一次为多门语言登记同一套规则——Java、Kotlin、C#、Scala 这类家族的声明写法本就相同。",
       "code_hash": "cf8d3f240fd6f961"
     },
+    "src/ragyourcode/providers.py:143:_vectors_from": {
+      "hash": "bdddf7c76c012812",
+      "code_hash": "09f9ad99404baa95",
+      "path": "src/ragyourcode/providers.py",
+      "name": "_vectors_from",
+      "text": "Reads the vectors out of a response and refuses anything unusable: a missing data array, a count that does not match the request, a row without an embedding, a position reported twice, a non-numeric component. Width is checked rather than adopted, because a setting quietly overridden by whatever a model happened to return is indistinguishable from a setting that never worked -- so a mismatch names both numbers and stops. 中文：从响应中读出向量，并拒绝任何不可用的形态：缺 data 数组、条数与请求不符、某行没有 embedding、位置重复、分量非数值。宽度是校验而非采纳——被模型返回值悄悄覆盖的设置，与从未生效的设置无从分辨，因此不匹配时同时报出两个数字并停下。"
+    },
+    "src/ragyourcode/providers.py:37:ProviderError": {
+      "hash": "204909e5de7b9d5b",
+      "code_hash": "85661d79c16663c6",
+      "path": "src/ragyourcode/providers.py",
+      "name": "ProviderError",
+      "text": "Raised when an embeddings request cannot be completed as configured, and deliberately not absorbed. Falling back to the local hash would leave an index whose vectors come from two incompatible spaces, and a cosine between them is not a weak signal but a meaningless one that ranking would act on with full confidence. 中文：当嵌入请求无法按当前配置完成时抛出，且刻意不被吞掉。回退到本地哈希会留下一个向量来自两个互不兼容空间的索引，而两者之间的余弦不是弱信号，是毫无意义的数字——排序却会照单全收地据此下判断。"
+    },
+    "src/ragyourcode/providers.py:47:_describe_status": {
+      "hash": "7374d19e88f40fca",
+      "code_hash": "ded4fdf4ac8b2592",
+      "path": "src/ragyourcode/providers.py",
+      "name": "_describe_status",
+      "text": "Turns an endpoint failure into something a user can act on with nothing sensitive in it. The request carried a credential; the report of the request must not, so only the status and the endpoint's own message are repeated, truncated, and the authorization header is part of neither. 中文：把端点的失败变成用户能据以行动的信息，且其中不含任何敏感内容。请求带了凭证，而对请求的报告绝不能带——只复述状态码与端点自己的消息并截断，授权头不进入其中任何一处。"
+    },
+    "src/ragyourcode/providers.py:64:check_endpoint": {
+      "hash": "5e9019cac5c797cd",
+      "code_hash": "ed91a09010189b32",
+      "path": "src/ragyourcode/providers.py",
+      "name": "check_endpoint",
+      "text": "Refuses a configuration that would put a credential on a network in the clear. A model server on localhost over plain HTTP is the intended local setup and is allowed; the same URL pointing anywhere else means the key crosses a network unencrypted, which is a leak rather than a preference. Warning about it afterwards would be warning about something that had already happened. 中文：拒绝那种会把凭证明文送上网络的配置。本机模型服务走普通 HTTP 是本就预期的本地用法，予以放行；同样的 URL 指向别处则意味着密钥未加密穿越网络，那是泄漏而不是偏好。事后再警告，等于对一件已经发生的事发警告。"
+    },
+    "src/ragyourcode/providers.py:83:embed_batch": {
+      "hash": "282d3b05b3eaea66",
+      "code_hash": "49a67864def71ccb",
+      "path": "src/ragyourcode/providers.py",
+      "name": "embed_batch",
+      "text": "Fetches vectors for one batch of texts from an OpenAI-compatible endpoint, in the order they were given. Rate limits and transport failures are retried with growing backoff; a rejected key or an unknown model is not, because the answer will not change and on a metered service each attempt costs the caller something. When the attempts run out the exception propagates: a build either uses one vector space or does not finish. 中文：从 OpenAI 兼容端点取一批文本的向量，按给定顺序返回。限流与传输失败按递增退避重试；密钥被拒或模型名错误则不重试，因为答案不会变，而在计费服务上每次尝试都要花钱。重试用尽后异常向上抛出：一次构建要么使用单一向量空间，要么不完成。"
+    },
     "src/ragyourcode/search.py:115:_in_posting": {
       "hash": "68ba487a020c6d72",
       "code_hash": "4ef3996ff36e802f",
@@ -844,12 +960,12 @@
       "name": "_inverse_document_frequency",
       "text": "How much evidence one word carries, derived from how rare it is in the corpus being searched. A word in nearly every unit says nothing about which unit is wanted; a word in two says a great deal. Deriving this from the corpus instead of from a list of stopwords is what makes it work on a repository in any language -- the and calls earn their low weight the same way a Chinese bigram does, by being everywhere, and no list has to be maintained. Measured on a foreign repository, calls reached 97 percent of units while daemon reached two. 中文：一个词携带多少证据，由它在被检索语料中的稀有程度推出。出现在几乎所有单元里的词，说不出想要哪个单元；只出现在两个单元里的词则说得很多。从语料推导而非依赖停用词表，正是它能在任何语言的仓库上生效的原因——the 与 calls 靠遍地都是拿到低权重，中文二元组也一样，且无需维护任何词表。在一个外部仓库实测：calls 覆盖 97% 的单元，而 daemon 只有两个。"
     },
-    "src/ragyourcode/search.py:136:search": {
-      "hash": "0a34e15616c01b89",
-      "code_hash": "94a8d08641680df3",
+    "src/ragyourcode/search.py:145:search": {
+      "hash": "97dddfaa863492c9",
+      "code_hash": "648bb2dbe7ae8345",
       "path": "src/ragyourcode/search.py",
       "name": "search",
-      "text": "Ranks code units against a question by combining weighted word overlap with vector similarity. Rare words count for more than common ones, repeating a word saturates instead of accumulating without bound, and a unit is discounted for how much text it owns. Everything sharing any query word is scored so nothing that matches is left out; full vector scoring is reserved for units reached by a selective term, since a dot product for everything a stopword-class term touches is pure cost. An earlier version scored the plain fraction of query words present, which made the worth as much as daemon and handed every question to whichever unit was longest. 中文：把代码单元按与问题的相关性排序，结合加权词面重合与向量相似度。罕见词比常见词值钱，同一个词重复出现会饱和而非无限累加，单元还会因自身文本量大而被折价。凡共享任一查询词的单元都会被打分，确保匹配到的不会被漏掉；完整的向量打分只留给由选择性词触及的单元，因为为一个停用词级别的词所触及的一切算点积纯属浪费。早先的版本按命中查询词的比例打分，于是 the 和 daemon 一样值钱，每个问题都被交给最长的那个单元。"
+      "text": "Ranks code units against a question by combining weighted word overlap with vector similarity. Rare words count for more than common ones, repeating a word saturates, and a unit is discounted for how much text it owns. When -- and only when -- the embedder carries real semantics, similarity may also add candidates the words never reached, which is the one thing a vector can do that reordering cannot. Lexical evidence stays dominant: a unit found by similarity alone scores at most the vector weight. 中文：把代码单元按与问题的相关性排序，结合加权词面重合与向量相似度。罕见词比常见词值钱，词重复出现会饱和，单元因自身文本量大而被折价。当且仅当嵌入器携带真实语义时，相似度还可以新增词面从未够到的候选——那是向量能做而重排做不到的唯一一件事。词面证据始终占主导：仅凭相似度被找到的单元，得分至多为向量权重。"
     },
     "src/ragyourcode/search.py:240:_block": {
       "hash": "afacfcda8888ea5b",
@@ -872,26 +988,26 @@
       "name": "context",
       "text": "Packs ranked results into one block an agent can paste straight into a prompt, stopping before the caller character budget is exceeded. This is where the code arrives -- once -- so results beside it need carry none. 中文：把排好序的结果打包成一整块，agent 可以直接贴进提示词，并在超出调用方字符预算前停下。代码就在这里出现，且只出现一次，因此旁边的结果无需再带。"
     },
-    "src/ragyourcode/search.py:50:SearchIndex": {
-      "hash": "7c71f81c00088c31",
-      "code_hash": "553d6150384a7ed3",
+    "src/ragyourcode/search.py:51:SearchIndex": {
+      "hash": "9ca2694300e2612b",
+      "code_hash": "dbe73445ed496122",
       "path": "src/ragyourcode/search.py",
       "name": "SearchIndex",
-      "text": "The inverted lookup table retrieval runs on, built once per session so a query does not re-read every unit. Each posting carries a term weight beside the unit it points at -- already scaled by the field the term appeared in and by how long that field is -- because ranking needs to know how often a term occurs and where, not merely that it occurs. That weight lives in the posting rather than in a second per-unit table, which is what an earlier version paid its largest share of memory for while holding nothing the postings did not. 中文：检索所依据的倒排表，每会话建一次，使一次查询不必重读每个单元。每条倒排项在它指向的单元旁携带词权重——已按该词所在字段及字段长度缩放过——因为排序需要知道词出现了多少次、出现在哪里，而不只是出现过。该权重存在倒排项里而非另建一张按单元的表：早先的版本正是为那张表付出了最大一份内存，而它并没有比倒排表多存任何东西。"
+      "text": "The inverted lookup table retrieval runs on, built once per session, carrying both the postings and the embedder. Each posting holds a term's weight beside the unit it points at, already scaled by the field it appeared in and by that field's length. The embedder lives here because a query vector and a unit vector must come from the same scheme to be comparable at all -- keeping them together is what makes that impossible to get wrong from a call site. 中文：检索所依据的倒排表，每会话建一次，同时携带倒排项与嵌入器。每条倒排项在其指向的单元旁存放该词的权重，已按其所在字段及字段长度缩放。嵌入器放在这里，是因为查询向量与单元向量必须同源才谈得上可比——把两者放在一起，才使得调用点无法把这件事做错。"
     },
-    "src/ragyourcode/search.py:70:build_search_index": {
-      "hash": "21a3551d85d8c133",
-      "code_hash": "a055cff9ba9fdb69",
+    "src/ragyourcode/search.py:78:build_search_index": {
+      "hash": "6a0fcaba0604cba7",
+      "code_hash": "447f83100f4e796b",
       "path": "src/ragyourcode/search.py",
       "name": "build_search_index",
-      "text": "Reads every unit once per field and records, for each word, which units contain it and how much it counts for there. Weight is a word count in a field, divided by how long that field is against the average for the same field, scaled by what the field is worth. Normalising per field is the part that matters: measured against one length for the whole unit, a long body advantage in raw count almost exactly cancelled its penalty for being long, and a body repeating a word still beat the declaration named after it. 中文：按字段逐一读过每个单元，记录每个词出现在哪些单元、在那里值多少。权重是词在某字段的出现次数，除以该字段相对同字段平均值的长度，再乘以该字段的分量。逐字段归一是关键：若改用整个单元的一个长度，长函数体在原始次数上的优势几乎正好抵消了它因长而受的惩罚，一个反复出现某词的函数体仍能压过以该词命名的声明。"
+      "text": "Builds the inverted lookup table, recording for each word which units contain it and how much it counts for in each, and keeps the embedder beside it. A word weight is its count in a field divided by that field length against the average for the same field, scaled by what the field is worth. Normalising per field is the part that matters: against one length for the whole unit, a long body advantage in raw count almost exactly cancelled its penalty for being long. 中文：构建倒排表，记录每个词出现在哪些单元、在各处值多少，并把嵌入器一并保存在旁。词的权重是它在某字段的出现次数，除以该字段相对同字段平均值的长度，再乘以该字段的分量。逐字段归一才是关键：若用整个单元的单一长度，长函数体在原始次数上的优势几乎正好抵消了它因长而受的惩罚。"
     },
     "src/ragyourcode/workflow.py:103:apply_descriptions": {
-      "hash": "3c29fbd4ef3ad04e",
-      "code_hash": "675b8e72e4326987",
+      "hash": "77c61c89d052bdd8",
+      "code_hash": "f8fb2fd30814c6f3",
       "path": "src/ragyourcode/workflow.py",
       "name": "apply_descriptions",
-      "text": "Pushes newly stored text into the units this session is already holding, re-embedding what changed. Without it an agent would describe a unit and keep retrieving against the sentence it replaced until the next rebuild, which is the slowest possible way to discover that the work had an effect. 中文：把刚存下的文字推进本次会话已持有的单元，并为变化者重算向量。没有这一步，agent 描述完一个单元后，直到下次重建为止都仍在用被它取代的那句话检索——那是发现自己的工作产生了效果的最慢方式。"
+      "text": "Pushes newly stored text into the units this session already holds and re-embeds what changed, in one batched call. Without it an agent would describe a unit and keep retrieving against the sentence it replaced until the next rebuild, which is the slowest possible way to discover that the work had an effect. Batching matters because against a remote provider a described batch is the difference between one round trip and twenty. 中文：把刚存下的文字推进本次会话已持有的单元，并对变化者成批重算向量。没有这一步，agent 描述完一个单元后，直到下次重建都仍在用被它取代的那句话检索——那是发现自己的工作产生了效果的最慢方式。成批处理之所以重要：面对远端 provider，一个描述批次意味着一个往返还是二十个往返的差别。"
     },
     "src/ragyourcode/workflow.py:120:bootstrap": {
       "hash": "86269bcdc179c3d8",

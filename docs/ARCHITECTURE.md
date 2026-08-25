@@ -104,12 +104,64 @@ repository root. Everything under `.rag-your-code/` is generated and
 disposable. The split is deliberate: that directory is what a person deletes to
 clear the cache, and authored work must survive it.
 
-## Why the embedder is local
+## Why the embedder is local *by default*
 
 It is deterministic, offline and dependency-free. That gives a reproducible
-baseline for a private repository and makes tests exact. It is also an adapter
-boundary: a provider can implement `embed(text)` and keep the same records,
-persistence and retrieval API.
+baseline for a private repository and makes tests exact. It was always also an
+adapter boundary, and since 0.8.0 something else can stand at it.
+
+### The provider boundary
+
+`embedder(cfg)` returns whichever of two objects the settings ask for, and
+both answer the same three questions: what a text's vector is, what a batch of
+texts' vectors are, and what metadata an index should record about them.
+`LocalEmbedder` hashes; `RemoteEmbedder` posts to an OpenAI-compatible
+endpoint using nothing but `urllib`. One request shape reaches a hosted
+service and a model server on localhost alike, and the local case is the one
+that keeps the original promise: the source never leaves the machine.
+
+Four properties are structural rather than advisory:
+
+- **The default opens no socket**, and a test asserts it by making the
+  transport raise before running a full index and search.
+- **The embedder lives on `SearchIndex`.** A query vector and a unit vector
+  must come from the same scheme to be comparable at all, and this session
+  produced one wrong conclusion from exactly that mistake before the shape was
+  fixed. Keeping them together makes it impossible to get wrong from a call
+  site.
+- **Provider, model and width are recorded in the index.** Changing any of
+  them discards the stored vectors, because two models behind one endpoint are
+  two vector spaces and a cosine across them is not a weak signal but a
+  meaningless one that ranking would act on regardless.
+- **A failure ends the build.** Retries with exponential backoff, permanent
+  errors (a rejected key, an unknown model) not retried at all, and then the
+  exception propagates. Falling back to the hash would produce a mixed index.
+
+Embedding happens in one batched pass over the units that need it, not inside
+the parse loop: eleven hundred units one round trip at a time is not a slower
+version of the same thing. An incremental run over unchanged files makes no
+request.
+
+The credential is read from an environment variable whose *name* is the
+setting. That is not the environment layer `config.py` deliberately does not
+have — every other setting is meant to be committed so everyone who clones can
+see what shaped the index, and a credential is the single value with exactly
+the opposite requirement.
+
+### Semantics may add candidates; hashed overlap may not
+
+`search.vector_recall` widens the candidate set by cosine, and it is gated on
+the embedder rather than on a preference. Under the feature hash the same
+widening measured worse — a cosine over hashed token overlap ranks unrelated
+units confidently — while a trained model is the only mechanism that can reach
+a unit sharing no token with the question, which six of thirty-five foreign
+ruler questions require. Lexical evidence stays dominant either way: a unit
+found by similarity alone scores at most `search.vector_weight`, so it
+surfaces where the words found little and yields where they found a lot.
+
+This is unmeasured against a real model, and deliberately so: this project has
+no key, and a number produced by a stub would be fiction. What ships instead
+is the instrument — `benchmarks/repo_queries.py --index` grades any index.
 
 Agent-authored descriptions are deliberately the cheaper answer to the same
 problem a provider embedder would solve. They keep `dependencies = []`, keep

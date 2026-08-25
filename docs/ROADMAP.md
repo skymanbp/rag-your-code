@@ -481,10 +481,66 @@ What remains is not a better local embedding. It is either a real model as an
 optional dependency, which trades the property this project is built on, or
 accepting that retrieval reaches only what somebody wrote down.
 
+## 0.8.0 — the trade, made the only way it could be
+
+0.7.0 closed the question of whether a dependency-free scheme could give the
+vector half real semantics: eight approaches, none adopted, and the reason was
+architectural rather than representational. What remained was named there as
+two options — a real model as an optional dependency, or accepting that
+retrieval reaches only what somebody wrote down.
+
+This is the first, built as something a user turns on. `embedding.provider`
+switches between the local hash and any OpenAI-compatible embeddings endpoint,
+which covers hosted services and a model server on localhost with one request
+shape. The local case is documented first because it is the one that keeps the
+original promise: the source never leaves the machine.
+
+The default is unchanged and stays unchanged by construction. It adds no
+dependency, opens no socket, and a test asserts the second of those by making
+the transport raise before running a full index and search. Everything else in
+`tests/test_providers.py` is only worth having while that one passes.
+
+### What the settings had to get right
+
+| decision | why it went this way |
+|---|---|
+| the key is an environment variable, the file names it | every other setting is meant to be committed so everyone who clones sees what shaped the index; a credential is the one value with the opposite requirement |
+| cleartext HTTP to a non-loopback host with a key is refused | a warning about a leak that has already happened is not a safeguard |
+| provider, model and width are recorded in the index | two models behind one endpoint are two vector spaces; a cosine across them is meaningless and ranking would act on it anyway |
+| a failure ends the build | falling back would leave a mixed index, and the confident wrong answer is the one thing this index is built not to give |
+| embedding is one batched pass | eleven hundred units one round trip at a time is not a slower version of the same thing |
+
+### The candidate set opens, but only for real semantics
+
+`search.vector_recall` lets similarity *add* candidates rather than only
+reorder them — the constraint 0.7.0 identified as the reason no embedding
+change could help. It is gated on the embedder, not on a preference: under the
+feature hash the same widening measured worse, and six of thirty-five foreign
+ruler questions have no acceptable answer sharing a single token with the
+query, which is exactly what only a real model can reach.
+
+Verified against a stub whose vectors carry meaning by hand: with recall off
+the semantically-near unit is not a candidate at all; with it on the unit
+appears, found by similarity alone, ranked below the lexical hit.
+
+### What is not measured
+
+Whether any of this helps a real repository, and by how much. There is no key
+here, and a number produced by a stub would be fiction. The instrument ships
+instead: `benchmarks/repo_queries.py --index` grades any index, so the
+question is answerable by whoever has the key. The 0.15 default for
+`search.vector_weight` was tuned against a hash carrying no meaning and is
+very likely wrong for a model.
+
 ## Non-goals
 
-Provider-backed embeddings, Tree-sitter, and the SQLite/ANN storage layer stay
+Tree-sitter and the SQLite/ANN storage layer stay
 on the evolution plan in ARCHITECTURE.md. P8 is deliberately the cheaper answer
-to the same problem provider embeddings solve: it keeps `dependencies = []`, it
-keeps source on the machine, it needs no API key, and its output is text a human
-can read and correct rather than opaque floats.
+to the same problem provider embeddings solve, and it stays the default: it
+keeps `dependencies = []`, it keeps source on the machine, it needs no API key,
+and its output is text a human can read and correct rather than opaque floats.
+A provider is now available beside it, never instead of it.
+
+`search.vector_recall` scans every unit's vector on every query, which is
+affordable at the measured envelope and is precisely the work an ANN index
+would replace.
