@@ -98,6 +98,30 @@ already emits. Layer 3 answers that question too: a declaration reaching `;`
 before `{` owns nothing, which is how prototypes, trait and interface method
 signatures, Swift protocol requirements and Rust unit structs stay out.
 
+Documentation written immediately above a declaration is collected and
+appended to the unit's description, in the same phrasing the Python path uses
+for a docstring. Fourteen of the fifteen languages document that way, and a
+unit's span begins at the declaration, so all of it previously sat outside the
+indexed text: the same sentence reached thirteen searchable words as a Python
+docstring and two as a JavaScript comment. Adjacency is required so a licence
+header separated by a blank line is not read as documentation of the first
+declaration, annotation lines are stepped over because `@Override` between
+Javadoc and its method is the normal Java shape, and lines that end in `;`,
+`{` or `}` are dropped as commented-out code. `,` and `)` were on that list
+until a measurement showed them rejecting the first line of an ordinary JSDoc
+block: prose wraps on a comma far more often than code ends on one.
+
+The parser is also an input the index records. Cached units are a function of
+a file's bytes *and* of the code that parsed them, but reuse was keyed on the
+bytes alone, so upgrading the parser left every unchanged file carrying units
+the old one produced until that file happened to change. That was the third
+such input after the settings and the descriptions, and since all three mean
+the same thing and call for the same action they are one field: a
+`build_fingerprint` over the build settings and a digest of the parser's own
+source. Digesting the source rather than declaring a version number costs one
+rebuild for a comment-only edit and removes the possibility of a forgotten
+bump.
+
 The parser's dispatch table is also the source of truth for which suffixes the
 walker accepts. They were separate lists agreeing by coincidence, and a suffix
 on only the walker's list produced a file that was read, parsed to nothing, and
@@ -163,12 +187,63 @@ handed out with each batch asks for, and it is why the default asks for two
 languages: the tokenizer emits CJK bigrams, so a Chinese query can only reach a
 unit whose indexed text contains Chinese.
 
-Each entry is keyed by unit id **and a digest of the unit's source**. When the
-source moves the entry is retained but not applied, the unit returns to the
+Each entry is keyed by unit id **and a digest of the unit's code**. When the
+code changes the entry is retained but not applied, the unit returns to the
 pending queue, and retrieval falls back to the generated sentence. A
 description outliving its code would be a confident wrong answer, which is the
 one thing this index exists not to produce. Incremental indexing keeps the cost
 proportional: only units in changed files need describing again.
+
+*Code*, not source: documentation is excluded from that digest. Adding or
+rewriting a docstring changes nothing about what a function does and so cannot
+make a description wrong, and while the digest covered it the guard fired on
+its own reflection — promoting a description into the source inserted that
+very description, changed the digest, and discarded the entry along with
+whatever part of the text had not been promoted. Measured here, that cost
+Chinese retrieval twenty-eight percent of its hit rate. Two digests are stored:
+the whole source, which is a single hash and hits for every unit whose file did
+not change, and the documentation-excluded one, computed only after the cheap
+one has missed. The parse is therefore paid once per genuinely changed unit
+rather than once per unit per run, and an entry written before the second field
+keeps working through the first.
+
+## Promotion
+
+`describe promote` turns a stored description into a doc comment in the
+language's own convention and emits a unified diff. The store buys
+independence from the file and pays for it with a digest, a relocation lookup,
+a fingerprint and a pruning rule — all of which simulate a property text in
+the source has for free. So the store is the fallback and the code is the
+destination.
+
+The tool still never writes source: the patch is reviewed and applied by a
+person. Only declarations with no documentation at all are touched, because
+the author's words outrank an agent's and are already harvested. Only the half
+meant for a reader is promoted, so a bilingual description leaves its second
+language where retrieval still uses it.
+
+## Evaluation
+
+Two rulers, measuring different things. `benchmarks/golden.json` grades ranking
+over a five-file synthetic fixture: small, stable, and asserted in CI as a
+regression tripwire. `benchmarks/repo_queries.json` grades seventy
+natural-language questions over this repository's own source, in English and
+Chinese, each listing every unit that genuinely answers it.
+
+The second exists because the first cannot resolve a change to how vocabulary
+reaches the index — four candidate scoring changes measured over an
+eight-question set all landed between five and six correct, which is the
+instrument's resolution rather than a ranking of options. Questions are keyed
+on file path and declaration name, never on line, so the ruler survives the
+edit that orphaned nineteen descriptions in 0.4.1, and every acceptable answer
+is checked against the index before anything is scored: a question that
+quietly stops matching would read as a regression, and one quietly removed
+would read as progress.
+
+Its score is asserted nowhere. It falls whenever the repository gains code
+nobody has described yet, which is ordinary development. CI reports it;
+`tests/test_repo_queries.py` enforces that the ruler still refers to real
+code, that both languages are present, and that some question still fails.
 
 A store change is invisible to a file fingerprint, so the index also records a
 digest of the authored text — the same defect class the configuration

@@ -70,6 +70,20 @@ instruction no gate ever ran — so the gate now exists.
    claiming nothing regressed, diff the node ids, the keys, or the names — this
    rule caught a silently removed test during the 0.4.2 documentation pass.
 
+## Two rules learned the hard way
+
+**An input the index does not record is an input that will go stale.** Three
+times now: the settings, the descriptions, and the parser itself. Reuse is
+keyed on a file's bytes, and cached units are a function of the bytes *and* of
+everything that decided what a unit is. If you add something that shapes the
+output, put it in `build_fingerprint`.
+
+**A guard must not fire on a change that cannot make it wrong.** The digest
+deciding whether a description still applies used to cover the unit's
+documentation, so writing that description into the source as a docstring
+discarded it. Before adding a check, ask what it is protecting against and
+whether the thing it watches can actually cause that harm.
+
 ## Adding a setting
 
 `config.py` holds one settings table. Add a row and the loader, the validator,

@@ -3,6 +3,90 @@
 Notable changes per release. Dates are the release date; measurements are from
 the development machine (Windows 11, CPython 3.13) and are directional.
 
+## 0.5.0 — 2026-08-25
+
+0.4.0 asked where retrieval's vocabulary comes from and answered "whatever an
+agent writes into a sidecar". That is one rung of three, and the least durable
+one: text in the code needs no bookkeeping, while text beside it needs a
+digest, a relocation lookup, a fingerprint and a pruning rule — all of them
+simulating a property the first has for free.
+
+### Added
+
+- **Documentation the author already wrote is now indexed.** Fourteen of the
+  fifteen supported languages put it immediately above a declaration — JSDoc,
+  Javadoc, KDoc, rustdoc, Go doc comments, XML doc comments, PHPDoc — and a
+  unit's span begins at the declaration, so all of it sat outside the indexed
+  text. The same sentence reached thirteen searchable words as a Python
+  docstring and two as a JavaScript comment; both now reach thirteen. Measured
+  over the language fixtures: zero of ninety-five non-Python declarations
+  carried documentation into the index, sixteen now do, contributing 171
+  searchable words.
+
+  A licence header separated by a blank line, code somebody commented out, and
+  a row of dashes are each deliberately excluded — indexing them invents
+  vocabulary the author disowned.
+
+- **`describe promote`** emits a unified diff that moves a stored description
+  into the source as a doc comment in the language's own convention, for
+  declarations that have none. Standard output is the patch so it pipes into
+  `git apply`; the tool still never writes source. Only the half meant for a
+  reader is promoted, so a bilingual description leaves its second language in
+  the store.
+
+- **A ruler that can tell an improvement from noise.** Seventy natural-language
+  questions over this repository's own source, in English and Chinese, each
+  listing every unit that genuinely answers it. Four candidate scoring changes
+  measured over the previous eight-question set all landed between five and six
+  correct, which is the instrument's resolution rather than a ranking of
+  options. Its score is asserted nowhere — it falls whenever the repository
+  gains undescribed code — but `tests/test_repo_queries.py` enforces that every
+  acceptable answer names real code, that both languages are present, and that
+  some question still fails.
+
+  First measurement, and the honest version of a figure previously given as
+  2 of 8:
+
+  | | generated | agent-written |
+  |---|---|---|
+  | hit@1 | 0.171 | **0.500** |
+  | hit@3 | 0.314 | **0.729** |
+  | MRR | 0.240 | **0.605** |
+  | answered with no shared word | 15.7% | **0%** |
+
+### Fixed
+
+- **Upgrading the parser reached no existing index.** Reuse is keyed on a
+  file's bytes, but cached units are a function of the bytes *and* of the code
+  that parsed them, so every unchanged file kept units the old parser produced
+  until it happened to change. That was the third input the index did not
+  record, after the settings and the descriptions; since all three mean the
+  same thing and call for the same action they are now one `build_fingerprint`,
+  over the build settings and a digest of the parser's own source.
+
+- **Promoting a description discarded it.** The digest deciding whether a
+  description still applies covered the unit's documentation, so inserting that
+  description as a docstring changed the digest and dropped the entry — taking
+  whatever part of the text had not been promoted. Measured here: 64 of 124
+  descriptions lost, and Chinese hit@1 from 0.583 to 0.417. Documentation is
+  now excluded from that digest, because documentation is not code and cannot
+  make a description wrong. This also stops a hand-edited docstring from
+  discarding a description of code that did not change, and makes Python
+  consistent with the fourteen languages whose documentation was already
+  outside the span.
+
+  Re-measured with the fix, promoting all 68: nothing discarded, Chinese
+  unchanged at 0.667, hit@1 0.443 → 0.457.
+
+### Measured and rejected
+
+A conservative suffix stripper and term-rarity weighting were both implemented
+and measured before the ruler existed. On eight questions, stemming fixed one
+query and broke another; rarity weighting changed nothing at all, because the
+failing query's two informative words matched no unit under any weighting.
+Both were dropped for want of evidence rather than of an implementation, and
+the ruler now exists to settle them.
+
 ## 0.4.2 — 2026-08-25
 
 A closing pass. Every distribution path is now walked end to end, the

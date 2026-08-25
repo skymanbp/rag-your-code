@@ -44,7 +44,19 @@ The test suite currently covers:
   (including a Chinese query), a source edit removing it from use while the
   entry survives on disk, a mismatched digest never applied, an index predating
   the feature not reported stale, every rejection reason, and a description
-  taking effect inside the same agent session.
+  taking effect inside the same agent session;
+- documentation harvesting across seven language families, with a licence
+  header, commented-out code and a separator rule each shown *not* to be
+  harvested, an annotation shown not to hide the block above it, and prose
+  wrapping on a comma shown to survive;
+- the parser as a recorded input: a changed parser forcing a rebuild, an index
+  predating the field rebuilding once, and the fingerprint being derived from
+  the module rather than declared;
+- promotion: a patch `git apply` actually applies for four language families,
+  every supported language having a documentation convention, an already
+  documented declaration left alone, CRLF endings preserved, several
+  insertions in one file not shifting each other, and — the defect this
+  guards — promoting a description not discarding it.
 
 Subprocess tests pin `PYTHONPATH` to `src/` through `cli_env()`, so they
 exercise the working tree rather than whatever copy pip has installed.
@@ -54,6 +66,29 @@ the parser's own dispatch table, because a suffix on only the walker's list is
 read, parsed to nothing, and reported as a clean index. And the 3.10 TOML
 reader is checked against `tomllib` over sixteen inputs on every version that
 ships one, so the fallback cannot drift away from the real grammar in silence.
+
+## The two rulers
+
+`benchmarks/golden.json` grades ranking over the five-file synthetic fixture
+and is asserted in CI. It is a regression tripwire, and it cannot resolve a
+change to how vocabulary reaches the index: seven queries over sixty units
+have no resolution, and four candidate scoring changes measured over an
+eight-question set all landed between five and six correct.
+
+`benchmarks/repo_queries.json` grades seventy natural-language questions over
+this repository's own source, in English and Chinese, each listing every unit
+that genuinely answers it rather than one expected file — a single expected
+answer once made a correct result read as a miss. Questions are keyed on file
+path and declaration name, never on line, so the ruler survives the edit that
+orphaned nineteen descriptions in 0.4.1.
+
+`tests/test_repo_queries.py` guards the ruler rather than the score. Every
+acceptable answer must name a unit that exists, both languages must be
+present, and at least one question must still fail — a ruler everything
+passes cannot measure an improvement. The score itself is asserted nowhere: it
+falls whenever the repository gains code nobody has described yet, which is
+ordinary development and not a regression. It caught a rename the moment it
+happened, loudly, instead of quietly scoring lower.
 
 ## Tests that read the documentation
 
@@ -79,8 +114,10 @@ Stated plainly, because a green suite says nothing about what it never runs.
   but whether an agent decides to load the skill in a fresh session is a
   property of the host, not of anything here.
 - **Description quality.** Coverage is measured and applicability is enforced;
-  whether a written description is a *good* one is judged only by the ten-query
-  before-and-after comparison recorded in `CHANGELOG.md`.
+  whether a written description is a *good* one is judged only by the
+  seventy-question ruler, whose questions were written by the same party that
+  wrote the descriptions. That measures "can retrieval find the thing the
+  author meant", not "is the author's meaning discoverable by a stranger".
 - **Repositories much past 10,000 units.** The measured envelope is the
   synthetic benchmark's; beyond roughly 100k units the JSON storage layer is
   expected to be the limit, and that expectation is untested.

@@ -126,7 +126,15 @@ callees listed, the docstring appended. It introduces no vocabulary the source
 did not already have — which is exactly why retrieval cannot reach a concept
 nobody wrote down.
 
-The agent already reading the index can supply those words:
+**First, the documentation you already wrote is indexed.** Fourteen of the
+fifteen supported languages put documentation immediately above a declaration
+— JSDoc, Javadoc, KDoc, rustdoc, Go doc comments, XML doc comments, PHPDoc —
+and a unit's span begins at the declaration, so all of it used to sit outside
+the index. The same sentence reached thirteen searchable words as a Python
+docstring and two as a JavaScript comment. Now both reach thirteen. Commented-
+out code, separator rules and licence headers are deliberately left out.
+
+**Where there is none, the agent can write it:**
 
 ```bash
 rag-your-code describe status              # coverage, and what is pending
@@ -138,23 +146,43 @@ rag-your-code index .                      # apply it
 or, in the protocol, `describe_pending` and `describe_put` — which take effect
 in the same session, with no refresh.
 
+**And you can move it into the code**, where it needs no bookkeeping at all:
+
+```bash
+rag-your-code describe promote | git apply    # review it first
+```
+
+That emits a unified diff adding a doc comment in each language's own
+convention, for declarations that have none. The tool still never writes your
+source. Only the half meant for a reader is promoted, so a bilingual
+description leaves its second language in the store where retrieval still uses
+it — measured, promoting all 68 on this repository discarded no description
+and left Chinese retrieval unchanged.
+
 ### Measured on this repository
 
-This project describes its own implementation: all 120 units under `src/`
-carry an agent-written bilingual description, committed to the repo. Ten
-natural-language questions about the codebase, before and after:
+This project describes its own implementation: every unit under `src/` carries
+an agent-written bilingual description, committed to the repo, and 68 of them
+have been promoted into the source as doc comments.
 
-| | before | after |
+Seventy natural-language questions about this codebase, in English and
+Chinese, each listing every unit that genuinely answers it
+([`benchmarks/repo_queries.json`](benchmarks/repo_queries.json)):
+
+| | generated descriptions | agent-written |
 |---|---|---|
-| top result in the expected file | 2 / 8 | **6 / 8** |
-| Chinese-language queries | 0 / 4 | **3 / 4** |
-| queries with **no shared word at all** (pure fallback) | 4 | **0** |
+| hit@1 | 0.171 | **0.500** |
+| hit@3 | 0.314 | **0.729** |
+| MRR | 0.240 | **0.605** |
+| answered with no shared word at all | 15.7% | **0%** |
 
-Two still miss, and both are worth stating. One query says `catastrophic
-backtracking` where the description says `backtracks catastrophically`: there
-is no stemming, so those share no word — exactly the limit documented above.
-The other returned a unit that answers the question from a different file than
-predicted, so the expectation was wrong rather than the retrieval.
+Roughly a threefold improvement in first-place accuracy. Nineteen questions
+still fail, which is what makes the set usable for measuring the next change;
+`tests/test_repo_queries.py` asserts that some question always does.
+
+One failure is worth naming: a query saying `catastrophic backtracking` does
+not reach a description saying `backtracks catastrophically`. There is no
+stemming — exactly the limit documented above.
 
 **What this is:** it moves the semantic work from query time to index time.
 Matching stays lexical. It is LLM-authored keyword expansion, and its reach is
@@ -203,7 +231,7 @@ Directional local measurements, not service levels; the archived run is
 **Suite:** Python 3.10 – 3.13 on Linux and Windows, plus a job that installs
 the built wheel into a clean environment and runs every command the
 documentation prescribes, and another that runs the skill's own install line
-verbatim. 208 tests as of 0.4.2 — the count is version-stamped rather than
+verbatim. 248 tests as of 0.5.0 — the count is version-stamped rather than
 maintained, because a bare figure in a living document is a claim that rots;
 per-release counts are in [CHANGELOG.md](CHANGELOG.md).
 

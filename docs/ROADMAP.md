@@ -154,16 +154,19 @@ to `name`. A scope stack keyed on brace depth would supply it and would improve
 Tree-sitter would supply it too, which is why the two are listed together on
 the evolution plan rather than fixed separately.
 
-Descriptions exist for `src/` only. The 229 units under `tests/` and
-`benchmarks/` still carry generated ones; test names in this repository are
-already full sentences, so the marginal return there is small, but it is a
-gap and not a decision.
+Descriptions exist for `src/` only. The units under `tests/` and `benchmarks/`
+still carry generated ones; test names in this repository are already full
+sentences, so the marginal return there is small, but it is a gap and not a
+decision.
 
 There is no stemming. A description saying `backtracks catastrophically` does
-not answer a query saying `catastrophic backtracking`, and both appear in the
-measured results below as a miss. Stemming would close that class at the cost
-of a dependency or a hand-maintained rule set, and has not been weighed
-properly yet.
+not answer a query saying `catastrophic backtracking`, and that appears in the
+measured results as a miss. A conservative suffix stripper was tried and
+measured: on the eight-question set it fixed that query and broke another, and
+term-rarity weighting changed nothing at all because the query's two
+informative words matched no unit under any weighting. Both were dropped for
+want of evidence, not for want of an implementation, and the seventy-question
+ruler now exists to settle them.
 
 ## 0.4.0
 
@@ -311,6 +314,64 @@ stated in prose that nothing compared to the data. `docs/TESTING.md` claimed 96
 deliberately-excluded constructs where the fixtures hold 89, the count of
 expected units copied one line up. The counts are now asserted against
 `expected.json` itself.
+
+## 0.5.0 — the vocabulary ladder
+
+0.4.0 asked where retrieval's vocabulary comes from and answered "whatever an
+agent writes into a sidecar". That was one rung of three, and the least
+durable one.
+
+Every source of words, ordered by what it costs and by whether it survives a
+refactor:
+
+| source | who wrote it | lives in | survives a move | cost |
+|---|---|---|---|---|
+| identifier, signature, body | author | the code | by construction | free |
+| Python docstring | author | the code | by construction | free |
+| doc comment, 14 languages | author | the code | by construction | free |
+| agent description | agent | a sidecar | needs machinery | tokens |
+| promoted doc comment | agent | the code | by construction | none extra |
+
+Read the fourth column. Text in the code needs no bookkeeping; the digest,
+the relocation lookup, the fingerprint and the pruning rule all exist to
+simulate a property it has for nothing. So the sidecar is the fallback and
+the code is the destination, and the work went in that order.
+
+**Level 0** indexes the documentation the author already wrote. Free, and it
+was being discarded: fourteen of fifteen languages document above the
+declaration, outside the unit's span. Zero of ninety-five non-Python fixture
+declarations carried documentation into the index; sixteen now do.
+
+**Level 1** offers to move an agent's description into the code as a patch a
+person reviews. Not performed — the tool still never writes source.
+
+**Level 2** is the sidecar, unchanged in mechanism and demoted in role.
+
+### What the ladder turned up
+
+Two prerequisites, both defects older than the work.
+
+Reuse was keyed on a file's bytes, but cached units are a function of the
+bytes and of the parser. Upgrading the parser reached no existing index. That
+was the third unrecorded input after the settings and the descriptions, so the
+three became one `build_fingerprint`.
+
+The digest deciding whether a description still applies covered the unit's
+documentation, so promoting a description discarded it — the guard firing on
+its own reflection. Measured here, that cost Chinese retrieval twenty-eight
+percent of its hit rate before it was found. Documentation is now excluded
+from that digest, which also stops a hand-edited docstring from discarding a
+description of code that did not change.
+
+### The instrument came first
+
+Four candidate scoring changes measured over an eight-question set all landed
+between five and six correct. That is the resolution limit of the instrument,
+not a ranking of options, and it is the same mistake as the ten cold samples
+that made an unchanged query path look like a regression in 0.4.0. So seventy
+questions were written before anything else, and its own score is asserted
+nowhere: it falls whenever the repository gains undescribed code, which is
+ordinary development.
 
 ## Non-goals
 
