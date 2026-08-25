@@ -435,6 +435,52 @@ same ablation costs **nothing measurable on a foreign repository**. The
 vectors are 55% of an index's size and are now earning almost none of it.
 Removing them is a schema decision, not a ranking one, and has not been taken.
 
+## 0.7.0 — what a reply carries, and the end of the embedding search
+
+Three defects of one shape, and one investigation that closed a question.
+
+**A result carried the code, and every reply carried it again.** `search
+--json` served 65,025 characters against a stated budget of 12,000;
+`research` served 111,843, because reporting two retrieval steps meant
+serialising the same eight units three times with their source attached; and
+`neighbors` served 27,473 under no budget at all. Bounding each emitter would
+have left the next one free to overrun, so the source came out of
+`SearchResult.to_dict`: a result that has no source cannot carry it twice.
+Measured after: 24,403 / 24,429 / 13,848.
+
+**A constant was tied to a scale that moved.** The research loop stopped early
+when the top score passed 0.8. BM25F changed the scale, only 3% of queries
+could reach 0.8, and the early stop silently ceased to exist — no test noticed,
+because the assertion was `stop_reason in {all four values}`. It is a margin
+between the top two scores now, which is scale-free by construction.
+
+**Indexing was not the same as being searchable, and nothing said so.**
+`bootstrap` reports which rung a repository is on and hands over that rung's
+work. It reads state rather than remembering a position, so it is resumable by
+running it again. The pure operations moved to `workflow.py`, which is what
+lets the command line and the agent protocol run one implementation.
+
+### The embedding question, closed
+
+Eight approaches were implemented and measured against all three rulers: six
+replacement embeddings (character n-grams, corpus co-occurrence via random
+indexing, truncated SVD, posting-list signatures, a rarity- and field-weighted
+hash, call-graph diffusion), lexical postings expansion, and embedding only
+the authored fields. **On the foreign-repository ruler, hit@3 never exceeded
+its no-vector value of 0.429.**
+
+The constraint is architectural. `candidate_ids = lexical_scores.keys()`: a
+vector reorders what the lexical half already found and cannot make anything
+retrievable. Postings expansion, the one change that *could*, was worse at
+every weight tried. Corpus-learned semantics need orders of magnitude more
+text — 65% of the foreign corpus's terms appear in four or fewer units. And on
+a described corpus the shipped hash helps *because* it is blunt, so every
+scheme that sharpened it lost ground there.
+
+What remains is not a better local embedding. It is either a real model as an
+optional dependency, which trades the property this project is built on, or
+accepting that retrieval reaches only what somebody wrote down.
+
 ## Non-goals
 
 Provider-backed embeddings, Tree-sitter, and the SQLite/ANN storage layer stay

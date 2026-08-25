@@ -41,6 +41,32 @@ What none of this can do is reach a concept nobody wrote down — which is what
 agent-authored descriptions exist to fix, and why they are described below as
 keyword expansion rather than as semantics.
 
+### Seven schemes measured, none adopted
+
+Six replacement embeddings were implemented and measured on all three rulers --
+character n-grams, corpus co-occurrence via random indexing, truncated SVD by
+power iteration, posting-list signatures, a rarity- and field-weighted hash,
+and call-graph diffusion -- along with two changes that were not embeddings at
+all: expanding a unit's lexical postings with its graph neighbours' terms, and
+embedding only the authored fields. On the foreign-repository ruler, hit@3
+never once exceeded its no-vector value of 0.429.
+
+The binding constraint is not the representation. `candidate_ids =
+lexical_scores.keys()` -- a vector reorders what the lexical half already
+found and cannot make anything retrievable, and pure cosine fires only when
+nothing matched at all, on 1 question of 35. Postings expansion, the one
+change that *could* alter retrievability, was measured worse at every sharing
+weight tried (hit@1 0.257 to 0.171 to 0.114 to 0.086) because borrowed
+vocabulary makes every neighbour match every neighbour's question.
+
+Two mechanism-level results are worth keeping. Corpus-learned semantics need
+orders of magnitude more text than a repository has: 65% of the foreign
+corpus's 6000 terms appear in four or fewer units, so a co-occurrence row is a
+handful of sightings rather than a distribution. And on a described corpus the
+shipped hash helps *because* it is blunt -- mean cosine between random unit
+pairs is around 0.38, an undifferentiated echo of description words -- so
+every scheme that sharpened it lost ground there.
+
 ### What the vector is actually contributing
 
 `vector[bucket(term)] += sign` accumulates a term frequency, and the vector is
@@ -270,6 +296,30 @@ code, that both languages are present, and that some question still fails.
 A store change is invisible to a file fingerprint, so the index also records a
 digest of the authored text — the same defect class the configuration
 fingerprint covers.
+
+## What a reply carries
+
+Every reply has the same shape, and one rule decides it: **a result is
+navigation, and the code arrives once.** `results` carries the identifier,
+path, line range, signature, description, score and matched terms.
+`context` carries the source, trimmed to `max_chars`, and
+`omitted_for_budget` says how many results it did not reach.
+
+This was three separate overruns before it was one rule. `search --json` at
+its default limit served 65,025 characters against a stated budget of 12,000;
+`research` served 111,843, because reporting two retrieval steps meant
+serialising the same eight units three times with their source attached; and
+`neighbors` served 27,473 with no budget at all. Bounding each emitter would
+have left the next one free to overrun, so the source came out of
+`SearchResult.to_dict` instead -- a result that has no source cannot carry it
+twice. A step in a research trace now reports only id, score and matched
+terms, because a trace exists to show how the answer was reached, not to
+repeat it.
+
+Measured after, on the same 1153-unit repository: 24,403 / 24,429 / 13,848.
+The remainder above the budget is result metadata, and `search.max_chars` is
+the *context* budget -- it bounds the context exactly, and the envelope around
+it is larger.
 
 ## Retrieval strategy
 

@@ -58,9 +58,22 @@ The test suite currently covers:
   more in a name than in a body, every searchable field shown to carry a
   weight, and the evidence list shown to survive postings that now carry a
   weight beside each id;
-- the context budget: shown to bound the results an agent reads and not only
-  the string beside them, and shown to return the first result even when that
-  result alone is larger than the budget;
+- the context budget: shown to bound what an agent reads and not only the
+  string beside it, and shown to return the first result even when that result
+  alone is larger than the budget;
+- the reply contract: a search result shown to carry no source and to keep
+  everything needed to go and look, a research reply shown to carry the code
+  once with its steps reduced to id/score/matched-terms, and a stored unit
+  shown to still round-trip its source through the index;
+- the research early stop: shown to fire when the top result dominates and not
+  when the field is close, and its margin shown to be unchanged when every
+  score is scaled by the same factor -- the property the absolute threshold
+  lacked, and the reason it died silently when ranking changed;
+- the rung report: an undescribed repository told to describe, a described one
+  told to promote, a fully documented one told it is ready, the report shown
+  to be resumable rather than remembered, every rung shown to say why and how,
+  and the command line and the agent protocol shown to report the same rung
+  from the same implementation;
 - promotion: a patch `git apply` actually applies for four language families,
   every supported language having a documentation convention, an already
   documented declaration left alone, CRLF endings preserved, several

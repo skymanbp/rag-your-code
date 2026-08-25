@@ -13,11 +13,26 @@
       "text": "Converts search results into plain JSON-ready dictionaries for the agent protocol reply. 中文：把检索结果转成可直接 JSON 序列化的字典，供 agent 协议应答使用。",
       "code_hash": "c9b086ca576f6820"
     },
-    "src/ragyourcode/agentic.py:18:research": {
-      "hash": "e49d7237bcdd562a",
+    "src/ragyourcode/agentic.py:42:_trace": {
+      "hash": "b468c23212e1f3fb",
+      "code_hash": "7c20d8093c32d4d3",
       "path": "src/ragyourcode/agentic.py",
-      "text": "Multi-step investigation for an ambiguous question: runs a first retrieval, and when confidence is low expands once through the code graph, merging both rounds and keeping the best score per unit. Deliberately bounded to at most two steps, and every reply records what it did and why it stopped: high confidence, no results, new graph evidence, or nothing new. 中文：面向含糊问题的多步查证。先检索一次，置信度不足时再沿代码图扩展一次，合并两轮并保留每个单元的最高分。步数硬上限为二，应答里记录每一步与停止原因（高置信、无结果、有新图证据、无新证据），预算与可观测性是安全契约。",
-      "code_hash": "42f3ff297d3563f1"
+      "name": "_trace",
+      "text": "One retrieval round reduced to what makes it checkable: which units it reached, how strongly, and on which words. A step exists so a caller can see how an answer was arrived at, not to hand back the answer a second time -- reporting both rounds in full meant serialising the same eight units three times with their source attached. 中文：把一轮检索压成可核查的最小形态——它够到了哪些单元、分数多高、命中哪些词。步骤是为了让调用方看清答案怎么来的，不是把答案再发一遍；两轮都完整回报曾导致同一批单元连源码被序列化三次。"
+    },
+    "src/ragyourcode/agentic.py:57:dominance": {
+      "hash": "a741596708e6469f",
+      "code_hash": "391caf49420ba9f8",
+      "path": "src/ragyourcode/agentic.py",
+      "name": "dominance",
+      "text": "How far the best answer leads the second-best, as a fraction of the best. A ratio between two numbers produced by the same query under the same scoring rule, so scaling every score changes nothing -- which is the entire point. The absolute threshold it replaced was tied to a scoring scale; when ranking changed, the scale moved out from under it and the decision it guarded silently stopped happening. 中文：最好的答案领先第二名多少，按最好者的比例计。它是同一次查询、同一套打分下两个数的比值，因此整体缩放分数不改变结果——这正是要点。它取代的绝对阈值绑在打分量纲上，排序一改量纲就移走了，它守护的判断于是悄无声息地不再发生。"
+    },
+    "src/ragyourcode/agentic.py:73:research": {
+      "hash": "4607549238fd16e1",
+      "code_hash": "c3c5220da2af1d2e",
+      "path": "src/ragyourcode/agentic.py",
+      "name": "research",
+      "text": "Answers an ambiguous question in at most two observable retrieval rounds, and says why it stopped. Deliberately bounded: it searches, and only if the leader is not clearly ahead does it spend a second round walking the call graph outward. The reply carries the code once, under the same budget every other reply uses. 中文：用至多两轮可观察的检索回答一个含糊的问题，并说明为何停下。刻意设了上限：先检索，只有当领先者优势不明显时才花第二轮沿调用图向外走。回复只带一份代码，用的是与其它回复相同的预算。"
     },
     "src/ragyourcode/annotate.py:14:describe_python": {
       "hash": "7a20909be9ec39b5",
@@ -37,11 +52,12 @@
       "text": "Turns a programmer identifier into ordinary words: splits camelCase apart, replaces underscores with spaces, lowercases the result. Empty input becomes a placeholder rather than an empty string. 中文：把标识符还原成普通词语——拆开驼峰、下划线换空格、转小写；空输入给占位名而非空串。",
       "code_hash": "b68f1dbcc1827cba"
     },
-    "src/ragyourcode/cli.py:115:_cmd_search": {
-      "hash": "9f5aec52c290953c",
+    "src/ragyourcode/cli.py:105:_cmd_bootstrap": {
+      "hash": "008fd51f40339a64",
+      "code_hash": "835dd7c8fd62c97b",
       "path": "src/ragyourcode/cli.py",
-      "text": "The search command: retrieves the code units most relevant to a question, optionally following relationships outward, and prints either a readable context block or machine-readable output for an agent. Result count, context budget and the balance between word overlap and vector similarity all fall back to the repository settings when no flag overrides them. Warns when the index no longer describes the repository. 中文：search 命令——检索与问题最相关的代码单元，可选择沿关系向外扩展，输出可读上下文块或供 agent 使用的机器可读结果。结果条数、上下文预算、词面与向量的权重比例在未加开关时都回落到仓库设置。索引已不描述当前仓库时给出警告。",
-      "code_hash": "9f5aec52c290953c"
+      "name": "_cmd_bootstrap",
+      "text": "The front door for a repository nobody has set up yet: index it, then say what still stands between it and answering questions. Indexing is not the same as being searchable, and nothing used to say so -- a fresh index matches only words the source already contained. Prints the rung and its work for a person, or the same report as JSON for an agent. 中文：面向尚未配置过的仓库的入口：先建索引，再说出它距离能回答问题还差什么。建了索引不等于可检索，而此前没有任何东西讲明这一点——全新索引只能匹配源码里本就有的词。给人打印当前所处的一级及其工作，给 agent 输出同一份 JSON 报告。"
     },
     "src/ragyourcode/cli.py:135:_cmd_annotate": {
       "hash": "a4c3968adebe813e",
@@ -55,37 +71,25 @@
       "text": "The config command: creates a commented settings file, lists every setting with its effective value and whether it was customised, reads one value, changes one value in place, or reports where the file lives. Changing a value refuses anything out of range before writing, so a rejected change leaves the file exactly as it was, and the reply says whether the change forces a full rebuild. Creating refuses to overwrite an existing file unless told to. 中文：config 命令——生成带注释的配置文件、列出每项设置的生效值与是否被改过、读取单项、就地修改单项、或报告文件位置。修改前先校验越界并在写盘前拒绝，因此被拒的修改不会改动文件分毫；应答会说明该改动是否强制全量重建。创建时除非明确要求，否则拒绝覆盖已有文件。",
       "code_hash": "5e9525fddea54644"
     },
-    "src/ragyourcode/cli.py:194:_describe_batch": {
-      "hash": "d084af905d35164a",
+    "src/ragyourcode/cli.py:166:_cmd_search": {
+      "hash": "ff7e4285272a4427",
+      "code_hash": "5e80da7d4539a4a4",
       "path": "src/ragyourcode/cli.py",
-      "text": "Assembles the work packet handed to an agent: which units still need describing, each with its location, signature, current generated description and full source, plus the brief and the limits to write within. The source is included because the brief forbids describing behaviour the code does not show, and an agent cannot honour that without seeing it. The existing generated description goes along so the agent can add what retrieval lacks rather than paraphrase what it already has. 中文：组装交给 agent 的工作包：哪些单元仍需描述，每个附带位置、签名、当前生成的描述与完整源码，外加说明与字数限制。附上源码是因为说明禁止描述代码未展示的行为，看不到源码就无从遵守；附上现有生成描述，是让 agent 补充检索缺的部分，而不是把已有的换句话说一遍。",
-      "code_hash": "62b09ff64b49c317"
+      "name": "_cmd_search",
+      "text": "Answers one question from the published index and prints it, either as a readable block for a person or as machine-readable output for an agent. Result count, context budget and the balance between word overlap and vector similarity all fall back to the repository settings. It prints the staleness warning that StaleMonitor raises; deciding whether the index is stale is not its job. 中文：从已发布的索引回答一个问题并输出——给人是可读块，给 agent 是机器可读格式。返回条数、上下文预算、词面与向量的配比都回落到仓库设置。它负责打印 StaleMonitor 提出的过时警告；判断索引是否过时不归它管。"
     },
-    "src/ragyourcode/cli.py:231:_store_descriptions": {
-      "hash": "f63544c671612685",
+    "src/ragyourcode/cli.py:270:_cmd_describe": {
+      "hash": "bc80c3de23167e73",
+      "code_hash": "06da99ce69ac074e",
       "path": "src/ragyourcode/cli.py",
-      "name": "_store_descriptions",
-      "text": "Takes a batch of written descriptions, validates each one, and saves those that pass. Nothing is trimmed to fit: a description cut at the limit would lose exactly the trailing synonyms that make it worth writing, and the agent would have no way to learn it had happened. An unknown identifier, an empty text, one over the length limit and a malformed entry are each rejected individually with a reason, and a batch that saved nothing writes no file at all. 中文：接收一批写好的描述，逐条校验，保存通过的。绝不为了塞进限制而截断——被截掉的恰恰是使这条描述有价值的尾部同义词，而 agent 完全无从得知发生过截断。未知标识符、空文本、超长、格式不合，各自单独拒绝并给出理由；一条都没存成的批次不会写出任何文件。",
-      "code_hash": "198b17a2204edaf9"
-    },
-    "src/ragyourcode/cli.py:277:_apply_descriptions": {
-      "hash": "0fe7f8af4f5921d0",
-      "path": "src/ragyourcode/cli.py",
-      "text": "Pushes newly saved descriptions into the units held in memory and recomputes their vectors, so the very next query in the same session already matches on the new words. Without this an agent would describe a unit and go on retrieving against the sentence it had just replaced, which is the slowest possible way to discover the work had an effect. 中文：把刚保存的描述推进内存中的单元并重算向量，使同一会话内的下一次查询立刻按新词匹配。没有这一步，agent 写完描述后仍在用它刚刚替换掉的那句话检索——那是发现『工作是否奏效』的最慢方式。",
-      "code_hash": "bb361e573adc7173"
+      "name": "_cmd_describe",
+      "text": "The round trip for text an agent writes about code: report coverage, export a batch of work with its source and brief, take the written text back, or emit a patch that moves it into the source. Importing says outright that a rebuild is needed, because the published index still holds the previous wording and no source file moved to signal it. 中文：agent 为代码写文字的一次往返：报告覆盖率、导出带源码与写作要求的一批工作、收回写好的文字、或产出把文字搬进源码的补丁。导入时明确告知需要重建，因为已发布的索引仍持有旧措辞，而没有任何源文件的变动会提示这一点。"
     },
     "src/ragyourcode/cli.py:28:_default_index": {
       "hash": "985d8ad107fe0948",
       "path": "src/ragyourcode/cli.py",
       "text": "Where a repository index file is kept when the caller names no other location. 中文：调用方未指定位置时，仓库索引文件的默认存放路径。",
       "code_hash": "985d8ad107fe0948"
-    },
-    "src/ragyourcode/cli.py:296:_cmd_describe": {
-      "hash": "f5eceffc56c9d394",
-      "path": "src/ragyourcode/cli.py",
-      "name": "_cmd_describe",
-      "text": "The describe command: reports how many units have a usable description, how many have one the code has since outgrown and how many have none; exports a batch of pending work with source and brief; imports written descriptions back; or emits a patch that moves a description into the source as a doc comment. Importing says explicitly that a rebuild is needed, because the published index still holds the previous wording and no source file moved to signal it. The patch owns standard output so it can be piped straight into git apply. 中文：describe 命令——报告多少单元描述可用、多少条因代码变动而失效、多少个从未描述；导出一批待办；把写好的描述导入回来；或生成把描述搬进源码作为文档注释的补丁。导入时明确指出需要重建：已发布索引仍持有旧措辞，而没有任何源文件变动能暗示这一点。补丁独占标准输出，可直接管道给 git apply。",
-      "code_hash": "f5eceffc56c9d394"
     },
     "src/ragyourcode/cli.py:328:_open_source": {
       "hash": "df62eb1061c66bd1",
@@ -106,18 +110,19 @@
       "text": "Clamps a numeric field from an incoming request into its allowed range. The clamp has to survive values that are not ordinary numbers: an enormous literal becomes infinity, and converting infinity to a whole number raises an error that is neither of the two the request loop originally caught, so a single such request terminated the whole session. Saturating at the bound is the reading the caller intended anyway. 中文：把请求中的数值字段夹到允许范围内。这个夹取必须扛得住非常规数值：极大的字面量会变成无穷大，而把无穷大转成整数抛出的错误不属于请求循环原本捕获的那两类，一条这样的请求就终止了整个会话。饱和到边界本来也就是调用方想表达的意思。",
       "code_hash": "60976c98a4c983ea"
     },
-    "src/ragyourcode/cli.py:384:_cmd_agent": {
-      "hash": "4b386e4fdae1264e",
+    "src/ragyourcode/cli.py:390:_cmd_agent": {
+      "hash": "619f75cbb6f3ff63",
+      "code_hash": "69a4313339ee0c1c",
       "path": "src/ragyourcode/cli.py",
-      "text": "The long-running agent server: reads one request per line and answers on the same channel, offering retrieval, multi-step investigation, relationship navigation, bounded file reading, description hand-off and rebuilding. Its defining property is that no single request can end the session: a malformed field is reported as a bad request and anything unanticipated is reported with its exception type, then the next line is served. Enumerating the expected failures was the original design and the reason one oversized number killed the process. It also separates two questions easily conflated: whether the index still describes the repository, and whether descriptions stored during this session have reached the published index. 中文：常驻的 agent 服务端：每行一条请求、同一通道应答，提供检索、多步查证、关系导航、有界读文件、描述交接与重建。它的立身之本是『任何单条请求都不能终止会话』：字段不合报为无效请求，意料之外的一律带异常类型报出，然后继续服务下一行——枚举预期错误正是旧设计，也是一个超大数字杀死进程的原因。它还区分两个容易混为一谈的问题：索引是否仍描述当前仓库，以及本会话存下的描述是否已进入已发布的索引。",
-      "code_hash": "e0fe5c83b5d1b09c"
+      "name": "_cmd_agent",
+      "text": "Serves one JSON request per line for as long as an agent keeps the process alive, so a session pays the parse-and-embed cost once instead of per question. Every failure is reported in-band and the loop survives it: a malformed request, an out-of-range number or an unanticipated exception must not be able to end a session an agent depends on. 中文：只要 agent 让进程活着，就按行服务 JSON 请求，使一次会话只付一次解析与嵌入的代价，而不是每问一次付一次。所有失败都在带内回报且循环存活：畸形请求、越界数值或未预料的异常，都不该终结一个 agent 正依赖着的会话。"
     },
-    "src/ragyourcode/cli.py:509:build_parser": {
-      "hash": "58e899a8ed74603e",
+    "src/ragyourcode/cli.py:514:build_parser": {
+      "hash": "90796b536516e0a4",
+      "code_hash": "0a03dc1ed1740907",
       "path": "src/ragyourcode/cli.py",
       "name": "build_parser",
-      "text": "Declares the whole command-line surface: indexing, retrieval, annotation, the long-running agent, settings, and descriptions including the promotion patch, with their options and help text. Options that have a configurable counterpart default to nothing rather than to a literal, so an unset flag means whatever the repository configured instead of a number frozen into the program. 中文：声明整个命令行界面——建索引、检索、注解、常驻 agent、设置，以及包含促成补丁在内的描述子命令，及其选项与帮助文字。有对应配置项的选项默认为空而非某个字面值，因此未设置的开关意味着『按仓库配置的来』，而不是被冻进程序里的数字。",
-      "code_hash": "58e899a8ed74603e"
+      "text": "The single place every command, flag and default is declared, which is what lets a test execute the documentation: whatever the README or the skill tells someone to type must resolve to something here. Defaults are read from the settings table rather than repeated, so a documented default and the real one cannot drift apart. 中文：所有命令、选项与默认值的唯一声明处，这正是让测试能够执行文档的前提：README 或 skill 让人敲的任何东西，都必须在这里解析得到。默认值取自设置表而非重复书写，因此文档里的默认值与真实默认值不会各说各话。"
     },
     "src/ragyourcode/cli.py:535:_use_utf8_streams": {
       "hash": "53d8213311f1cfa1",
@@ -408,12 +413,12 @@
       "text": "Works out which declarations would gain a documentation comment and what it would say. Skips anything the author already documented, because their words outrank an agent's and are already indexed; skips anything with no stored description; skips a language whose convention is unknown. Whether a declaration is already documented is asked of the parser on a fresh parse rather than read off the applied description, because an authored description replaces the generated sentence outright and testing that sentence made thoroughly documented functions read as undocumented. 中文：算出哪些声明会获得文档注释、内容是什么。跳过作者已经写过文档的（作者的话优先于 agent 的，而且已经被索引）、没有已存描述的、以及约定未知的语言。『是否已有文档』这一问题是对解析器重新解析后提出的，而不是从已应用的描述里读——authored 描述会整个替换生成的句子，拿那句话判断会让文档齐全的函数显示为无文档。",
       "code_hash": "df3ce9ba3cf48bf7"
     },
-    "src/ragyourcode/document.py:200:render_patch": {
-      "hash": "a5fb1dad29c8a6d2",
+    "src/ragyourcode/document.py:208:render_patch": {
+      "hash": "cfc91f9bec58d2e7",
+      "code_hash": "aec7c3b056d6f31f",
       "path": "src/ragyourcode/document.py",
       "name": "render_patch",
-      "text": "Turns a set of planned insertions into a unified diff that git apply or patch accepts. Line endings are taken from the file rather than assumed, so a patch against a CRLF checkout does not silently rewrite every line it touches, and lines are kept with their endings rather than split and rejoined — splitting invented a trailing blank line for any file ending in one, and every patch whose last hunk reached the end of the file was rejected. 中文：把一组计划中的插入渲染成 git apply 或 patch 能接受的统一 diff。换行符取自文件本身而非假定，因此针对 CRLF 检出的补丁不会静默改写它碰到的每一行；行连同换行符一起保留而不是切开再拼回——切开会为任何以换行结尾的文件凭空造出一个末尾空行，导致最后一个 hunk 触及文件末尾的补丁全部被拒。",
-      "code_hash": "0f4aac93f0cc6046"
+      "text": "Turns planned insertions into a unified diff a person can read before anything touches their files. Line endings are preserved as found and the file is read without newline translation, because rewriting a repository CRLF into LF would be a change nobody asked for buried inside a change they did. Several insertions in one file are applied from the bottom up so earlier ones do not shift later line numbers. 中文：把计划好的插入变成一份人可以先读再决定的统一 diff，源文件在此之前不被触碰。行尾按原样保留、读取时不做换行转换，因为把仓库的 CRLF 改写成 LF，等于在一个人要求的改动里夹带一个他没要求的改动。同一文件里的多处插入自下而上应用，使先插入的不会移动后插入的行号。"
     },
     "src/ragyourcode/document.py:229:summarise": {
       "hash": "ab6e35c6a6db6424",
@@ -659,41 +664,53 @@
       "text": "A digest of everything that decides what a code unit is: the settings that choose which files are read and how wide a vector is, and the parser that decides what counts as a declaration and where it ends. Units produced under a different configuration or a different parser are not stale units of this repository, they are units of something else, and both cases call for discarding them. Keeping the two as separate fields would mean two comparisons and two chances to add a third input and forget one. 中文：把『决定一个代码单元是什么』的全部因素摘成一个digest——选哪些文件、向量多宽的设置，加上判定什么算声明、声明到哪结束的解析器。在不同配置或不同解析器下产出的单元不是本仓库的陈旧单元，而是另一个东西的单元，两种情况都该整体丢弃。分成两个字段就意味着两次比较，也就多一次『加了第三个输入却忘了它』的机会。",
       "code_hash": "8b291967a1afc97f"
     },
+    "src/ragyourcode/models.py:105:SearchResult": {
+      "hash": "c0275d78446237ec",
+      "code_hash": "a4c520e5acc832d9",
+      "path": "src/ragyourcode/models.py",
+      "name": "SearchResult",
+      "text": "One retrieved unit together with why it was retrieved: how well it scored, which query words actually matched, and for graph expansion the chain of edges that led to it. The evidence is the point -- a result you cannot explain is a result you should not act on, and an agent that can see the matched words can tell a real hit from the fallback that matched nothing. 中文：一个被检索到的单元，连同它为什么被检索到：得分多少、真正命中了查询里的哪些词、以及图扩展时到达它的那条边链。证据才是重点——解释不了的结果就是不该照做的结果，而能看到命中词的 agent 才分得清真命中与什么都没匹配上的兜底。"
+    },
+    "src/ragyourcode/models.py:116:SearchResult.to_dict": {
+      "hash": "2a5de45944fb9ed8",
+      "code_hash": "a2f535ff12056bfe",
+      "path": "src/ragyourcode/models.py",
+      "name": "SearchResult.to_dict",
+      "text": "Writes a result out for an agent: where the unit is, what it is called, why it matched and how well -- but not its source. A result is navigation evidence; the code arrives once in the reply budgeted context block, and an agent wanting more opens the cited file. Bounding each emitter separately would have left the next one free to overrun, whereas a result that has no source cannot carry it twice. 中文：把一条结果写给 agent：单元在哪、叫什么、为何命中、命中得多好——但不含源码。结果是导航证据；代码只在回复受预算约束的上下文块里出现一次，想要更多的 agent 去打开被引用的文件。逐个发射点分别设限，只会让下一个发射点继续超发；而一条不含源码的结果，从构造上就无法把它带第二遍。"
+    },
     "src/ragyourcode/models.py:11:CodeUnit": {
-      "hash": "ad6eb8a9f9b0f709",
+      "hash": "594ab7a4ebeda2b0",
+      "code_hash": "cef6d9f0d0bdca50",
       "path": "src/ragyourcode/models.py",
-      "text": "One indexed piece of code and everything known about it: where it lives, which language and kind it is, its name and qualified name, its signature, the exact line range and source text, a stable serial number that survives re-indexing, what it calls and imports, its description, and its vector. This record is the contract every stage shares: walking, parsing, embedding, storage and retrieval move these and nothing else. 中文：一个被索引的代码单元及其全部已知信息：位置、语言与种类、名字与限定名、签名、精确行范围与源码、跨重建保持稳定的序号、调用与导入、描述、向量。它是各阶段共享的唯一契约。",
-      "code_hash": "9a0158b6ecabf498"
+      "name": "CodeUnit",
+      "text": "One retrievable piece of a codebase and everything known about it: where it lives, what it is called, what it declares, what it calls and imports, what it is for, and the exact lines it occupies. It is the contract every stage agrees on -- the parser produces it, ranking consumes it, the agent protocol serialises it -- which is why parser rewrites and scoring rewrites have both landed underneath it without moving it. 中文：代码库中一个可被检索的片段，及其全部已知信息：位于何处、叫什么、声明了什么、调用与导入了什么、用来做什么、精确占据哪些行。它是各阶段共同遵守的契约——解析器产出它、排序消费它、agent 协议序列化它——所以解析器重写与打分重写都能在它之下完成而不动它。"
     },
-    "src/ragyourcode/models.py:32:CodeUnit.searchable_text": {
-      "hash": "eb11731d90e11236",
+    "src/ragyourcode/models.py:32:CodeUnit.searchable_fields": {
+      "hash": "3ed7ecd20991600f",
+      "code_hash": "cec49d49fd46d183",
       "path": "src/ragyourcode/models.py",
-      "text": "Assembles everything about a unit that retrieval is allowed to match against: qualified name, kind and signature, the description, the names it calls and imports, and the full source. Because the description is part of this text, replacing a generated description with a better one immediately widens the set of queries that can reach this unit. 中文：把一个单元中允许被检索匹配的内容拼成一段文本——限定名、种类、签名、描述、调用与导入的名字，以及完整源码。描述也在其中，所以把生成的描述换成更好的，立刻就扩大了能命中它的查询范围。",
-      "code_hash": "eb11731d90e11236"
+      "name": "CodeUnit.searchable_fields",
+      "text": "Everything retrieval may match, kept apart by where the author wrote it. Where a word appears is itself evidence of what it means: a term in a declaration name is what the author decided to call the thing, while the same term deep in a body is a passing mention. Flattened into one blob, a long function outranks the function actually named after the query purely by owning more words. 中文：检索允许匹配的全部文本，按作者把它写在哪里分开保存。词出现的位置本身就是它有多重要的证据：出现在声明名字里的词是作者对这个东西的命名，同一个词埋在函数体深处则只是顺带一提。压成一整块之后，一个长函数仅凭词多就能压过真正以查询命名的那个函数。"
     },
-    "src/ragyourcode/models.py:43:CodeUnit.to_dict": {
-      "hash": "922a22e929636cc8",
+    "src/ragyourcode/models.py:55:CodeUnit.searchable_text": {
+      "hash": "a5251d900594b542",
+      "code_hash": "b505be77b84c5977",
       "path": "src/ragyourcode/models.py",
-      "text": "Serialises a unit to a plain dictionary for storage or for an agent reply, optionally leaving the vector out. Vectors are an internal ranking detail; sending them to an agent would consume context and explain nothing. 中文：把单元序列化成普通字典以便存储或应答，可选择不带向量。向量是排序用的内部细节，发给 agent 只会占用上下文且无助于解释。",
-      "code_hash": "922a22e929636cc8"
+      "name": "CodeUnit.searchable_text",
+      "text": "Every searchable field as one block, for callers that want the words without caring where they came from -- a unit is embedded from this. Derived from the fields rather than rebuilt beside them, so a field added for ranking cannot go missing from the text that gets embedded. 中文：把全部可检索字段合成一块，供那些只要词、不关心词来自哪里的调用方使用——单元的向量就由它生成。它由字段派生而非另起炉灶重建，因此为排序新增的字段不会从被嵌入的文本里漏掉。"
+    },
+    "src/ragyourcode/models.py:64:CodeUnit.to_dict": {
+      "hash": "936dc45e19a49ae3",
+      "code_hash": "123987500c1d4ad6",
+      "path": "src/ragyourcode/models.py",
+      "name": "CodeUnit.to_dict",
+      "text": "Writes a unit out for storage or for a reply, with two things optional: the vector, which is an internal ranking detail an agent cannot act on, and the source, which a reply already carries once in its budgeted context block. Repeating the source per result is what let a single answer run to five times its stated budget. 中文：把一个单元写出，用于存储或回复，其中两样可选：向量是排序的内部细节，agent 拿它做不了任何事；源码则已经在回复受预算约束的上下文块里出现过一次。每条结果各带一份源码，正是让一次回答涨到声称预算五倍的原因。"
     },
     "src/ragyourcode/models.py:66:CodeUnit.from_dict": {
       "hash": "806bdcd4d85335de",
       "path": "src/ragyourcode/models.py",
       "text": "Rebuilds a unit from its stored dictionary form when an index is loaded back from disk. 中文：从磁盘读回索引时，把存储的字典形式还原成单元对象。",
       "code_hash": "806bdcd4d85335de"
-    },
-    "src/ragyourcode/models.py:71:SearchResult": {
-      "hash": "75832a6f38666083",
-      "path": "src/ragyourcode/models.py",
-      "text": "One retrieved unit together with why it was retrieved: its relevance score, the query words that actually matched, and for graph expansion the chain of edges that led to it. The evidence is the point: a result you cannot explain is a result you should not act on. 中文：一条检索结果，连同它为何被检出：相关度分数、真正命中的查询词，以及图扩展时到达它的边路径。证据本身就是目的——无法解释的结果不该据以行动。",
-      "code_hash": "75832a6f38666083"
-    },
-    "src/ragyourcode/models.py:77:SearchResult.to_dict": {
-      "hash": "ba572f78ce75680f",
-      "path": "src/ragyourcode/models.py",
-      "text": "Serialises a result for an agent reply, rounding the score and stripping the vector. 中文：把结果序列化为 agent 应答，分数取整并去掉向量。",
-      "code_hash": "ba572f78ce75680f"
     },
     "src/ragyourcode/parser.py:182:_line_offsets": {
       "hash": "d1bbaf5826cbf431",
@@ -813,35 +830,89 @@
       "text": "Registers one shared set of rules for several languages at once, since families such as Java, Kotlin, C-sharp and Scala declare things the same way. 中文：一次为多门语言登记同一套规则——Java、Kotlin、C#、Scala 这类家族的声明写法本就相同。",
       "code_hash": "cf8d3f240fd6f961"
     },
-    "src/ragyourcode/search.py:120:context": {
-      "hash": "b40fb151fb6e7eac",
+    "src/ragyourcode/search.py:115:_in_posting": {
+      "hash": "68ba487a020c6d72",
+      "code_hash": "4ef3996ff36e802f",
       "path": "src/ragyourcode/search.py",
-      "text": "Packs ranked results into one readable block for an agent prompt, each carrying identifier, score, matching evidence, description and source, and stops before exceeding the caller character budget. 中文：把排好序的结果打包成一段可读文本供 agent 使用（每条含 ID、分数、命中证据、描述与源码），并在超出字符预算前停止。",
-      "code_hash": "b40fb151fb6e7eac"
+      "name": "_in_posting",
+      "text": "Asks whether one unit appears in a term posting list, by binary search over a list kept sorted by unit id. A one-element tuple sorts before every pair sharing its id, which locates the entry without needing the weight that follows it. Used only for the handful of results actually returned, so recovering which words matched costs a few lookups rather than a per-unit word set carried through the whole scoring loop. 中文：用二分查找在按单元标识排好序的倒排表里判断某个单元是否在列。单元素元组排在所有同标识的二元组之前，因此无需知道其后的权重就能定位。它只对真正返回的那几条结果调用，于是还原命中了哪些词只需几次查找，而不必让每个单元的词集合贯穿整个打分循环。"
     },
-    "src/ragyourcode/search.py:20:SearchIndex": {
-      "hash": "d196b48c4b98153f",
+    "src/ragyourcode/search.py:124:_inverse_document_frequency": {
+      "hash": "dfe1038adc6bdfcf",
+      "code_hash": "659dc2fa1937e867",
       "path": "src/ragyourcode/search.py",
-      "text": "The reusable in-memory lookup table for a session: every unit by identifier, and for every term the sorted list of units containing it. Built once so queries need not re-tokenise the whole corpus. It deliberately does not cache a per-unit word set, which cost the largest share of resident memory while holding nothing the term lists did not already have. 中文：一次会话内可复用的内存查找表——按 ID 索引的全部单元，以及每个词项对应的有序单元列表。只建一次，避免每次查询重新切分整个语料。刻意不再缓存每单元的词集合：那占了常驻内存最大一块，而它能提供的信息倒排表本就都有。",
-      "code_hash": "d649b2fc6fabf3ad"
+      "name": "_inverse_document_frequency",
+      "text": "How much evidence one word carries, derived from how rare it is in the corpus being searched. A word in nearly every unit says nothing about which unit is wanted; a word in two says a great deal. Deriving this from the corpus instead of from a list of stopwords is what makes it work on a repository in any language -- the and calls earn their low weight the same way a Chinese bigram does, by being everywhere, and no list has to be maintained. Measured on a foreign repository, calls reached 97 percent of units while daemon reached two. 中文：一个词携带多少证据，由它在被检索语料中的稀有程度推出。出现在几乎所有单元里的词，说不出想要哪个单元；只出现在两个单元里的词则说得很多。从语料推导而非依赖停用词表，正是它能在任何语言的仓库上生效的原因——the 与 calls 靠遍地都是拿到低权重，中文二元组也一样，且无需维护任何词表。在一个外部仓库实测：calls 覆盖 97% 的单元，而 daemon 只有两个。"
     },
-    "src/ragyourcode/search.py:34:build_search_index": {
-      "hash": "62b60eeaeed0b547",
+    "src/ragyourcode/search.py:136:search": {
+      "hash": "0a34e15616c01b89",
+      "code_hash": "94a8d08641680df3",
       "path": "src/ragyourcode/search.py",
-      "text": "Builds the inverted lookup table by tokenising every unit once and recording, for each term, which units contain it. The lists are kept sorted so membership can later be answered by binary search rather than by carrying a word set through the scoring loop. 中文：把每个单元切分一次，记录每个词项出现在哪些单元里，建成倒排表。列表保持有序，后续判断归属可用二分查找，无需在打分循环里携带词集合。",
-      "code_hash": "62b60eeaeed0b547"
+      "name": "search",
+      "text": "Ranks code units against a question by combining weighted word overlap with vector similarity. Rare words count for more than common ones, repeating a word saturates instead of accumulating without bound, and a unit is discounted for how much text it owns. Everything sharing any query word is scored so nothing that matches is left out; full vector scoring is reserved for units reached by a selective term, since a dot product for everything a stopword-class term touches is pure cost. An earlier version scored the plain fraction of query words present, which made the worth as much as daemon and handed every question to whichever unit was longest. 中文：把代码单元按与问题的相关性排序，结合加权词面重合与向量相似度。罕见词比常见词值钱，同一个词重复出现会饱和而非无限累加，单元还会因自身文本量大而被折价。凡共享任一查询词的单元都会被打分，确保匹配到的不会被漏掉；完整的向量打分只留给由选择性词触及的单元，因为为一个停用词级别的词所触及的一切算点积纯属浪费。早先的版本按命中查询词的比例打分，于是 the 和 daemon 一样值钱，每个问题都被交给最长的那个单元。"
     },
-    "src/ragyourcode/search.py:42:_in_posting": {
-      "hash": "1cd03aa1a9dea0ee",
+    "src/ragyourcode/search.py:240:_block": {
+      "hash": "afacfcda8888ea5b",
+      "code_hash": "00b67884280c34f0",
       "path": "src/ragyourcode/search.py",
-      "text": "Answers whether a unit appears in one term list by binary search over the sorted entries. 中文：用二分查找判断某个单元是否出现在某词项的有序倒排列表中。",
-      "code_hash": "c24173960120c6c5"
+      "name": "_block",
+      "text": "One result rendered the way an agent reads it: which unit, how well it scored, why it matched, what it is, and the code itself. Kept as its own function because the size of this block is what the context budget is spent in -- deciding how many results fit and rendering them have to measure the same thing. 中文：把一条结果渲染成 agent 阅读的样子：哪个单元、得分多少、为何命中、它是什么，以及代码本身。单独成函数是因为上下文预算正是花在这个块的长度上——决定能装下几条与实际渲染它们，必须量的是同一个东西。"
     },
-    "src/ragyourcode/search.py:48:search": {
-      "hash": "de569b5da10c81b5",
+    "src/ragyourcode/search.py:249:within_budget": {
+      "hash": "54671c019a249a92",
+      "code_hash": "dc3f0f448e67cd6d",
       "path": "src/ragyourcode/search.py",
-      "text": "Ranks code units against a natural-language query by combining word overlap with vector similarity. Every unit sharing any query word is scored, so nothing that matches is left out: an earlier design let the vector shortlist decide who was scored at all, and units matching more query words went unranked, returning one result where eight were asked for. Full vector scoring is reserved for units reached by a selective term, since computing a dot product for everything a stopword-class term touches is pure cost. Word overlap stays dominant so an exact symbol match cannot be pushed below a noisy neighbour, and with no overlap anywhere it falls back to similarity alone. 中文：把自然语言查询与代码单元排序，结合词面重合与向量相似度。凡共享任一查询词的单元都会打分，命中的绝不遗漏——旧设计让向量候选集决定谁参与打分，导致命中词更多的单元反而未被排序，要八条只返回一条。向量打分只留给高选择性词命中的单元。词面重合保持主导，精确符号匹配不会被噪声邻居压下去；毫无重合时退回纯相似度。",
-      "code_hash": "de569b5da10c81b5"
+      "name": "within_budget",
+      "text": "The leading results whose rendered size fits the caller budget. The budget has to decide how many results there are, not merely how many get rendered into one of the two places they are sent: a search reply once serialised every result in full while capping only the context string beside them, so it answered with 65,025 characters against a stated budget of 12,000, and the agent -- which reads the results -- was the side that overran. The first result is always kept, because a search that found something and returned nothing is less useful than one oversized answer. 中文：按调用方预算能容纳的、排在最前面的那些结果。预算必须决定结果有几条，而不只是决定它们被送往的两处之一渲染几条：曾经的搜索回复把每条结果完整序列化，却只对旁边的上下文字符串设上限，于是在声称 12,000 的预算下答出 65,025 个字符，而超发的恰恰是 agent 真正读的那一半。第一条永远保留，因为找到了东西却什么都不返回，比返回一个过大的答案更没用。"
+    },
+    "src/ragyourcode/search.py:274:context": {
+      "hash": "c918726e4239b27c",
+      "code_hash": "b08ae7388cc236d8",
+      "path": "src/ragyourcode/search.py",
+      "name": "context",
+      "text": "Packs ranked results into one block an agent can paste straight into a prompt, stopping before the caller character budget is exceeded. This is where the code arrives -- once -- so results beside it need carry none. 中文：把排好序的结果打包成一整块，agent 可以直接贴进提示词，并在超出调用方字符预算前停下。代码就在这里出现，且只出现一次，因此旁边的结果无需再带。"
+    },
+    "src/ragyourcode/search.py:50:SearchIndex": {
+      "hash": "7c71f81c00088c31",
+      "code_hash": "553d6150384a7ed3",
+      "path": "src/ragyourcode/search.py",
+      "name": "SearchIndex",
+      "text": "The inverted lookup table retrieval runs on, built once per session so a query does not re-read every unit. Each posting carries a term weight beside the unit it points at -- already scaled by the field the term appeared in and by how long that field is -- because ranking needs to know how often a term occurs and where, not merely that it occurs. That weight lives in the posting rather than in a second per-unit table, which is what an earlier version paid its largest share of memory for while holding nothing the postings did not. 中文：检索所依据的倒排表，每会话建一次，使一次查询不必重读每个单元。每条倒排项在它指向的单元旁携带词权重——已按该词所在字段及字段长度缩放过——因为排序需要知道词出现了多少次、出现在哪里，而不只是出现过。该权重存在倒排项里而非另建一张按单元的表：早先的版本正是为那张表付出了最大一份内存，而它并没有比倒排表多存任何东西。"
+    },
+    "src/ragyourcode/search.py:70:build_search_index": {
+      "hash": "21a3551d85d8c133",
+      "code_hash": "a055cff9ba9fdb69",
+      "path": "src/ragyourcode/search.py",
+      "name": "build_search_index",
+      "text": "Reads every unit once per field and records, for each word, which units contain it and how much it counts for there. Weight is a word count in a field, divided by how long that field is against the average for the same field, scaled by what the field is worth. Normalising per field is the part that matters: measured against one length for the whole unit, a long body advantage in raw count almost exactly cancelled its penalty for being long, and a body repeating a word still beat the declaration named after it. 中文：按字段逐一读过每个单元，记录每个词出现在哪些单元、在那里值多少。权重是词在某字段的出现次数，除以该字段相对同字段平均值的长度，再乘以该字段的分量。逐字段归一是关键：若改用整个单元的一个长度，长函数体在原始次数上的优势几乎正好抵消了它因长而受的惩罚，一个反复出现某词的函数体仍能压过以该词命名的声明。"
+    },
+    "src/ragyourcode/workflow.py:103:apply_descriptions": {
+      "hash": "3c29fbd4ef3ad04e",
+      "code_hash": "675b8e72e4326987",
+      "path": "src/ragyourcode/workflow.py",
+      "name": "apply_descriptions",
+      "text": "Pushes newly stored text into the units this session is already holding, re-embedding what changed. Without it an agent would describe a unit and keep retrieving against the sentence it replaced until the next rebuild, which is the slowest possible way to discover that the work had an effect. 中文：把刚存下的文字推进本次会话已持有的单元，并为变化者重算向量。没有这一步，agent 描述完一个单元后，直到下次重建为止都仍在用被它取代的那句话检索——那是发现自己的工作产生了效果的最慢方式。"
+    },
+    "src/ragyourcode/workflow.py:120:bootstrap": {
+      "hash": "86269bcdc179c3d8",
+      "code_hash": "f16b03f725277390",
+      "path": "src/ragyourcode/workflow.py",
+      "name": "bootstrap",
+      "text": "Reports how far a repository is from being searchable and hands over the next step work. Indexing a repository is not the same as making it searchable, and nothing used to say so: a fresh index retrieves against the sentence the parser generated, which adds no word the source did not already have, so a question phrased in domain terms reaches nothing. Idempotent and resumable by construction, because it reports the state rather than remembering a position -- run it, do the step it names, run it again. 中文：报告一个仓库距离可检索还有多远，并交出下一步的工作。建了索引不等于可检索，而此前没有任何东西讲明这一点：全新索引拿解析器生成的那句话去匹配，而那句话没有引入源码本就没有的任何词，于是用领域术语提的问题什么也够不到。它天生幂等且可续，因为它报告状态而不是记住进度——跑一次、做它指出的那一步、再跑一次。"
+    },
+    "src/ragyourcode/workflow.py:20:describe_batch": {
+      "hash": "332884612cb40cb6",
+      "code_hash": "256fb2e8da34a40b",
+      "path": "src/ragyourcode/workflow.py",
+      "name": "describe_batch",
+      "text": "The work packet handed to an agent: what still needs describing, and how to do it. The source is included because the brief forbids describing behaviour the source does not show, and an agent cannot honour that without seeing it. The generated sentence goes along so the agent can tell what retrieval already has and add what it lacks rather than paraphrasing it. 中文：交给 agent 的工作包：还有什么需要描述，以及该怎么写。附上源码，是因为写作要求禁止描述源码没有体现的行为，而 agent 看不到源码就无法遵守。同时附上自动生成的那句话，好让 agent 分辨检索已经有了什么，从而补上缺的，而不是把它换个说法重说一遍。"
+    },
+    "src/ragyourcode/workflow.py:57:store_descriptions": {
+      "hash": "a78bcff3ac8eddab",
+      "code_hash": "84642a80524a2dfc",
+      "path": "src/ragyourcode/workflow.py",
+      "name": "store_descriptions",
+      "text": "Validates and persists a batch of written text, reporting every rejection with a reason. Nothing is truncated to fit: a description silently cut at the limit would lose exactly the trailing synonyms that make it worth writing, and the agent would have no way to learn that it had happened. 中文：校验并持久化一批写好的文字，逐条报告被拒绝的原因。不做任何截断以求塞下：在长度上限处被悄悄剪掉的描述，丢的正是结尾那些让它值得一写的同义表述，而 agent 无从得知这件事发生过。"
     }
   }
 }

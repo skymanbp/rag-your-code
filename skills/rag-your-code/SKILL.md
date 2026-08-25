@@ -18,14 +18,21 @@ Use this skill when repository context is broad or a symbol's implementation is 
    python -c "import ragyourcode" || python -m pip install --user rag-your-code
    ```
 
-1. Build or refresh the index from the repository root:
+1. Build the index and find out what this repository still needs:
 
    ```bash
-   python -m ragyourcode.cli index .
+   python -m ragyourcode.cli bootstrap .
    ```
 
-   The report includes `pending_descriptions`. If it is large, step 5 is where
-   most of the retrieval quality on this repository is still sitting.
+   Indexing a repository is not the same as making it searchable. A fresh
+   index retrieves against the sentence the parser generated, which adds no
+   word the source did not already have, so a question phrased in domain terms
+   reaches nothing. `bootstrap` indexes, says which rung this repository is on
+   — descriptions to write, a promotion to apply, or nothing left — and hands
+   over that rung's work. It reads the state rather than remembering a
+   position, so running it again after each round is how you make progress.
+
+   `index` still exists and does only the indexing.
 
 2. Retrieve focused context before making a change:
 
@@ -49,12 +56,22 @@ Use this skill when repository context is broad or a symbol's implementation is 
    unrelated files.
 
 4. For a subprocess integration, start `python -m ragyourcode.cli agent --root .`
-   and send one JSON request per line. Supported actions are `search`,
-   `research`, `neighbors`, `open`, `describe_pending`, `describe_put`,
-   `refresh`, and `stats`. Use `research` only for ambiguous questions; it is
-   capped at two observable steps.
+   and send one JSON request per line. Supported actions are `bootstrap`,
+   `search`, `research`, `neighbors`, `open`, `describe_pending`,
+   `describe_put`, `refresh`, and `stats`. Send `bootstrap` first on an
+   unfamiliar repository: it answers what step 1 answers, in one request. Use
+   `research` only for ambiguous questions; it is capped at two observable
+   steps.
 
-5. **Describe what is pending.** Every unit's description is indexed, and by
+   **A result is navigation, not the file.** `results` carries the identifier,
+   path, line range, signature, description, score and matched terms; the code
+   arrives once, in the reply's `context`, trimmed to `max_chars`. Use `open`
+   for anything the context left out — `omitted_for_budget` says how many
+   results that was.
+
+5. **Describe what is pending** — this is the rung `bootstrap` names first,
+   and on an undescribed repository it is where most of the available
+   retrieval quality still sits. Every unit's description is indexed, and by
    default it is generated without a model — the identifier humanised, the
    parameter and callee names listed, the docstring appended. It adds no
    vocabulary the source did not already have, which is why a query for a
@@ -74,7 +91,13 @@ Use this skill when repository context is broad or a symbol's implementation is 
    `refresh` when you are done so the published index carries them too.
 
    Outside the protocol, `describe status`, `describe export` and
-   `describe import` do the same round trip.
+   `describe import` do the same round trip, and `bootstrap` reports how many
+   rounds are left.
+
+   When nothing is pending, `bootstrap` moves on to `describe promote`, which
+   emits a patch that writes each description into the source as a doc
+   comment. Text that lives in the code needs no digest, no relocation lookup
+   and no pruning rule to survive an edit.
 
 6. Run `python -m ragyourcode.cli annotate` when a durable, numbered semantic
    inventory is useful. It writes `.rag-your-code/annotations.md` and leaves

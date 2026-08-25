@@ -3,6 +3,79 @@
 Notable changes per release. Dates are the release date; measurements are from
 the development machine (Windows 11, CPython 3.13) and are directional.
 
+## 0.7.0 — 2026-08-25
+
+0.6.0 fixed how results are ranked. This fixes what a reply *carries*, ends the
+search for a better local embedding with a measurement rather than an opinion,
+and stops a fresh index quietly pretending it is ready to answer questions.
+
+### Added
+
+- **`bootstrap`**, a command and a protocol action. Indexing a repository is
+  not the same as making it searchable — a fresh index retrieves against the
+  sentence the parser generated, which adds no word the source did not already
+  have — and nothing used to say so. It reports which rung a repository is on,
+  hands over that rung's work, and reads state rather than remembering a
+  position, so running it again after each round is how you make progress.
+- **`src/ragyourcode/workflow.py`**: the vocabulary-ladder operations, as
+  functions of units, store and settings. The command line and the agent
+  protocol now run one implementation instead of two that can drift.
+- `research` replies carry a `context` block, budgeted like every other reply.
+
+### Changed
+
+- **A result is navigation, not the file.** `SearchResult.to_dict` no longer
+  carries the unit's source; the code arrives once, in the reply's budgeted
+  `context`. This was three overruns of one shape: `search --json` served
+  65,025 characters against a stated budget of 12,000, `research` served
+  111,843 because reporting two steps meant serialising the same eight units
+  three times, and `neighbors` served 27,473 under no budget at all. Bounding
+  each emitter would have left the next one free to overrun. Measured after:
+  **24,403 / 24,429 / 13,848**.
+- A step in a research trace reports `id`, `score` and `matched_terms` only. A
+  trace shows how the answer was reached; it is not a second copy of it.
+- `omitted_for_budget` now counts results whose *source* did not fit rather
+  than results that were dropped. Results are cheap now, so every one that was
+  found is returned.
+- **`research`'s early stop is a margin, not a threshold.** It used to fire
+  when the top score passed 0.8 — a constant tied to a scoring scale. BM25F
+  moved that scale and only 3% of queries could reach 0.8, so the stop had
+  silently ceased to exist and every research call ran the graph expansion. It
+  now fires when the top result leads the runner-up by a fraction of its own
+  score, which cannot drift when scoring changes again. Measured over 105 ruler
+  questions: top-1 is correct 42% of the time overall and 68–73% among the
+  queries this fires on.
+- **Breaking (protocol):** the `research` request field `confidence_threshold`
+  is now `dominance_threshold`, and it means a margin rather than a score. The
+  old name was documented nowhere and its old default was measurably dead.
+
+### Measured and not adopted
+
+Eight approaches to making the vector half earn its place were implemented and
+measured against all three rulers: six replacement embeddings — character
+n-grams, corpus co-occurrence via random indexing, truncated SVD by power
+iteration, posting-list signatures, a rarity- and field-weighted hash,
+call-graph diffusion — plus lexical postings expansion and embedding only the
+authored fields. **On the foreign-repository ruler, hit@3 never exceeded its
+no-vector value of 0.429.**
+
+The constraint is architectural rather than representational: retrieval scores
+only the units the lexical half already matched, so a vector reorders an answer
+and cannot make one retrievable. Postings expansion, the one change that could
+have, was worse at every weight tried (hit@1 0.257 → 0.171 → 0.114 → 0.086).
+Corpus-learned semantics need orders of magnitude more text than a repository
+has — 65% of the foreign corpus's terms appear in four or fewer units. And on a
+described corpus the shipped hash helps *because* it is blunt, so every scheme
+that sharpened it lost ground there.
+
+### Fixed
+
+- `tests/test_metadata.py` asserted only that documented actions exist, in the
+  JSON form. The prose roster could name an action the loop had never heard of
+  and nothing would notice. Both directions are asserted now — and doing so
+  immediately exposed that the helper had been folding eight subcommand verbs
+  (`config set`, `describe export`) into the protocol's roster.
+
 ## 0.6.0 — 2026-08-25
 
 0.5.0 asked where retrieval's vocabulary comes from. This release asks what

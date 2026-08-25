@@ -70,7 +70,7 @@ instruction no gate ever ran — so the gate now exists.
    claiming nothing regressed, diff the node ids, the keys, or the names — this
    rule caught a silently removed test during the 0.4.2 documentation pass.
 
-## Two rules learned the hard way
+## Rules learned the hard way
 
 **An input the index does not record is an input that will go stale.** Three
 times now: the settings, the descriptions, and the parser itself. Reuse is
@@ -91,6 +91,13 @@ masked: an index where every unit carries a hand-written bilingual
 description. On a foreign repository with none, the same change tripled hit@1.
 If a feature exists to help someone who has not set anything up yet, measure
 it on a repository that has not been set up.
+
+**A constant tied to a scale is a defect waiting for the scale to move.** The
+research loop stopped early when the top score passed 0.8. Ranking became
+BM25F, the score scale moved, and the stop silently ceased to exist -- only 3%
+of queries could reach 0.8 at all, and no test noticed because the assertion
+was `stop_reason in {all four values}`. It is a margin between two scores from
+the same query now, which cannot drift. Prefer a ratio to a threshold.
 
 **Before comparing two configurations, check they are comparable.** Measuring
 a tokenizer change against stored indexes made the query vectors and the unit

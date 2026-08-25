@@ -49,14 +49,23 @@ package itself on first use.
 ```bash
 pip install rag-your-code
 
-rag-your-code index .
+rag-your-code bootstrap .                  # index, and say what is still missing
 rag-your-code search "where are HTTP retries handled" --json
 rag-your-code search "what calls the retry handler" --graph --hops 1 --json
 ```
 
+`bootstrap` exists because indexing a repository is not the same as making it
+searchable, and nothing used to say so. A fresh index retrieves against the
+sentence the parser generated, which adds no word the source did not already
+have. It reports which rung this repository is on — descriptions still to
+write, a promotion to apply, or nothing left — and hands over that rung's
+work. It reads the state rather than remembering a position, so running it
+again after each round is how you make progress. `index` still exists and does
+only the indexing.
+
 The index is written under `.rag-your-code/`; your source files are never
-modified. Later `index` runs reuse unchanged files. For a large repository,
-prefer `rag-your-code index . --compact`.
+modified. Later runs reuse unchanged files. For a large repository, prefer
+`--compact`.
 
 ## How it works
 
@@ -108,15 +117,44 @@ A trained embedding model scores row 2 at around 0.8. Here a synonym pair and
 an unrelated pair are indistinguishable, because no shared word is no shared
 word either way.
 
-Retrieval works regardless, because **identifiers and docstrings are already
-natural language** — `retry_charge` contains *retry* and *charge*. But it
-reaches only concepts somebody wrote down. Two things close the rest of the
-gap, and neither is a model:
+Retrieval works regardless, because **the prose people write about code is
+already natural language** — docstrings, comments, descriptions. Identifiers
+are not part of that, and it is worth being exact: `retry_charge` tokenizes to
+one opaque term, not to *retry* and *charge*. Splitting identifiers was
+implemented and measured against all three rulers, with query and stored
+vectors rebuilt together, and it was equal or worse on every one; the pieces it
+makes are `get`, `find`, `check`, `test`, which rarity weighting immediately
+discounts to nothing.
+
+So retrieval reaches only concepts somebody wrote down. Two things close the
+rest of the gap, and neither is a model:
 
 - **Your agent rewrites the query.** It has the conversation; turning
   "重试扣款" into `retry charge payment gateway` costs it nothing.
 - **Your agent writes the descriptions**, which puts the missing vocabulary
   into the index once instead of into every query.
+
+### Seven attempts to make the vector half earn its place
+
+Because "just use a better embedding" is the obvious next thought, it was
+measured rather than argued about. Six schemes were implemented — character
+n-grams, corpus co-occurrence via random indexing, truncated SVD, posting-list
+signatures, a rarity- and field-weighted hash, and call-graph diffusion — plus
+lexical postings expansion and embedding only the authored text. **On the
+foreign-repository ruler, not one of them beat using no vector at all.**
+
+The reason is architectural, not representational. Retrieval scores only the
+units the lexical half already matched, so a vector can reorder an answer but
+can never make one *retrievable*; pure cosine fires only when nothing matched
+at all, on 1 question of 35. Every scheme was competing for the same one- or
+two-question reshuffle inside a list that had already been chosen.
+
+Two things follow, and both are stated here rather than buried. Corpus-learned
+semantics need orders of magnitude more text than a repository has: 65% of the
+foreign corpus's terms appear in four or fewer units, so their co-occurrence
+row is a handful of sightings rather than a distribution. And on a *described*
+repository the shipped hash is useful precisely because it is blunt — every
+scheme that sharpened it lost ground there.
 
 ## Agent-authored descriptions
 
@@ -303,6 +341,7 @@ full rebuild. The rest take effect immediately and invalidate nothing.
 one reply per line:
 
 ```json
+{"action":"bootstrap"}
 {"action":"search","query":"database transaction rollback","limit":5}
 {"action":"research","query":"trace payment retry behavior","max_steps":2}
 {"action":"neighbors","id":"payments.py:4:retry_charge","hops":1}
@@ -312,6 +351,14 @@ one reply per line:
 {"action":"refresh"}
 {"action":"stats"}
 ```
+
+**A result is navigation, not the file.** `results` carries the identifier,
+path, line range, signature, description, score and matched terms. The code
+arrives once, in the reply's `context`, trimmed to `max_chars`, and
+`omitted_for_budget` says how many results it did not reach. Carrying the
+source per result as well is what let one `search --json` reply reach 65,025
+characters against a stated budget of 12,000, and one `research` reply reach
+111,843 by serialising the same eight units three times over.
 
 **No single request can end the session.** Numeric fields saturate at their
 bounds, `open` is bounded in both lines and bytes, and anything unanticipated

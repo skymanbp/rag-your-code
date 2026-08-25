@@ -7,14 +7,14 @@
   "repository": "https://github.com/skymanbp/rag-your-code",
   "metadata": {
     "description": "Single-plugin marketplace for the rag-your-code local codebase RAG index.",
-    "version": "0.6.0"
+    "version": "0.7.0"
   },
   "plugins": [
     {
       "name": "rag-your-code",
       "source": "./",
       "description": "Local, explainable codebase RAG for coding agents. Indexes functions, methods and classes across Python and 14 other languages with no network calls and no runtime dependencies; every result carries a file, a line range, its matched terms and its source. Adds bounded graph expansion over calls/imports/contains edges and a JSON-lines agent protocol.",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "author": {
         "name": "rag-your-code contributors"
       },
