@@ -20,7 +20,7 @@ from .graph import build_graph, graph_from_dict, graph_search
 from .indexer import StaleMonitor, build_fingerprint, build_units, fingerprint, index_build_fingerprint, read_index, snapshot_repository, write_index
 from .models import SearchResult
 from .providers import ProviderError
-from .search import build_search_index, context, search, within_budget
+from .search import assess, build_search_index, context, diagnose, search, within_budget
 from .workflow import apply_descriptions, bootstrap, describe_batch, store_descriptions
 
 # Derived from the settings table so the default is written down once.
@@ -79,6 +79,10 @@ def _refresh_index(root: Path, output: Path, full: bool = False, compact: bool |
     # from another let a save landing between them poison incremental reuse.
     snapshot = snapshot_repository(root, cfg)
     store = descriptions_module.load(root)
+    # The authored text is the third input no content fingerprint can see, and
+    # the only one where an edit in one direction used to be lost: a deleted
+    # description went on being served out of the reused unit that carried it.
+    descriptions_changed = bool(previous_payload) and index_descriptions_fingerprint(previous_payload) != store.fingerprint
     units = build_units(
         root,
         previous_units=previous_units,
@@ -89,6 +93,7 @@ def _refresh_index(root: Path, output: Path, full: bool = False, compact: bool |
         previous_build=None if inputs_changed else previous_build,
         descriptions=store,
         embed_with=embed_with,
+        descriptions_changed=descriptions_changed,
     )
     graph = build_graph(units)
     write_index(output, root, units, graph.to_dict(), compact=compact, diagnostics=diagnostics, snapshot=snapshot, cfg=cfg, descriptions_fingerprint=store.fingerprint, embed_with=embed_with)
@@ -183,21 +188,29 @@ def _cmd_search(args: argparse.Namespace) -> int:
     weight = cfg["search.vector_weight"]
     search_index = build_search_index(units, embedder(cfg))
     recall = cfg["search.vector_recall"]
+    coverage = cfg["search.min_coverage"]
     results = (
-        graph_search(units, args.query, limit, args.hops, graph, search_index, vector_weight=weight, vector_recall=recall)
+        graph_search(units, args.query, limit, args.hops, graph, search_index, vector_weight=weight, vector_recall=recall, min_coverage=coverage)
         if args.graph
-        else search(units, args.query, limit, search_index=search_index, vector_weight=weight, vector_recall=recall)
+        else search(units, args.query, limit, search_index=search_index, vector_weight=weight, vector_recall=recall, min_coverage=coverage)
     )
+    # An empty answer that does not say which kind of empty it is leaves the
+    # caller to guess between "not in this repository", "asked in the wrong
+    # words" and "the index is broken" -- three different next moves.
+    report = None if results else diagnose(assess(search_index, args.query, coverage), coverage)
     if args.json:
         # Results are navigation and cost almost nothing, so every one that was
         # found is reported. The budget decides how many of them arrive with
         # their code attached, and says how many did not.
         shown = within_budget(results, max_chars)
-        print(json.dumps({"query": args.query, "mode": "graph" if args.graph else "hybrid", "stale": payload.get("stale", True), "degraded": payload.get("degraded"), "results": [result.to_dict() for result in results], "omitted_for_budget": len(results) - len(shown), "context": context(shown, max_chars)}, ensure_ascii=False))
+        print(json.dumps({"query": args.query, "mode": "graph" if args.graph else "hybrid", "stale": payload.get("stale", True), "degraded": payload.get("degraded"), "results": [result.to_dict() for result in results], "omitted_for_budget": len(results) - len(shown), "context": context(shown, max_chars), "diagnosis": report}, ensure_ascii=False))
     else:
         if payload.get("stale"):
             print("Warning: index is stale; run `rag-your-code index` to refresh.", file=sys.stderr)
-        print(context(results, max_chars) or "No matching code units.")
+        if report:
+            print(f"No matching code units.\n{report['hint']}")
+        else:
+            print(context(results, max_chars))
     return 0
 
 
@@ -403,6 +416,7 @@ def _cmd_agent(args: argparse.Namespace) -> int:
     default_limit = cfg["search.limit"]
     default_chars = cfg["search.max_chars"]
     recall = cfg["search.vector_recall"]
+    coverage = cfg["search.min_coverage"]
     stale_monitor = StaleMonitor(root, payload, assume_checked=True, cfg=cfg, descriptions_fingerprint=store.fingerprint)
     # Descriptions stored this session reach the live units immediately but not
     # the published index, which is a different thing from the index being
@@ -428,13 +442,17 @@ def _cmd_agent(args: argparse.Namespace) -> int:
                 hops = _request_int(request, "hops", 1, 0, 3)
                 use_graph = bool(request.get("graph", False))
                 results = (
-                    graph_search(units, query, limit, hops, graph, search_index, vector_weight=weight, vector_recall=recall)
+                    graph_search(units, query, limit, hops, graph, search_index, vector_weight=weight, vector_recall=recall, min_coverage=coverage)
                     if use_graph
-                    else search(units, query, limit, search_index=search_index, vector_weight=weight, vector_recall=recall)
+                    else search(units, query, limit, search_index=search_index, vector_weight=weight, vector_recall=recall, min_coverage=coverage)
                 )
                 budget = _request_int(request, "max_chars", default_chars, 0, 100000)
                 shown = within_budget(results, budget)
-                response = {"stale": payload.get("stale", True), "results": [result.to_dict() for result in results], "omitted_for_budget": len(results) - len(shown), "context": context(shown, budget)}
+                # Same reply shape either way: `diagnosis` is null when there
+                # were results, so a caller reads one field rather than
+                # inferring the difference between "nothing here" and "asked
+                # in words this index does not have".
+                response = {"stale": payload.get("stale", True), "results": [result.to_dict() for result in results], "omitted_for_budget": len(results) - len(shown), "context": context(shown, budget), "diagnosis": None if results else diagnose(assess(search_index, query, coverage), coverage)}
             elif action == "research":
                 response = research(
                     units,
@@ -447,6 +465,7 @@ def _cmd_agent(args: argparse.Namespace) -> int:
                     search_index,
                     vector_weight=weight,
                     vector_recall=recall,
+                    min_coverage=coverage,
                     max_chars=_request_int(request, "max_chars", default_chars, 0, 100000),
                 )
                 response["stale"] = payload.get("stale", True)

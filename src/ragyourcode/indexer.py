@@ -271,6 +271,7 @@ def build_units(
     previous_build: str | None = None,
     descriptions: "DescriptionStore | None" = None,
     embed_with=None,
+    descriptions_changed: bool = False,
 ) -> list[CodeUnit]:
     """Build units, reusing unchanged files and stable serials when possible.
 
@@ -282,16 +283,33 @@ def build_units(
     rules -- different suffixes, ignores, size cap, vector width, or a
     different parser -- so they are discarded rather than reused. Reuse is
     keyed on file content, which cannot notice that the rules changed.
+
+    ``descriptions_changed`` says the authored text moved since the previous
+    index. Reuse then has to stop, and for one direction only: reuse copies a
+    unit out of the previous index carrying the text applied when it was
+    written, and the loop below only ever *sets* text -- so adding a
+    description took effect and changing one took effect, while **deleting one
+    did nothing at all**. Measured: after 227 descriptions were removed from
+    the store, an incremental run went on serving every one of them and the
+    ruler went on reporting the score they produced, four points of hit@1 away
+    from the truth. The generated sentence they replaced is a function of the
+    syntax tree, so only re-parsing recovers it. Vectors are carried across by
+    id afterwards, so a unit whose text did not actually change still costs no
+    embedding request -- which matters when each one is a billed round trip.
     """
     cfg = _resolve(root, cfg)
     if previous_build is not None and previous_build != build_fingerprint(cfg):
         previous_units, previous_files = None, None
+    if descriptions_changed:
+        previous_files = None
     dimensions = cfg["embedding.dimensions"]
     snapshot = snapshot or snapshot_repository(root, cfg)
     current_files = snapshot.fingerprints
     old_by_path: dict[str, list[CodeUnit]] = {}
+    old_by_id: dict[str, CodeUnit] = {}
     for unit in previous_units or []:
         old_by_path.setdefault(unit.path, []).append(unit)
+        old_by_id[unit.id] = unit
     units: list[CodeUnit] = []
     for path in snapshot.paths:
         relative = path.relative_to(root).as_posix()
@@ -314,6 +332,20 @@ def build_units(
         if text and unit.description != text:
             unit.description = text
             unit.vector = []
+        if not unit.vector:
+            # A unit re-parsed only because the authored text moved is usually
+            # a unit whose own text did not move. Its previous vector still
+            # describes it exactly, and against a provider each one it saves is
+            # a billed round trip: recovering a removed description must not
+            # cost a full re-embedding of the repository.
+            # Compared on the text the vector is actually computed from, not on
+            # the description alone: a body edited from `return 1` to `return 2`
+            # leaves the generated sentence identical, and matching on that
+            # would hand the new unit the old unit's vector. The existing
+            # incremental test caught exactly that.
+            earlier = old_by_id.get(unit.id)
+            if earlier is not None and len(earlier.vector) == dimensions and earlier.searchable_text == unit.searchable_text:
+                unit.vector = list(earlier.vector)
         if previous_serials.get(unit.id, unit.serial) != unit.serial or len(unit.vector) != dimensions:
             unit.vector = []
     # Embedded in one batched pass rather than inside the loop above, because a

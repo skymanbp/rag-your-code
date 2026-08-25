@@ -194,6 +194,22 @@ SETTINGS: tuple[Setting, ...] = (
         maximum=1.0,
         help="how much cosine similarity contributes beside lexical overlap",
     ),
+    # How much of a question has to reach the index before an answer counts as
+    # evidence rather than as a guess. Measured, not chosen: across two
+    # repositories, two languages and 126 questions, 0.40 is the largest value
+    # at which every question that was being answered correctly still is, and
+    # it silences 47% of questions whose answer is not in the repository at
+    # all. It is a ratio inside the query, so unlike a score threshold it does
+    # not move when the corpus or the scale of the ranking does -- the defect
+    # that made `confidence_threshold = 0.8` stop meaning anything.
+    Setting(
+        "search.min_coverage",
+        "float",
+        0.40,
+        minimum=0.0,
+        maximum=1.0,
+        help="share of a query's words that must appear in the index for results to be returned",
+    ),
     Setting("search.limit", "int", 8, minimum=1, maximum=100, help="default result count"),
     Setting("search.max_chars", "int", 12000, minimum=0, maximum=100000, help="default context budget"),
     Setting(

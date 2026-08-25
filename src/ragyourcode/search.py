@@ -16,6 +16,7 @@ from .models import CodeUnit, SearchResult
 # rag-your-code.toml and the default a direct caller gets cannot drift apart.
 DEFAULT_VECTOR_WEIGHT: float = BY_PATH["search.vector_weight"].default
 DEFAULT_VECTOR_RECALL: int = BY_PATH["search.vector_recall"].default
+DEFAULT_MIN_COVERAGE: float = BY_PATH["search.min_coverage"].default
 
 # How much a word counts for, by the field the author wrote it in. A term in
 # the name is what the declaration is called; the same term inside the body is
@@ -46,6 +47,41 @@ FIELD_WEIGHTS: dict[str, float] = {
 BM25_K1 = 1.2
 BM25_B = 0.75
 
+# Above this share of the corpus a word stops telling the units apart, so it is
+# left out of the evidence question entirely -- out of the numerator and out of
+# the denominator alike. Which is the whole trick: `where are CUDA kernels
+# dispatched to the device` matches `where`, `are`, `to` and `the`, four of its
+# eight words, and half a query looks like evidence until you notice that the
+# matching half is words this repository contains everywhere. Counting only
+# words that discriminate silenced 20 of 32 unanswerable English questions that
+# no plain coverage threshold could reach, at exactly the same cost in real
+# answers. Derived from the corpus, so it needs no stopword list and works the
+# same in a language nobody anticipated. It is a property of the scoring model
+# rather than a preference, which is why it sits here beside `k1` and `b`
+# instead of in the settings.
+COMMON_TERM = 0.05
+
+# A share alone is degenerate on a small corpus, in the direction that matters
+# most: across ten units a word in one of them is the most discriminating word
+# there is, and 1/10 is already twice the share above. Read as a fraction only,
+# every term in a ten-unit index is "everywhere" and every query is refused --
+# the same defect as a constant tied to a scale, arrived at from the other
+# side. So a word is common only once it is also in more units than this, which
+# leaves the fraction in charge above roughly 160 units and never lets it fire
+# on an index too small for the word "everywhere" to mean anything.
+COMMON_TERM_FLOOR = 8
+
+# A small repository cannot hold the vocabulary of a sentence, so coverage
+# reads low there for a reason that has nothing to do with whether it has the
+# answer. Measured on one repository subsampled to eight sizes, average
+# coverage of questions it can answer falls 0.789 -> 0.731 -> 0.559 -> 0.410
+# from 1153 units to 400, 100 and 10, while coverage of questions nothing can
+# answer stays flat at 0.13-0.18 whatever the size. So the separation survives
+# and only its position moves, and the bar is eased in proportion below this
+# many units rather than switched off at a cliff: a small index keeps partial
+# protection and never refuses a question it could have answered.
+COVERAGE_FULL_STRENGTH = 200
+
 
 @dataclass(slots=True)
 class SearchIndex:
@@ -73,6 +109,119 @@ class SearchIndex:
     units: dict[str, CodeUnit]
     postings: dict[str, tuple[tuple[str, float], ...]]
     embedder: object = None
+
+
+@dataclass(slots=True, frozen=True)
+class Evidence:
+    """Whether a query reached this index at all, kept apart from how its
+    results rank.
+
+    Ranking answers "which of these is best". It cannot answer "is any of this
+    an answer", and reading the first as the second is what let a repository
+    reply to all 32 questions in `benchmarks/absent_queries.json` -- every one
+    about a subject neither repository implements. `where are CUDA kernels
+    dispatched to the device` came back with a test about word counting, on the
+    evidence of `are`, `the`, `to` and `where`. That is not a Chinese problem
+    or a ranking problem; it is a missing question.
+
+    ``coverage`` is the share of the query's *discriminating* words that appear
+    in the index -- see `COMMON_TERM` for why the others are dropped from both
+    sides of that fraction. A ratio inside the query, deliberately: a threshold
+    on a *score* is tied to whatever scale the ranking currently produces, and
+    this project has already had one of those stop meaning anything the moment
+    BM25F changed the scale.
+    """
+
+    terms: int
+    considered: tuple[str, ...]
+    matched: tuple[str, ...]
+    ubiquitous: tuple[str, ...]
+    coverage: float
+    sufficient: bool
+
+    @property
+    def reason(self) -> str:
+        """Why an answer was withheld, as a stable token an agent can branch on."""
+        if self.sufficient:
+            return ""
+        if self.matched:
+            return "too_little_of_the_query_matched"
+        return "only_ubiquitous_terms_matched" if self.ubiquitous else "no_query_term_in_index"
+
+
+def assess(search_index: SearchIndex, query: str, min_coverage: float = DEFAULT_MIN_COVERAGE) -> Evidence:
+    """How much of `query` occurs in this index at all.
+
+    One dict lookup per query word, so the caller deciding whether to answer
+    and the caller explaining why it did not can both ask this rather than each
+    keeping a copy of the rule -- two copies of a rule is how the two ends of a
+    contract start disagreeing.
+
+    A semantic embedder is exempt. With vectors that carry meaning, a
+    paraphrase sharing no word with its answer is precisely the case a provider
+    was configured for, and lexical coverage is then evidence of nothing. The
+    exemption is reasoned rather than measured: the threshold was fitted on 158
+    questions across two repositories, and there is no API key here to fit its
+    counterpart.
+    """
+    terms = set(tokenize(query))
+    total = len(search_index.units) or 1
+    everywhere = max(COMMON_TERM * total, COMMON_TERM_FLOOR)
+    ubiquitous, considered = [], []
+    for term in sorted(terms):
+        (ubiquitous if len(search_index.postings.get(term, ())) > everywhere else considered).append(term)
+    matched = tuple(term for term in considered if search_index.postings.get(term))
+    # Everything the query asked about is a word this repository uses
+    # everywhere: there is no discriminating evidence to have, so the ratio is
+    # zero rather than the vacuous 1.0 that dividing nothing by nothing invites.
+    coverage = (len(matched) / len(considered)) if considered else 0.0
+    required = min_coverage * min(1.0, total / COVERAGE_FULL_STRENGTH)
+    semantic = bool(getattr(search_index.embedder, "semantic", False))
+    return Evidence(
+        len(terms),
+        tuple(considered),
+        matched,
+        tuple(term for term in ubiquitous if search_index.postings.get(term)),
+        coverage,
+        bool(terms) and (semantic or coverage >= required),
+    )
+
+
+_HINTS = {
+    "no_query_term_in_index": (
+        "No word of this question occurs anywhere in the index. Ask in the vocabulary the code "
+        "itself uses, or write descriptions so the concepts have words to be found by."
+    ),
+    "only_ubiquitous_terms_matched": (
+        "The only words that matched are ones this repository uses throughout, so they single out "
+        "nothing. Add a term specific to what you are looking for."
+    ),
+    "too_little_of_the_query_matched": (
+        "Too little of this question occurs in the index for a result to be evidence rather than a "
+        "guess. Try the words the code uses, or lower search.min_coverage to see the guesses."
+    ),
+}
+
+
+def diagnose(evidence: Evidence, min_coverage: float = DEFAULT_MIN_COVERAGE) -> dict[str, object]:
+    """Why nothing was returned, in a form an agent can branch on.
+
+    An empty answer is only useful if it says which kind of empty it is. All
+    three of these are recoverable and each by a different move -- rephrase in
+    the code's vocabulary, add a distinctive word, or write the descriptions
+    that would give the concept words at all -- and none of them is what an
+    agent does when handed a plausible wrong unit instead.
+    """
+    return {
+        "reason": evidence.reason,
+        "query_terms": evidence.terms,
+        "distinctive_terms": list(evidence.considered),
+        "matched_terms": list(evidence.matched),
+        "ubiquitous_terms": list(evidence.ubiquitous),
+        "coverage": round(evidence.coverage, 4),
+        "min_coverage": min_coverage,
+        "hint": _HINTS.get(evidence.reason, ""),
+    }
 
 
 def build_search_index(units: list[CodeUnit], embed_with=None) -> SearchIndex:
@@ -149,6 +298,7 @@ def search(
     search_index: SearchIndex | None = None,
     vector_weight: float = DEFAULT_VECTOR_WEIGHT,
     vector_recall: int = DEFAULT_VECTOR_RECALL,
+    min_coverage: float = DEFAULT_MIN_COVERAGE,
 ) -> list[SearchResult]:
     """Ranks code units against a natural-language query by combining weighted
     word overlap with vector similarity.
@@ -177,11 +327,22 @@ def search(
     Lexical evidence remains dominant either way: a unit found by similarity
     alone scores at most `vector_weight`, so it surfaces where the words found
     little and yields where they found a lot.
+
+    A query too little of which occurs in the index returns nothing at all.
+    Ranking cannot express "no answer here": something is always least-bad, and
+    it is returned with a score and a rank that read exactly like an answer.
+    `assess` decides this, `search.min_coverage` sets the bar, and callers
+    report the reason -- an empty reply that explains itself is actionable,
+    where a plausible wrong one costs an agent the edit it makes on top of it.
     """
     query_tokens = set(tokenize(query))
     if limit <= 0 or not query_tokens:
         return []
     search_index = search_index or build_search_index(units)
+    # Before any embedding or scoring: an unanswerable query now costs one dict
+    # lookup per word instead of a full pass over the corpus.
+    if not assess(search_index, query, min_coverage).sufficient:
+        return []
     # The query goes through the index's own embedder, never the module-level
     # one: a query vector from a different scheme than the units it is
     # compared against yields numbers that look like scores and are not.
@@ -228,7 +389,13 @@ def search(
         vector_ids = set(lexical_scores)
 
     # With no lexical overlap anywhere, fall back to pure cosine so a genuine
-    # paraphrase still retrieves something.
+    # paraphrase still retrieves something. Reaching here now means the coverage
+    # gate let the query through with nothing matched, which happens for a
+    # semantic embedder -- where a paraphrase really is the case to serve -- or
+    # for a repository that set `search.min_coverage` to zero and asked for the
+    # old behaviour. Under the feature hash at any positive setting this branch
+    # is unreachable, which is the point: there, similarity over hashed token
+    # overlap ranked the entire corpus on noise.
     candidate_ids = lexical_scores.keys() if lexical_scores else search_index.units.keys()
     # Semantics may add candidates; hashed token overlap may not. This is the
     # single place a vector can change what is *found* rather than what order

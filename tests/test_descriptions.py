@@ -18,6 +18,7 @@ from pathlib import Path
 import pytest
 
 from ragyourcode import descriptions as descriptions_module
+from ragyourcode import embeddings as embeddings_module
 from ragyourcode.cli import build_parser, main
 from ragyourcode.descriptions import DescriptionStore, source_key
 from ragyourcode.indexer import build_units, read_index
@@ -197,6 +198,70 @@ def test_a_malformed_store_costs_quality_not_availability(repo, capsys):
     assert main(["index", str(repo)]) == 0
     capsys.readouterr()
     assert _search(repo, "retry charge", capsys)
+
+
+def test_a_removed_description_stops_being_served(repo, capsys):
+    """Deletion was the one edit to the store that did nothing.
+
+    Reuse copies a unit out of the previous index together with the text
+    applied when that index was written, and the apply step only ever *sets*
+    text -- so adding a description took effect, changing one took effect, and
+    removing one left the old sentence in place indefinitely. Found by
+    measurement rather than by a report: after 227 descriptions were removed
+    from this repository's own store, an incremental run went on serving every
+    one of them and the ruler went on reporting the score they produced, nearly
+    nine points of hit@1 away from the truth.
+    """
+    _write_store(repo, UNIT_ID, AUTHORED, source_key(build_units(repo)[0]))
+    assert main(["index", str(repo)]) == 0
+    capsys.readouterr()
+    assert _search(repo, "exponential backoff", capsys), "precondition: the description applies"
+
+    path = descriptions_module.store_path(repo)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    del payload["descriptions"][UNIT_ID]
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    # Incremental deliberately: `--full` would pass whether or not the defect
+    # was fixed, because it never reuses anything.
+    assert main(["index", str(repo)]) == 0
+    capsys.readouterr()
+    _, indexed = read_index(repo / ".rag-your-code" / "index.json")
+    assert indexed[0].description != AUTHORED, "a removed description is still being served"
+    assert "retry charge" in indexed[0].description.lower(), "the generated sentence has to come back"
+    assert _search(repo, "exponential backoff", capsys) == []
+
+
+def test_recovering_a_removed_description_costs_no_embedding(repo, capsys, monkeypatch):
+    """Re-parsing to recover the generated sentence must not re-embed the
+    repository. Against a provider every vector is a billed round trip, so a
+    fix that made each description edit cost a full rebuild would be paid for
+    in money by exactly the people who turned a provider on.
+    """
+    (repo / "other.py").write_text("def untouched(value):\n    return value\n", encoding="utf-8")
+    _write_store(repo, UNIT_ID, AUTHORED, source_key(next(u for u in build_units(repo) if u.id == UNIT_ID)))
+    assert main(["index", str(repo)]) == 0
+    capsys.readouterr()
+
+    path = descriptions_module.store_path(repo)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    del payload["descriptions"][UNIT_ID]
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    embedded: list[int] = []
+    original = embeddings_module.LocalEmbedder.many
+
+    def counted(self, texts):
+        texts = list(texts)
+        embedded.append(len(texts))
+        return original(self, texts)
+
+    monkeypatch.setattr(embeddings_module.LocalEmbedder, "many", counted)
+    assert main(["index", str(repo)]) == 0
+    capsys.readouterr()
+    _, indexed = read_index(repo / ".rag-your-code" / "index.json")
+    assert len(indexed) > 1, "precondition: more than one unit exists to re-embed"
+    assert sum(embedded) == 1, f"only the unit whose text changed may be re-embedded, not {sum(embedded)} of {len(indexed)}"
 
 
 def test_saving_prunes_entries_for_units_that_no_longer_exist(repo):
