@@ -174,6 +174,42 @@ def _load(args: argparse.Namespace):
     return payload, units, graph_from_dict(units, payload.get("graph")), cfg, store
 
 
+# Refusal reasons that writing descriptions can actually fix. `scattered` is
+# deliberately absent: it means the words are here but never together, which is
+# what a question about a subject the repository does not implement looks like,
+# and telling somebody to describe more code would be advice that cannot work.
+_DESCRIBABLE_REASONS = frozenset({
+    "no_query_term_in_index",
+    "only_ubiquitous_terms_matched",
+    "too_little_of_the_query_matched",
+})
+
+
+def _describe_nudge(store, units, reason: str) -> str:
+    """The one line worth printing when a question came back empty and the
+    vocabulary that would have answered it has not been written yet.
+
+    Deliberately tied to a refusal rather than to a low score. "The results
+    looked weak" would need a threshold on a score, which is the failure this
+    project has already had once -- a constant tied to whatever scale the
+    ranking currently produces. A refusal is a fact, not a judgement, and it is
+    also the only moment the reader has actually lost something.
+    """
+    if reason not in _DESCRIBABLE_REASONS:
+        return ""
+    groups = store.classify(units)
+    undescribed = len(groups["missing"]) + len(groups["superseded"])
+    if not undescribed:
+        return ""
+    total = len(units) or 1
+    return (
+        f"\n{undescribed} of {total} declarations carry only the sentence the parser generated, "
+        f"which adds no word the source did not already have.\n"
+        f"Writing descriptions is what makes a question phrased in your own words reachable: "
+        f"run `rag-your-code bootstrap .` for the next batch."
+    )
+
+
 def _cmd_search(args: argparse.Namespace) -> int:
     """The search command: retrieves the code units most relevant to a
     question, optionally following relationships outward, and prints either
@@ -182,7 +218,7 @@ def _cmd_search(args: argparse.Namespace) -> int:
     similarity all fall back to the repository settings when no flag
     overrides them. Warns when the index no longer describes the repository.
     """
-    payload, units, graph, cfg, _ = _load(args)
+    payload, units, graph, cfg, store = _load(args)
     limit = args.limit if args.limit is not None else cfg["search.limit"]
     max_chars = args.max_chars if args.max_chars is not None else cfg["search.max_chars"]
     weight = cfg["search.vector_weight"]
@@ -209,7 +245,10 @@ def _cmd_search(args: argparse.Namespace) -> int:
         if payload.get("stale"):
             print("Warning: index is stale; run `rag-your-code index` to refresh.", file=sys.stderr)
         if report:
-            print(f"No matching code units.\n{report['hint']}")
+            # The JSON reply is unchanged: a machine reads `diagnosis` and does
+            # not need prose about it. This line exists for the person watching,
+            # who otherwise has no way to learn that the lever exists at all.
+            print(f"No matching code units.\n{report['hint']}{_describe_nudge(store, units, report['reason'])}")
         else:
             print(context(results, max_chars))
     return 0

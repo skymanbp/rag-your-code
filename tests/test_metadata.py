@@ -49,7 +49,13 @@ def test_the_manifests_point_at_a_repository_that_exists():
 
 # --- the documentation an agent is told to follow must be executable --------
 
-DOCS = ("skills/rag-your-code/SKILL.md", "README.md")
+COMMANDS = tuple(sorted(str(path.relative_to(ROOT)).replace("\\", "/") for path in (ROOT / "commands").glob("*.md")))
+# Every document that hands somebody a command to run. The command files are
+# included by discovery rather than by name: a fifth command added without a
+# line here would otherwise be the one file nothing checks, which is exactly how
+# an install line naming a package index this project does not publish to
+# shipped twice.
+DOCS = ("skills/rag-your-code/SKILL.md", "README.md") + COMMANDS
 
 
 def _subcommands() -> set[str]:
@@ -83,12 +89,18 @@ def test_every_documented_subcommand_exists():
 
 def test_every_documented_protocol_action_is_handled():
     known = _protocol_actions()
+    everywhere: set[str] = set()
     for name in DOCS:
         text = (ROOT / name).read_text(encoding="utf-8")
         used = set(re.findall(r'"action"\s*:\s*"([a-z_]+)"', text))
         unknown = used - known
         assert not unknown, f"{name} documents actions the agent loop ignores: {sorted(unknown)}"
-        assert used, f"{name} should show at least one protocol action"
+        everywhere |= used
+    # The anti-vacuity guard belongs to the set, not to each file. A command
+    # file documents the command line and has no reason to mention the
+    # subprocess protocol at all; requiring one from every document would make
+    # this pass only by forcing irrelevant JSON into user-facing pages.
+    assert everywhere, "no document shows a protocol action; this guard would then pass vacuously"
 
 
 def test_the_documented_list_of_actions_is_the_real_list():
@@ -157,6 +169,38 @@ def test_no_document_claims_this_package_is_on_an_index_it_is_not_on():
                 or base in allowed_names
             ), f"{name}: `pip install {target}` names no installable source"
     assert seen, "the install instructions vanished; this guard would then pass vacuously"
+
+
+def test_every_command_is_loadable_and_describes_itself():
+    """A command file is a plugin's user-facing surface, and Claude Code reads
+    its frontmatter to list it. A missing or empty `description` makes the
+    command invisible in the very place a user goes to discover it -- which is
+    the whole reason these exist, since a skill only fires when a model decides
+    it should.
+    """
+    assert COMMANDS, "the plugin ships no commands; this guard would pass vacuously"
+    for name in COMMANDS:
+        text = (ROOT / name).read_text(encoding="utf-8")
+        assert text.startswith("---\n"), f"{name}: no frontmatter block"
+        front = text.split("---\n", 2)[1]
+        described = re.search(r"^description:\s*(\S.*)$", front, re.M)
+        assert described, f"{name}: frontmatter carries no description"
+        assert len(described.group(1)) <= 200, f"{name}: description is a paragraph, not a listing line"
+        assert re.search(r"^# /rag-your-code:", text, re.M), f"{name}: body does not name the command it is"
+
+
+def test_every_command_a_document_offers_actually_exists():
+    """Both directions, for the same reason the settings table is checked both
+    ways: a document offering `/rag-your-code:describe` when no such command
+    exists is a dead end at the exact moment somebody took the advice, and a
+    command nobody is told about is not a feature.
+    """
+    real = {Path(name).stem for name in COMMANDS}
+    offered: set[str] = set()
+    for name in ("README.md", "skills/rag-your-code/SKILL.md", *COMMANDS):
+        offered.update(re.findall(r"/rag-your-code:([a-z-]+)", (ROOT / name).read_text(encoding="utf-8")))
+    assert offered - real == set(), f"documents offer commands that do not exist: {sorted(offered - real)}"
+    assert real - offered == set(), f"commands nobody is told about: {sorted(real - offered)}"
 
 
 def test_the_documented_fixture_counts_are_the_real_ones():

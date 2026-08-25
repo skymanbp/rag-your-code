@@ -66,6 +66,80 @@ def test_search_without_index_is_a_concise_error(tmp_path: Path):
     assert "Traceback" not in proc.stderr
 
 
+def _undescribed_repository(root: Path, count: int) -> Path:
+    """Enough declarations for the evidence bars to be at full strength, none of
+    them carrying a written description.
+    """
+    for index in range(count):
+        (root / f"ledger_{index}.py").write_text(
+            f"def post_ledger_entry_{index}(entry, ledger):\n"
+            '    """Post an accounting entry to the ledger and return it."""\n'
+            "    return ledger\n",
+            encoding="utf-8",
+        )
+    return root
+
+
+def test_a_refused_search_says_that_descriptions_are_the_missing_piece(tmp_path: Path):
+    """The lever nobody can discover on their own.
+
+    Writing descriptions is the largest single move available on retrieval
+    quality, and until now the only place that said so was a skill that fires
+    when a model decides it should, or a command a user has to already know
+    exists. A refusal is the moment somebody has actually lost something, so it
+    is the moment worth spending a line on.
+    """
+    _undescribed_repository(tmp_path, 220)
+    run_cli("index", str(tmp_path), cwd=Path.cwd())
+    refused = run_cli("search", "how is the OAuth refresh token rotated", "--root", str(tmp_path), cwd=Path.cwd())
+    assert "No matching code units." in refused.stdout
+    assert "declarations carry only the sentence the parser generated" in refused.stdout
+    assert "bootstrap" in refused.stdout
+
+
+def test_the_machine_readable_reply_gains_no_prose(tmp_path: Path):
+    """The nudge is for the person watching. An agent reads `diagnosis` and
+    branches on `reason`; prose in the JSON would be a second, softer copy of a
+    field it already has.
+    """
+    _undescribed_repository(tmp_path, 220)
+    run_cli("index", str(tmp_path), cwd=Path.cwd())
+    reply = json.loads(
+        run_cli("search", "how is the OAuth refresh token rotated", "--root", str(tmp_path), "--json", cwd=Path.cwd()).stdout
+    )
+    assert reply["results"] == []
+    assert reply["diagnosis"]["reason"]
+    assert "declarations carry only" not in json.dumps(reply)
+
+
+def test_no_nudge_when_the_subject_is_simply_not_here(tmp_path: Path):
+    """`matched_terms_are_scattered` means the words are present but never
+    together, which is what a question about a subject the repository does not
+    implement looks like. Describing more code cannot fix that, so advising it
+    would be advice that cannot work.
+    """
+    from ragyourcode.cli import _describe_nudge
+
+    class _Store:
+        def classify(self, units):
+            return {"described": [], "superseded": [], "missing": list(units)}
+
+    units = [object()] * 10
+    assert _describe_nudge(_Store(), units, "matched_terms_are_scattered") == ""
+    assert _describe_nudge(_Store(), units, "too_little_of_the_query_matched")
+
+
+def test_no_nudge_once_everything_carries_a_description(tmp_path: Path):
+    """A repository that has done the work is not told to do it again."""
+    from ragyourcode.cli import _describe_nudge
+
+    class _Store:
+        def classify(self, units):
+            return {"described": list(units), "superseded": [], "missing": []}
+
+    assert _describe_nudge(_Store(), [object()] * 10, "no_query_term_in_index") == ""
+
+
 SAMPLE_WITH_NON_ASCII = '''def 重试请求(url):
     "重试失败的 HTTP 请求 🚀 with backoff."
     return url
