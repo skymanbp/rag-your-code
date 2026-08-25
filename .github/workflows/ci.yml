@@ -46,6 +46,13 @@ jobs:
       - run: python -m pip install -e ".[dev]"
       - name: Golden retrieval set
         run: python -m benchmarks.run_benchmark --output benchmark-result.json
+      - name: Repository questions, reported not asserted
+        # This score moves whenever the repository gains code nobody has
+        # described yet, which is normal. Asserting a floor would make ordinary
+        # development look like a retrieval regression; the structural checks
+        # that keep the ruler honest live in tests/test_repo_queries.py.
+        run: python -m benchmarks.repo_queries --output repo-queries-result.json
+
       - name: Assert the published quality numbers still hold
         run: |
           python - <<'PY'
