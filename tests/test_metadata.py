@@ -321,3 +321,35 @@ def test_every_documented_provider_block_actually_configures_that_provider(tmp_p
         # arrangement exists to prevent.
         assert "sk-" not in settings
     assert {"sentence-transformers", "openai-compatible"} <= seen, f"undocumented providers; README shows {sorted(seen)}"
+
+
+# --- a measurement nobody can re-run is a claim, not a measurement ----------
+
+BENCHMARKS = tuple(
+    sorted(
+        path.name
+        for path in (ROOT / "benchmarks").glob("*.py")
+        if path.name != "__init__.py"
+    )
+)
+
+
+def test_every_benchmark_script_is_listed_in_its_own_index():
+    """The index of the rulers is discovered, not maintained by hand.
+
+    1.3.0 found two figures in the README -- query latency, and the entire Grep
+    head-to-head -- produced by scripts that had never been committed. Nobody
+    could re-derive either, and the second one meant the phrase "a Grep loop"
+    had no definition a reader could argue with.
+
+    Both directions matter. A script absent from the index is one nobody knows
+    to run; a command in the index naming a script that does not exist is the
+    install-line defect this repository shipped twice. Discovery by glob is
+    what keeps the seventh script from being the one nothing checks.
+    """
+    index = (ROOT / "benchmarks" / "README.md").read_text(encoding="utf-8")
+    assert BENCHMARKS, "benchmarks/ holds no scripts; this guard would pass vacuously"
+    for name in BENCHMARKS:
+        assert f"benchmarks.{Path(name).stem}" in index, f"{name} is in benchmarks/ and not in its README"
+    for module in re.findall(r"benchmarks\.([a-z_]+)", index):
+        assert (ROOT / "benchmarks" / f"{module}.py").is_file(), f"the README runs benchmarks.{module}, which does not exist"
