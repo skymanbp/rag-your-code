@@ -79,7 +79,8 @@ def test_no_subject_of_an_absent_question_exists_in_this_repository(units):
     )
 
 
-def test_no_subject_of_an_absent_question_exists_in_the_vendored_corpus():
+@pytest.mark.parametrize("name", ["flask", "cobra"])
+def test_no_subject_of_an_absent_question_exists_in_the_vendored_corpus(name: str):
     """The other half of the same claim, which used to be unenforceable.
 
     This ruler asserts its questions are unanswerable in *both* graded
@@ -97,8 +98,15 @@ def test_no_subject_of_an_absent_question_exists_in_the_vendored_corpus():
     Naming the subject here would put it in the index and break the very
     claim this asserts, which is why the paragraph above is written around it.
     That has now happened five times; CONTRIBUTING.md keeps the tally.
+
+    The second corpus arrived in 1.5.0 and cost two rewrites immediately: it
+    uses one guarded word in a completion example and produces another by
+    lower-casing a mixed-case identifier, so two questions were one ordinary
+    token from being answerable there. Both were reworded rather than
+    exempted -- an exemption per corpus is a guard that weakens every time it
+    is tested, which is the opposite of what a guard is for.
     """
-    corpus = ROOT / "benchmarks" / "corpus" / "flask"
+    corpus = ROOT / "benchmarks" / "corpus" / name
     assert corpus.is_dir(), f"the vendored corpus is missing from {corpus}"
     assert not _intruders(build_units(corpus)), (
         "the vendored corpus contains the vocabulary of a question the ruler calls unanswerable; "

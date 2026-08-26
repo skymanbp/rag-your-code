@@ -33,7 +33,7 @@ import hashlib
 import json
 import textwrap
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from .models import CodeUnit
 
@@ -234,15 +234,53 @@ class DescriptionStore:
                 missing.append(unit)
         return {"described": described, "superseded": superseded, "missing": missing}
 
-    def pending(self, units: list[CodeUnit], limit: int) -> list[CodeUnit]:
+    def pending(
+        self, units: list[CodeUnit], limit: int, skip: "tuple[str, ...] | list[str]" = ()
+    ) -> list[CodeUnit]:
         """Units still needing a description, missing ones before stale ones.
 
         A unit with no description at all is worth more than a refresh of one
         that exists, so a budget-limited agent spends its first batches where
         retrieval is currently blind.
+
+        ``skip`` withholds the units a repository has measured describing as
+        harmful. Offering them is not neutral: an agent following the describe
+        command works the queue to the end, so a queue that lists them is an
+        instruction to make retrieval worse. The count is reported by
+        `declined`, because a silently shortened queue reads as "nothing left".
         """
         groups = self.classify(units)
-        return (groups["missing"] + groups["superseded"])[: max(0, limit)]
+        queue = groups["missing"] + groups["superseded"]
+        withheld = self.declined(queue, skip)
+        return [unit for unit in queue if unit not in withheld][: max(0, limit)]
+
+    @staticmethod
+    def declined(units: list[CodeUnit], skip: "tuple[str, ...] | list[str]") -> list[CodeUnit]:
+        """The units `skip` withholds, so they can be counted rather than lost.
+
+        A pattern is tried against the file and against ``path::name``, so a
+        repository can withhold a directory or a single declaration. The second
+        form exists because the measurement that produced it was about one
+        declaration: `parser.py::_generic_units` carries a docstring that
+        already reads like a description, and an authored one *replaces* the
+        generated sentence -- the only route by which that docstring reaches
+        the weight-3 description field. Three separate attempts to describe it,
+        long and short, each cost graded questions and none gained any.
+
+        Matched with `PurePosixPath.match` rather than `fnmatch`, whose `*`
+        crosses a directory separator: `tests/*.py` would otherwise also
+        withhold `tests/fixtures/**`, and describing the parser fixtures was
+        measured to cost nothing at all.
+        """
+        if not skip:
+            return []
+        withheld = []
+        for unit in units:
+            path = unit.path.replace("\\", "/")
+            named = f"{path}::{unit.qualified_name}"
+            if any(PurePosixPath(path).match(p) or PurePosixPath(named).match(p) for p in skip):
+                withheld.append(unit)
+        return withheld
 
     def put(self, unit: CodeUnit, text: str) -> None:
         """Saves one written description together with the file it came from,

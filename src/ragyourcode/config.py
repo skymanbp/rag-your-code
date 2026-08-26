@@ -274,6 +274,20 @@ SETTINGS: tuple[Setting, ...] = (
     # fit, so a cap set inside the normal range silently leaves those units
     # undescribed. 1000 covers the whole observed range.
     Setting("describe.max_chars", "int", 1000, minimum=40, maximum=4000, help="cap on one stored description"),
+    # Empty by default, because the one measurement behind it is n=1. On this
+    # repository, describing the test functions cost five real answers and six
+    # false silences (docs/ROADMAP.md, under 1.0.0): a test description
+    # restates what the source does, in the source's own vocabulary, and then
+    # competes with it. That is a fact about a corpus, not about testing, so
+    # the tool ships neutral and the repository that measured it says so in
+    # its own `rag-your-code.toml`. Skipped units are counted and reported,
+    # never dropped in silence.
+    Setting(
+        "describe.skip",
+        "str_list",
+        (),
+        help="path patterns whose units are not offered for description",
+    ),
 )
 
 BY_PATH: dict[str, Setting] = {setting.path: setting for setting in SETTINGS}

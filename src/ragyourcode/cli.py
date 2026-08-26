@@ -367,6 +367,7 @@ def _cmd_describe(args: argparse.Namespace) -> int:
             "described": len(groups["described"]),
             "superseded": len(groups["superseded"]),
             "missing": len(groups["missing"]),
+            "declined": len(store.declined(groups["missing"] + groups["superseded"], cfg["describe.skip"])),
             "coverage": round(len(groups["described"]) / len(units), 4) if units else 0.0,
             "path": str(store.path),
             "exists": store.path.is_file(),

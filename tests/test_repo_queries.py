@@ -22,6 +22,7 @@ from ragyourcode.indexer import build_units
 
 ROOT = Path(__file__).resolve().parents[1]
 COLD_PATH = ROOT / "benchmarks" / "cold_queries.json"
+COBRA_PATH = ROOT / "benchmarks" / "cobra_queries.json"
 
 
 @pytest.fixture(scope="module")
@@ -43,7 +44,7 @@ def test_every_acceptable_answer_names_code_that_exists(units):
     assert not problems, "the ruler has drifted from the code:\n  " + "\n  ".join(problems)
 
 
-@pytest.mark.parametrize("path", [QUERIES_PATH, COLD_PATH], ids=["repository", "cold"])
+@pytest.mark.parametrize("path", [QUERIES_PATH, COLD_PATH, COBRA_PATH], ids=["repository", "cold", "cobra"])
 def test_the_ruler_is_well_formed(path: Path):
     questions = load_questions(path)
     entries = questions["queries"]
@@ -65,14 +66,30 @@ def test_the_ruler_is_well_formed(path: Path):
     assert languages == {"en", "zh"}
 
 
-def test_the_cold_ruler_says_which_repository_it_grades():
+@pytest.mark.parametrize("path", [COLD_PATH, COBRA_PATH], ids=["cold", "cobra"])
+def test_a_foreign_ruler_says_which_repository_it_grades(path: Path):
     """It grades code that is not in this repository, so it has to name it and
     say why a ruler asked about this project cannot stand in for it.
     """
-    questions = load_questions(COLD_PATH)
+    questions = load_questions(path)
     assert questions["repository"], "a ruler over foreign code must name that code"
     assert questions["caveat"].strip()
     assert questions["why"].strip()
+    pinned = questions["measured_against"]
+    for field in ("upstream", "tag", "commit", "released", "licence", "omitted"):
+        assert pinned.get(field), f"{path.name}: the vendored subject must record {field}"
+    corpus = ROOT / questions["vendored"]
+    assert corpus.is_dir(), f"{path.name} names {corpus}, which is not here"
+
+
+@pytest.mark.parametrize("path", [COLD_PATH, COBRA_PATH], ids=["cold", "cobra"])
+def test_every_acceptable_answer_on_a_foreign_ruler_names_code_that_exists(path: Path):
+    """The check the runner performs, made a test so a vendored corpus cannot
+    be bumped to a new tag without the questions being re-checked against it.
+    """
+    questions = load_questions(path)
+    corpus = build_units(ROOT / questions["vendored"])
+    assert not check_ruler(questions, corpus)
 
 
 def test_written_descriptions_beat_generated_ones(units, cold_units):

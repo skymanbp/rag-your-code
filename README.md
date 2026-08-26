@@ -28,14 +28,12 @@ An agent looking for something in an unfamiliar codebase has two bad options.
 
 **Grep** is fast and exact, and it only finds the string you already guessed.
 Ask "where does it decide whether to answer at all" and there is no string to
-grep for. **Reading whole files** is thorough and blows the context budget:
-five files of a real repository is tens of thousands of tokens, most of them
-irrelevant.
+grep for. **Reading whole files** is thorough and blows the context budget.
 
-Retrieval sits in between, and brings a third problem the first two do not
-have. Grep can tell you it found nothing. **A ranking cannot.** It always
-produces a least-bad candidate and returns it with a score and a rank that read
-exactly like an answer, whether or not the repository holds anything relevant.
+Retrieval sits in between and brings a third problem neither has: Grep can say
+it found nothing, and **a ranking cannot.** It always produces a least-bad
+candidate and returns it with a score and rank that read exactly like an answer,
+whether or not the repository holds anything relevant.
 
 ## 2 · What it does
 
@@ -43,15 +41,14 @@ exactly like an answer, whether or not the repository holds anything relevant.
 |---|---|
 | **Index** | Every function, method and class in 15 languages becomes one `CodeUnit`: id, signature, exact line range, source, calls, imports, description. |
 | **Retrieve** | BM25F over five weighted fields, blended with vector similarity. Results carry the terms they matched on. |
-| **Refuse** | Two evidence tests decide whether *any* result is an answer. When neither is met, retrieval returns nothing plus a machine-readable diagnosis. |
-| **Expand** | Optional bounded walk over `calls` / `imports` / `contains`, every hop carrying its edge path as evidence. |
+| **Refuse** | Two evidence tests decide whether *any* result is an answer; when neither is met, retrieval returns nothing plus a machine-readable diagnosis. |
+| **Expand** | Optional bounded walk over `calls` / `imports` / `contains`, each hop carrying its edge path as evidence. |
 | **Describe** | Your agent writes the vocabulary the source never contained, stored in a committed sidecar or promoted into the code as a reviewable diff. |
 | **Serve** | A CLI, and a JSON-lines protocol for a long-lived agent subprocess. |
 
-**Scope.** Retrieval over source declarations. Not a code-understanding model,
+**Scope.** Retrieval over source declarations — not a code-understanding model,
 not a generation step, not an IDE index. Questions are answered in vocabulary
-somebody wrote down: in the code, its documentation, or a description an agent
-added.
+somebody wrote down: in the code, its documentation, or an agent's description.
 
 ## 3 · What is actually hard here
 
@@ -61,14 +58,14 @@ Three things, and all three are measured rather than argued.
 
 Eight releases measured how well retrieval *finds* the answer. None could see
 what it does when there is none, because every question graded had one. A
-fourth ruler — thirty questions about subjects neither graded repository
+ruler of its own — thirty questions about subjects no graded repository
 implements — settled it in one run: **all thirty answered**, both languages,
-both repositories.
+every corpus.
 
 | asked of a repository containing no such code | answered with | on the evidence of |
 |---|---|---|
 | `where are CUDA kernels dispatched to the device` | a test about word counting | `are` `the` `to` `where` |
-| `准入控制为什么会拒绝没有资源限额的容器组` | the UTF-8 console setup | `拒绝` `控制` `没有` |
+| `准入钩子为什么会拒绝没有资源限额的工作负载` | the UTF-8 console setup | `拒绝` `没有` `为什么` |
 | `how is the OAuth refresh token rotated` | a description-store method | `before` `is` `refresh` `the` |
 
 Not a Chinese problem and not a ranking problem — a **missing question**: nothing
@@ -84,14 +81,14 @@ until you notice which half.
 
 **Concentration** — what share of the query's *rarity* lands inside a single
 declaration. Coverage alone asks whether each word occurs somewhere, which a
-question about a subject nothing here implements can satisfy entirely out of
-unrelated units: four of six words in four declarations with nothing to do with
-the question or with one another. Rarity-weighted rather than counted, because
-two ordinary words are not better evidence than the rare word asked about.
+question about an unimplemented subject can satisfy entirely out of unrelated
+units: four of six words in four declarations with nothing to do with the
+question or with one another. Rarity-weighted rather than counted, because two
+ordinary words are not better evidence than the rare word asked about.
 
 Both are **ratios inside the query**, never thresholds on a score: a score
-threshold is tied to whatever scale the ranking produces, and this project has
-already had one silently stop existing the moment BM25F changed that scale.
+threshold is tied to whatever scale the ranking produces, and one here silently
+stopped existing the moment BM25F changed that scale.
 
 ### 3.2 · The vector was carrying nothing, and here is why
 
@@ -101,12 +98,12 @@ occupy **72.1%** of the index. That was known since 0.6.0 and left unexplained.
 The explanation, measured here:
 
 - **Not saturation.** Median 56 distinct tokens per unit into 384 buckets, 0.4%
-  of units over the width; widening to 16,384 raises fidelity from r=0.40 to
-  r=0.56 and buys no ranking.
+  over the width; widening to 16,384 raises fidelity from r=0.40 to r=0.56 and
+  buys no ranking.
 - **Not redundancy.** Its cosine correlates only **+0.45** with BM25F over
   26,490 scored candidates, so it does carry variance of its own.
 - **The variance is the wrong variance.** A signed hash counts every token
-  equally. The independent part of what it measures is therefore precisely the
+  equally, so the independent part of what it measures is precisely the
   contribution of words that are everywhere — the part rarity weighting exists
   to discard. Independent *noise*, not independent signal.
 - **And it can only reorder.** Candidates come from the lexical half, so a
@@ -114,18 +111,18 @@ The explanation, measured here:
   questions have an accepted answer sharing **no token at all** with the query.
 
 Eight replacement schemes were measured across releases — character n-grams,
-random indexing, truncated SVD, posting-list signatures, a rarity-weighted
-hash, call-graph diffusion, postings expansion, authored-fields-only. None beat
-using no vector: **a vector computed from the same words cannot know anything
-the words do not already say.** Making it useful takes a model, which is an
+random indexing, truncated SVD, posting-list signatures, a rarity-weighted hash,
+call-graph diffusion, postings expansion, authored-fields-only. None beat using
+no vector: **a vector computed from the same words cannot know anything the
+words do not already say.** Making it useful takes a model, which is an
 installable option and is measured below.
 
 ### 3.3 · Retrieval reaches only what somebody wrote down
 
 `retry_charge` tokenizes to one opaque term, not to *retry* and *charge*.
 Splitting identifiers was measured with query and stored vectors rebuilt
-together: equal or worse on every ruler, because the pieces are `get`, `find`,
-`check`, `test`, which rarity weighting discounts.
+together: equal or worse on every ruler, because the pieces are `get`, `find`
+and `check`, which rarity weighting discounts.
 
 So the vocabulary ladder is the answer, cheapest rung first:
 
@@ -138,8 +135,7 @@ So the vocabulary ladder is the answer, cheapest rung first:
 
 ## 4 · How it works
 
-The same pipeline drawn out, with the refusal path and the three surfaces:
-**[docs/FLOW.md](docs/FLOW.md)**.
+Drawn out, with the refusal path and the surfaces: **[docs/FLOW.md](docs/FLOW.md)**.
 
 ```
 your repository
@@ -167,13 +163,12 @@ swallow the ones after it. A 530-byte JavaScript file that took 12.6 s to parse
 now takes 0.37 ms.
 
 Qualified names come from the spans the closer already produced: nested inside
-another's span *is* nested in it, whatever the braces did on the way. One
-mechanism, so there is no second one to disagree with it.
+another's span *is* nested in it. One mechanism, so there is no second one to
+disagree with it.
 
 **Ranking.** BM25F with per-field length normalisation, which is the part that
 matters: against one length for the whole unit, a body repeating a word forty
-times still beat the declaration named after it, because its raw-count
-advantage cancelled its length penalty.
+times beat the declaration named after it, raw count cancelling length penalty.
 
 | field | weight | why |
 |---|---|---|
@@ -185,13 +180,13 @@ advantage cancelled its length penalty.
 
 **Rarity comes from your corpus, not a stopword list.** `the` and `calls` earn
 their low weight the same way a Chinese bigram does — by being everywhere — so
-it works in a language nobody anticipated and no list has to be maintained.
+no list is maintained and an unanticipated language works. It is also where the
+design degrades: see the refusal table in section 6.
 
 **Safety.** A scanned repository is untrusted input, including any
 `.rag-your-code/index.json` it ships, so nothing read out of an index may name
-a path to act on: superseded vector sidecars are enumerated from the writer's
-own naming scheme. A crafted index once made `index` delete an arbitrary
-in-tree file and report success.
+a path to act on: superseded sidecars are enumerated from the writer's own
+naming scheme. A crafted index once made `index` delete an in-tree file.
 
 ## 5 · Before and after
 
@@ -199,7 +194,7 @@ A question with no lexical shortcut, asked of this repository:
 
 ````console
 $ rag-your-code search "where does it decide whether to answer at all" --limit 1
-[src/ragyourcode/search.py:117:Evidence] score=0.446
+[src/ragyourcode/search.py:117:Evidence] score=0.447
 The verdict on whether a question reached this index at all, kept separate from
 how results rank. ... 中文：判定一个提问究竟有没有够到索引的结论。...
 ```python
@@ -210,13 +205,12 @@ class Evidence:
 
 There is no string here to grep for: *decide* occurs nowhere in that
 declaration and matched nothing. What ranked it first is ordinary words —
-*answer*, *whether*, *where* — weighted against this corpus, where they are
-rare enough to tell declarations apart. What the agent-written description adds
-is the other language: 「在哪里判定一个提问有没有答案」 returns the same
-declaration first, at 0.392, sharing not one character with its source.
+*answer*, *whether*, *where* — rare enough in this corpus to tell declarations
+apart. What the agent-written description adds is the other language:
+「在哪里判定一个提问有没有答案」 returns the same declaration first, at 0.395,
+sharing not one character with its source.
 
-Now the case that motivated 1.0.0 and 1.1.0 — a question this repository has no
-answer to at all:
+Now the case that motivated 1.0.0 — a question with no answer here at all:
 
 ```console
 $ rag-your-code search "why does the print spooler leave a duplex job stuck"
@@ -245,7 +239,7 @@ it happens to use elsewhere.
 Read `coverage: 0.5` against `concentration: 0.1691`. Half the distinctive
 words are here — `job`, `leave`, `print` — and spread thin enough that no
 declaration holds a fifth of what was asked, against a bar of 0.28. Before
-1.1.0 that question came back with a confident-looking result.
+1.1.0 it came back with a confident-looking result.
 
 Four reasons, because each is recovered by a different move:
 
@@ -254,116 +248,125 @@ Four reasons, because each is recovered by a different move:
 | `no_query_term_in_index` | no word of the question occurs anywhere | ask in the code's vocabulary |
 | `only_ubiquitous_terms_matched` | only words the repository uses throughout | add a distinctive term |
 | `too_little_of_the_query_matched` | most of the question is absent | rephrase, or write descriptions |
-| `matched_terms_are_scattered` | the words are here, never together | the subject is probably not in this repository |
+| `matched_terms_are_scattered` | the words are here, never together | the subject is probably not here |
 
 ## 6 · Benchmark dashboard
 
-Four rulers, 135 distinct questions in English and Chinese, graded 235 times —
-one of them runs against both repositories. Three grade whether the answer is
-**found**; the fourth grades whether silence is **kept**. Every report
-carries a fingerprint of the corpus it graded, because between two runs of an
-unchanged `search.py` the foreign ruler moved 0.257 → 0.229 purely because that
+Five rulers, 175 distinct questions in English and Chinese, graded 305 times —
+one of them runs against all three corpora. Four grade whether the answer is
+**found**; the fifth grades whether silence is **kept**. Every report carries a
+fingerprint of the corpus it graded, because between two runs of an unchanged
+`search.py` the foreign ruler moved 0.257 → 0.229 purely because that
 repository had grown by ninety units.
 
 **Accuracy — default embedder, zero dependencies**
 
 | ruler | what it represents | n | hit@1 | hit@3 | MRR |
 |---|---|---|---|---|---|
-| **A** Flask 3.1.3, no descriptions | what a first-time user gets | 35 | 0.200 | 0.286 | 0.238 |
-| **B** this repo, generated descriptions only | a cold index of familiar code | 70 | 0.314 | 0.471 | 0.383 |
-| **C** this repo, agent-written descriptions | the warmest case supported | 70 | 0.443 | 0.614 | 0.509 |
+| **E** cobra v1.9.1, Go, no descriptions | a foreign repo in a foreign language | 40 | 0.075 | 0.150 | 0.108 |
+| **A** Flask 3.1.3, no descriptions | what a first-time Python user gets | 35 | 0.200 | 0.286 | 0.238 |
+| **B** this repo, generated descriptions only | a cold index of familiar code | 70 | 0.314 | 0.471 | 0.381 |
+| **C** this repo, agent-written descriptions | the warmest case supported | 70 | 0.429 | 0.600 | 0.498 |
 
-The corpora, without which none of the above is reproducible — **A** 1,572
-units, `5fd51169eacc`; **B** 584 units, `fb1f841fa43a`; **C** 584 units,
-`c9df00350cbd`. Ruler A grades **a copy of Flask 3.1.3 carried in this
-repository**, at [`benchmarks/corpus/flask`](benchmarks/corpus/flask), pinned
-to commit `22d9247`. Through 1.3.0 it graded a checkout on one machine, and
-that cost three things: two questions pointed at a declaration the subject had
-renamed, a published score moved 0.257 → 0.229 with no code change because the
-subject had grown, and the model comparison below was taken against two
-different states of it. All three are now a `git clone` away from being
-checked, and CI runs this ruler as an ordinary job.
+The corpora, without which none of the above is reproducible — **E** 602 units,
+`3eabaa705477`; **A** 1,572 units, `5fd51169eacc`; **B** 601 units,
+`566616fbe1e7`; **C** 601 units, `ac3ae43a33e7`. Both foreign subjects are
+carried in this repository at pinned tags, under
+[`benchmarks/corpus/`](benchmarks/corpus/), and CI runs both as ordinary jobs.
 
-**Refusal — the fourth ruler, 30 questions with no answer anywhere**
+**The spread across those four rows is the honest headline.** The same code
+scores 0.075 and 0.429 depending on nothing but which repository it is asked
+about and whether anyone described it. Ruler E is 1.5.0's third corpus and the
+first that is not Python: Go documents *above* the declaration in one terse
+sentence beginning with the identifier, which the parser picks up correctly and
+which shares almost nothing with the words a user asks in. Prose density, not
+language, is what a cold number tracks.
 
-| | this repo | Flask |
-|---|---|---|
-| correctly met with silence | **0.967** | **0.833** |
-| English only | **0.933** | 0.667 |
-| Chinese only | **1.000** | **1.000** |
-| results resting on no lexical evidence, rulers A–C | **0.000** | **0.000** |
+**Refusal — the fifth ruler, 30 questions with no answer anywhere**
 
-Foreign silence fell from 0.933 to 0.833 when the subject changed, and the
-cause is a limit of the design rather than a defect. A word counts as evidence
-unless it occurs in more than 5% of units — a stopword list derived from the
-corpus, so that it needs no list and works in any language. Here `how`, `when`,
-`does` and `are` are everywhere, because 301 units carry written English prose.
-Across 1,572 units of mostly short, undocumented methods they occur in 1–5% of
-them and start counting as evidence. Five English questions about subjects
-Flask does not implement get through on exactly that.
+| | this repo | Flask | cobra |
+|---|---|---|---|
+| correctly met with silence | **0.967** | **0.833** | **0.900** |
+| English only | **0.933** | 0.667 | 0.800 |
+| Chinese only | **1.000** | **1.000** | **1.000** |
+| results resting on no lexical evidence | **0.000** | **0.000** | **0.000** |
 
-**What each bar costs and buys** — one corpus, gate varied alone:
+Silence is lower on both foreign corpora than on this one, and the cause is a
+limit of the design rather than a defect. A word counts as evidence unless it
+occurs in more than 5% of units — a stopword list derived from the corpus, so
+that it needs no list and works in any language. Here `how`, `when`, `does` and
+`are` are everywhere, because 314 units carry written English prose. Across a
+corpus of short, tersely documented declarations they occur in 1–5% of them and
+start counting as evidence: on cobra, three English questions get through on
+sets like `[a, is, the, how, after]`.
 
-| gate | A hit@1/3/MRR | B hit@1/3/MRR | C hit@1/3/MRR | silence own / foreign |
-|---|---|---|---|---|
-| neither (pre-1.0.0) | 0.200/0.286/0.238 | 0.314/0.486/0.391 | 0.486/0.700/0.569 | 0.000 / 0.000 |
-| coverage only (1.0.0) | 0.200/0.286/0.238 | 0.314/0.471/0.383 | 0.486/0.686/0.564 | 0.567 / 0.733 |
-| concentration only | 0.200/0.286/0.238 | 0.314/0.471/0.383 | 0.443/0.614/0.509 | 0.967 / 0.800 |
-| **both (1.1.0)** | **0.200/0.286/0.238** | **0.314/0.471/0.383** | 0.443/0.614/0.509 | **0.967 / 0.833** |
+**What each bar costs and buys** — every corpus, gate varied alone:
+
+| gate | A | B | C | E | silence own / Flask / cobra |
+|---|---|---|---|---|---|
+| neither (pre-1.0.0) | 0.200/0.286/0.238 | 0.314/0.486/0.388 | 0.486/0.686/0.567 | 0.100/0.200/0.146 | 0.000 / 0.000 / 0.000 |
+| coverage only (1.0.0) | 0.200/0.286/0.238 | 0.314/0.471/0.381 | 0.486/0.671/0.559 | 0.075/0.175/0.121 | 0.500 / 0.733 / 0.767 |
+| concentration only | 0.200/0.286/0.238 | 0.314/0.471/0.381 | 0.429/0.600/0.498 | 0.075/0.150/0.108 | 0.967 / 0.800 / 0.833 |
+| **both (1.1.0)** | **0.200/0.286/0.238** | **0.314/0.471/0.381** | 0.429/0.600/0.498 | 0.075/0.150/0.108 | **0.967 / 0.833 / 0.900** |
 
 Ruler A is **unmoved by either bar**; B loses one hit@3 question to either bar
-alone and nothing further when both apply. The rest of the cost is three of
-seventy at hit@1 on the warmest ruler, and six at hit@3.
+alone and nothing further when both apply. The rest of the cost is four of
+seventy at hit@1 on the warmest ruler and six at hit@3, plus one of forty and
+two of forty on the Go one.
 
-Through 1.3.0 this section said concentration subsumes coverage. **On a corpus
-this project did not choose, it does not.** Both bars together silence 0.833 of
-the foreign absent questions, against 0.800 for concentration alone and 0.733
-for coverage alone. One question — and the first time in four releases that
-keeping both has been worth a measurable amount rather than worth a different
-diagnosis.
+**Both bars together give the best silence on all three corpora.** Through
+1.3.0 this section said concentration subsumes coverage; on Flask it does not
+(0.833 against 0.800), and the third corpus, which arrived long after the
+defaults were fixed, says the same (0.900 against 0.833). Four constants fitted
+on two repositories, tested on a third in a language nobody here chose, and not
+one of them moved.
 
-Raising the concentration bar buys the remaining silence, and is refused,
-because it is bought out of the answers: at 0.50 the foreign absent ruler is
-silent on all thirty while ruler A falls to 0.086 hit@1 from 0.200, B to 0.214
-from 0.314 and C to 0.329 from 0.443. **0.28 was chosen before this corpus
-existed and survived meeting it**, which is the only kind of evidence a default
-can have.
+Raising the bar buys the remaining silence out of the answers, and is refused:
+at 0.50 the foreign absent ruler is silent on all thirty while A falls to 0.086
+hit@1, B to 0.214 and C to 0.329. **0.28 was chosen before either foreign
+corpus existed and survived meeting both**, which is the only kind of evidence
+a default can have.
 
-**Latency** — warm corpus, 584 units `c9df00350cbd`, five consecutive
-invocations of `python -m benchmarks.query_latency --repeats 10` (420 samples
-each):
+**Latency** — warm corpus, 601 units `ac3ae43a33e7`, one
+`python -m benchmarks.query_latency` (5 repeats × 420 samples), idle machine:
 
-| | | across the five |
+| | | across the repeats |
 |---|---|---|
-| query, median | **0.61 ms** | 0.60 – 0.64 |
-| query, p95 | 1.09 ms | 1.06 – 1.14 |
-| refusing an unanswerable query | **0.017 ms** | 0.015 – 0.019 |
-| refusal cheaper than answering by | **~36×** | 33 – 41 |
+| query, median | **0.49 ms** | 0.45 – 0.58 |
+| query, p95 | 0.85 ms | 0.72 – 1.07 |
+| refusing an unanswerable query | **0.016 ms** | 0.015 – 0.016 |
+| refusal cheaper than answering by | **~30×** | 29 – 37 |
+
+*Idle* is load-bearing: the same corpus at the same commit measured 0.99 ms
+median while a coverage run was in progress and 0.49 ms once it finished.
 
 Two significant figures and a spread, because that is the precision the
-measurement has. Across twenty invocations over three releases on the same idle
-machine the median has landed anywhere from 0.51 to 1.44 ms and p95 from 0.85
-to 7.34 ms — a band wider than any change the code has ever made to this
-number. Releases before 1.3.0 published `0.83 ms / p95 1.68 ms` to three
-figures from a script that was never committed; both values sit inside that
-band, which is the point: they were unfalsifiable rather than wrong.
+measurement has. Across twenty invocations over four releases on the same idle
+machine the median has landed anywhere from 0.49 to 1.44 ms and p95 from 0.85
+to 7.34 ms — a band wider than any change the code has made to this number.
+Releases before 1.3.0 published `0.83 ms / p95 1.68 ms` to three figures from a
+script that was never committed; both sit inside that band, which is the point:
+they were unfalsifiable rather than wrong. Refusal is cheap structurally rather
+than by tuning — an unanswerable query touches only the posting lists of its
+own distinctive words and never reaches ranking.
 
-Refusal is cheap for a structural reason, not a tuned one: an unanswerable
-query touches only the posting lists of its own distinctive words, and never
-reaches ranking at all.
+**Scale**, synthetic 10,000-unit repository (500 files), re-measured in 1.5.0
+— the previous row of figures was optimistic by more than noise:
 
-**Scale**, synthetic 10,000-unit repository (500 files):
+| | | previously published |
+|---|---|---|
+| full build | 3.45 s | 1.84 s |
+| incremental rebuild after one file changes | 0.286 s (**12.1×**) | 0.207 s |
+| compact storage vs readable JSON | 35.6% | 35.6% |
+| index load, fresh process | 79.3 ms | 45.4 ms |
+| resident memory | 72.2 MiB | 58.7 MiB |
+| mean query, full recall | 15.6 ms | 3.90 ms |
 
-| | |
-|---|---|
-| full build | 1.84 s |
-| incremental rebuild after one file changes | 0.207 s (**8.9×**) |
-| compact storage vs readable JSON | 35.6% |
-| index load, fresh process | 45.4 ms |
-| resident memory | 58.7 MiB |
+That last row had been carried since before BM25F replaced the scoring it was
+taken under. Six releases, a committed script, and nothing that made anyone run
+it again.
 
-**Parsing**, against source-controlled fixtures (15 files, 237 negative cases,
-89 constructs the spec deliberately excludes):
+**Parsing**, against source-controlled fixtures (15 files, 237 negative cases):
 
 | | |
 |---|---|
@@ -372,8 +375,8 @@ reaches ranking at all.
 | with a usable signature | **91 / 91** |
 | units invented that do not exist | **0** |
 
-Directional local measurements, not service levels — but every one of them is
-now a command rather than a memory, which two of them were not before. Each
+Directional local measurements, not service levels — but each is a command
+rather than a memory, which two of them were not before. Each
 prints the corpus fingerprint beside its score; quote both or neither.
 [`benchmarks/README.md`](benchmarks/README.md) lists the six scripts and what
 each is for, and the corpus one of them grades is now carried here too.
@@ -386,107 +389,97 @@ many hit. That is what this reproduces — same corpus, same questions, same
 ruler, scored at **file** granularity so Grep is not penalised for lacking
 declaration spans.
 
-**Which side wins on an undescribed repository depends on the repository.**
-Through 1.3.0 this section said flatly that Grep wins there, because the one
-undescribed repository ever measured was a hook-heavy tool whose questions were
-answerable by matching identifiers. Swapping the subject for a public web
-framework reversed it. The honest claim is narrower than either table alone:
+**On an undescribed repository, which side wins depends on the repository.**
+Three subjects, three answers:
 
-| Flask 3.1.3 · 35 questions · 1,572 units `5fd51169eacc` · no descriptions | Grep loop | rag-your-code |
-|---|---|---|
-| right file first | 22.9% | **37.1%** |
-| right file in top 3 | 45.7% | **57.1%** |
-| lines it hands back, all questions | 17,641 | — |
-| characters returned, all questions | 1,415,656 | **258,236** |
-| questions it answers | 30 | 30 |
+| undescribed · Grep loop → rag-your-code | first | top 3 | answered | characters |
+|---|---|---|---|---|
+| **Flask** 35 q · 1,572 units `5fd51169eacc` | 22.9% → **37.1%** | 45.7% → **57.1%** | 30 → 30 | 1,415,656 → **258,236** |
+| **cobra** 40 q · 602 units `3eabaa705477` | 17.5% → 17.5% | 20.0% → **30.0%** | 22 → 17 | 799,475 → **156,336** |
+| a hook-heavy tool, retired in 1.4.0 | 34.3% → 31.4% | — | — | — |
+
+Flask wins for this side, cobra ties on first place, and the retired subject
+lost. A cold index retrieves against a generated sentence plus whatever the
+author documented, so the outcome is set by how much prose the repository
+already carries — Flask documents most public methods in paragraphs, cobra in
+one terse line, the retired tool barely at all. What holds on all three is the
+payload: this side hands back a fifth to a half of the text, ranked and spanned.
 
 **Once the vocabulary exists, it is not close.**
 
-| this repository · 70 questions · 584 units `c9df00350cbd` · 301 described | Grep loop | rag-your-code |
+| this repository · 70 questions · 601 units `ac3ae43a33e7` · 314 described | Grep loop | rag-your-code |
 |---|---|---|
 | right file first | 22.9% | **58.6%** |
-| right file in top 3 | 54.3% | **77.1%** |
-| lines it hands back, all questions | 11,959 | — |
-| characters returned, all questions | 1,135,411 | **615,673** |
+| right file in top 3 | 54.3% | **78.6%** |
+| lines it hands back, all questions | 12,421 | — |
+| characters returned, all questions | 1,179,431 | **617,305** |
 | questions it answers | **61** | 60 |
 
-Those two tables are the whole argument of section 3.3, measured against a real
-baseline instead of asserted. A cold index retrieves against a generated
-sentence plus whatever docstrings the author wrote, so how it fares against Grep
-is decided by how much prose the repository already has. Flask documents most
-public methods and the cold index beats Grep there with no description added; on
-the previous subject, terse comments and long identifiers, it lost by the same
-margin.
+That is section 3.3's argument measured rather than asserted, and it is the one
+thing the subject does not change: first-place accuracy more than doubles
+Grep's.
 
-What does not depend on the subject is what descriptions buy: on this
-repository first-place accuracy goes to **more than double** Grep's, and the
-payload comes back ranked, spanned, and roughly half the size.
+**Every table comes from `python -m benchmarks.grep_baseline`**, new in 1.3.0.
+Until then this section — the strongest claim the project makes — came from an
+uncommitted script, so nothing here could be checked and "Grep loop" had no
+precise meaning. The committed version defines it: take the query's words, drop
+the ones the corpus itself shows are everywhere, run one substring search per
+remaining word over exactly the files the index was built from, rank each file
+by how many distinct words hit it, break ties on path.
 
-**Both tables come from `python -m benchmarks.grep_baseline`**, new in 1.3.0.
-Until then this section — the strongest claim the project makes — came from a
-script that was never committed, so nothing here could be checked and "Grep
-loop" had no precise meaning. The committed version defines it: take the
-query's words, drop the ones the corpus itself shows are everywhere, run one
-substring search per remaining word over exactly the files the index was built
-from, rank each file by how many distinct words hit it, break ties on path.
-Reconstructing it reproduced this side's figures exactly and moved Grep's —
-the expected shape, since the ranked arm was always a call into shipped code.
-
-Four qualifications, because the table would otherwise flatter both sides:
+Qualifications, because the tables would otherwise flatter both sides:
 
 - **Scored at file granularity**, which understates this side. A Grep hit is a
   file; a hit here is a declaration with an exact span, a score, and the words
   it matched on. The agent that reads the result opens 40 lines, not a file.
-- **Dropping the corpus-common words is generous to Grep**, and it is what
-  makes the baseline a fair one rather than a straw man: an agent that greps
-  `the` gets every file back in no order. It is also why Grep declines nine of
-  the seventy questions here — those had no word left that this corpus does not
-  use everywhere.
-- **Payload is counted in characters on both sides.** Grep hands back 18,600
-  characters per question it answers here, unranked and without spans, against
-  10,300 ranked and capped by `search.max_chars` — a factor of 1.8, and 5.5 on
-  Flask, where a framework repeats its vocabulary across many files and Grep
-  cannot rank what it finds. 1.4.1 changed what fits in that cap: the block had
-  been reprinting the docstring the code below already showed, 2,381 of 3,382
-  characters of prose header on Flask, so the same budget now carries **119
-  declarations instead of 92** there and 323 instead of 305 here. Both sides
-  decline the same five of those 35 — the five Chinese ones, all of them. A Chinese word is
-  not a substring of English source and it is not a token in an index built
-  from English source, so on a repository written in one language the cold
-  cross-language case is not this tool's failure but the corpus's.
+- **Dropping the corpus-common words is generous to Grep**, and is what makes
+  the baseline fair rather than a straw man: an agent that greps `the` gets
+  every file back in no order. It is also why Grep declines nine of the seventy
+  questions here — no word was left that this corpus does not use everywhere.
+- **Payload is counted in characters on both sides.** Grep hands back roughly
+  19,300 characters per question it answers here, unranked and without spans,
+  against 10,300 ranked and capped by `search.max_chars` — a factor of 1.9,
+  5.5 on Flask and 5.1 on cobra, where a framework repeats its vocabulary
+  across files and Grep cannot rank what it finds. 1.4.1 changed what fits in
+  that cap: the block had been reprinting the docstring the code below already
+  showed, so the same budget now carries **119 declarations instead of 92** on
+  Flask.
+- **Chinese is the corpus's limit, not the tool's, when a corpus is
+  monolingual.** Both sides decline the same five of Flask's 35 — every Chinese
+  one. A Chinese word is neither a substring of English source nor a token in
+  an index built from it.
 - **Grep wins outright when you know the string.** `grep -rn "COMMON_TERM"` is
   exact, instant and complete, and nothing here replaces it.
 
 The two are complementary, and the honest summary is narrow: this earns its
-place on questions phrased as questions, over a repository somebody has taken
-the time to describe.
+place on questions phrased as questions, over a repository somebody described.
 
 ## 8 · Design principles
 
 **Build the ruler before reshaping the thing measured.** Four candidate scoring
 changes once landed between five and six correct over an eight-question set —
-the instrument's resolution limit, not a ranking. There are 135 questions now
-across four rulers, and every claim here is a number from one of them.
+the instrument's resolution limit, not a ranking. There are 175 questions now
+across five rulers, and every claim here is a number from one of them.
 
 **Measure somewhere it can fail.** Every ruler this project had once graded a
 repository its own authors wrote; cold against a foreign one the same code
-scored 0.086 hit@1 against a self-reported 0.457. Ruler A exists so that can
-never be comfortable again — and stemming, which helps both own-repo rulers,
-was rejected on it: 3 of 35 hit@3 on the foreign one.
+scored 0.086 hit@1 against a self-reported 0.457. Rulers A and E exist so that
+cannot be comfortable again — stemming, which helps both own-repo rulers, was
+rejected on A, and E publishes a 0.075 this project would rather not print.
 
 **Make the error structurally impossible rather than checking for it.** A line
-number that *is* the loop index cannot drift. A description keyed by a digest
-of its own code cannot outlive it.
-
-**A ratio inside the query, never a threshold on a score.** Scales move;
-ratios do not.
+number that *is* the loop index cannot drift; a description keyed by a digest
+of its own code cannot outlive it. **And a ratio inside the query, never a
+threshold on a score** — scales move, ratios do not.
 
 **Derive figures from data; a hand-maintained number is a claim nobody checks.**
-The settings table in this README is asserted against `config.py` in both
-directions — it had drifted nine settings behind before that test existed.
+This README's settings table is asserted against `config.py` in both directions
+— it had drifted nine settings behind before that test existed — and the four
+diagrams in `docs/FLOW.md` are parsed by a test that refuses a label mermaid
+would silently fail to render.
 
 **The contract does not move.** `CodeUnit`, index schema 2 and the JSON-lines
-protocol are unchanged across every release; new information arrives in new
+protocol are unchanged across every release: new information arrives in new
 fields, never by widening an enumeration callers branch on.
 
 **Publish what was measured and rejected.** Twelve changes were implemented,
@@ -510,14 +503,14 @@ dimensions = 384
 pip install "rag-your-code[sentence-transformers]"
 ```
 
-The extra is optional by construction: `dependencies = []` is what a default
-install gets, the import happens inside the constructor, and a test asserts the
+The extra is optional by construction: `dependencies = []` is a default
+install, the import happens inside the constructor, and a test asserts the
 default provider imports none of it.
 
-**Measured on the same four rulers, both arms against one corpus.** 1.1.0
-published this comparison and read it as a win. Its largest gain was on the
-foreign ruler, whose two arms turned out to have been taken against two
-different states of a repository being edited while the script ran. Repeated
+**Measured on the four rulers that then existed, both arms against one
+corpus.** 1.1.0 published this comparison and read it as a win; its largest
+gain was on the foreign ruler, whose two arms turned out to have been taken
+against two states of a repository being edited while the script ran. Repeated
 against a pinned corpus:
 
 | ruler | corpus | signed hash (default) | MiniLM, local |
@@ -529,8 +522,8 @@ against a pinned corpus:
 
 **Worse or identical on every ruler.** The 581-unit stamps are the corpus both
 arms shared, kept rather than refreshed — that is what a stamp is for. It ships
-anyway because it does one thing the hash cannot and these rulers cannot see:
-reach a unit sharing no word with the question. The pairs it scores zero on:
+anyway for the one thing the hash cannot do and these rulers cannot see: reach
+a unit sharing no word with the question. The pairs it scores zero on:
 
 | pair | signed hash | MiniLM |
 |---|---|---|
@@ -539,18 +532,16 @@ reach a unit sharing no word with the question. The pairs it scores zero on:
 | `计算两个数的和` vs `sum two numbers` | **0.000** | **0.822** |
 | `刷新索引` vs `rebuild the index` | **0.000** | **0.684** |
 
-A semantic embedder is **not** exempt from the evidence bars, and that is a
-correction to 1.0.0. Exempting one was reasoned — a paraphrase sharing no word
-with its answer is exactly what a model is for — and it was wrong: exempt and
-asked no other question, the model answered all sixty unanswerable questions.
-Two vector-space replacements were measured and rejected: a similarity floor is
-a threshold on a score and the distributions overlap (0.469 vs 0.418 median),
-and a scale-free standout metric took ruler B from 0.329 to 0.186 for two
-thirds of the silence. Applying the lexical bars costs ruler A nothing.
+A semantic embedder is **not** exempt from the evidence bars, correcting
+1.0.0. Exempting one was reasoned — a paraphrase sharing no word with its
+answer is exactly what a model is for — and wrong: exempt and asked no other
+question, the model answered all sixty unanswerable questions. Two vector-space
+replacements were then measured and rejected: a similarity floor is a threshold
+on a score and the distributions overlap (0.469 vs 0.418 median), and a
+scale-free standout metric took ruler B from 0.329 to 0.186 for two thirds of
+the silence. Applying the lexical bars costs ruler A nothing.
 
-If you install it expecting the hit rates above to move, they will not. Install
-it for the cross-language and paraphrase cases in the table above, which is
-where the difference between the two columns actually lives.
+Install it for the cross-language and paraphrase cases above, not for the hit rates.
 
 **A hosted endpoint** is the third option, and the only one that sends your
 source anywhere:
@@ -563,17 +554,17 @@ dimensions  = 1536
 api_key_env = "OPENAI_API_KEY"     # the NAME of the variable, never the key
 ```
 
-The key is never a setting. `rag-your-code.toml` is meant to be committed so
-everyone who clones sees what shaped the index; a credential is the one value
-with the opposite requirement. Sending a key over plain `http://` to anything
-but your own machine is refused rather than warned about. A failure stops the
-build rather than falling back, because a mixed index is two vector spaces and
-a cosine across them is a meaningless number ranking would act on anyway.
+The key is never a setting: `rag-your-code.toml` is meant to be committed so
+everyone who clones sees what shaped the index, and a credential is the one
+value with the opposite requirement. Sending a key over plain `http://` to
+anything but your own machine is refused rather than warned about, and a
+failure stops the build rather than falling back — a mixed index is two vector
+spaces, and a cosine across them is a meaningless number ranking would act on.
 
 With a semantic embedder, similarity may also **add** candidates rather than
 only reorder them (`search.vector_recall`) — the one thing that can reach a
-unit sharing no word with the question. Under the hash the same widening
-measured worse, so it stays off there.
+unit sharing no word with the question. Under the hash it measured worse, so it
+stays off there.
 
 ## 10 · Install and use
 
@@ -621,14 +612,13 @@ rag-your-code describe promote | git apply      # move descriptions into the cod
 `bootstrap` exists because indexing is not the same as being searchable: a
 fresh index retrieves against a generated sentence that adds no word the source
 did not have. It reports which rung the repository is on and hands over that
-rung's work; run it again after each round.
-
-The index is written under `.rag-your-code/`; **your source files are never
-modified**. `describe promote` emits a diff to review — it never writes source.
+rung's work; run it again after each round. The index is written under
+`.rag-your-code/` and **your source files are never modified** — `describe
+promote` emits a diff to review rather than writing source.
 
 ### Configuration
 
-22 settings in `rag-your-code.toml`:
+23 settings in `rag-your-code.toml`:
 
 | section | settings |
 |---|---|
@@ -636,7 +626,7 @@ modified**. `describe promote` emits a diff to review — it never writes source
 | `[embedding]` | `dimensions`, `provider`, `endpoint`, `model`, `api_key_env`, `batch`, `timeout`, `retries` |
 | `[search]` | `min_coverage`, `min_concentration`, `vector_weight`, `vector_recall`, `limit`, `max_chars` |
 | `[agent]` | `max_open_bytes`, `max_open_chars` |
-| `[describe]` | `languages`, `batch`, `max_chars` |
+| `[describe]` | `languages`, `batch`, `max_chars`, `skip` |
 
 This table is asserted against `config.py` in both directions by
 `tests/test_metadata.py`. Resolution is CLI flag > file > built-in default;
@@ -695,8 +685,8 @@ questions: it is the corpus's limit, not this tool's.
 
 **There is no stemming.** `catastrophic backtracking` does not reach
 `backtracks catastrophically`. A light suffix stripper was implemented and
-measured on all four rulers: it improves both own-repository rulers and costs
-the foreign one 3 of 35 hit@3, so it was rejected.
+measured on every ruler that then existed: it improves both own-repository
+rulers and costs the foreign one 3 of 35 hit@3, so it was rejected.
 
 **A test declaration sometimes outranks real code** — 9 of 175 questions across
 three rulers, a test at rank 1 displacing an accepted answer at rank 2–3, and
@@ -705,27 +695,34 @@ code it *tests*, is wrong: five of the nine are unrelated tests winning on
 prose. A callee-before-caller rerank fires on zero questions, and the `name`
 field weight moves nothing because an underscored test name is one token.
 
+**Describing a declaration that already has a good docstring loses ground.** An
+authored description *replaces* the generated sentence, which is the only route
+by which the author's own docstring reaches the weight-3 description field — so
+writing one demotes that docstring to the weight-1 body. Measured on
+`parser.py::_generic_units`: a long description cost one graded question, a
+short one cost three, and appending the docstring to all 314 descriptions
+instead cost 0.443 → 0.414 hit@1. `describe.skip` records the decision.
+
 **The vectors are 72.1% of the index and earn ±1 question** under the default
-embedder. Kept: the same storage is what makes an optional model work.
+embedder — 74.8% on Flask and 79.7% on cobra. Kept: the same storage is what
+makes an optional model work.
 
 **`search.vector_recall` scans every vector per query** — under a semantic
 embedder. The default hash never widens at all. Affordable at the measured
 envelope, and exactly the work an ANN index would replace.
 
-**Tree-sitter parsing and a SQLite/ANN storage layer are not here.** Both would
-need a dependency, and the policy for those is settled: they follow the
-embedding provider's pattern — optional, user-selected, never in the default
-install. Full reasoning in [docs/ROADMAP.md](docs/ROADMAP.md).
+**Tree-sitter parsing and a SQLite/ANN storage layer are not here.** Both need
+a dependency, and the policy is settled: they follow the embedding provider's
+pattern — optional, user-selected, never in a default install. Full reasoning
+in [docs/ROADMAP.md](docs/ROADMAP.md).
 
-**Whether the skill fires unprompted is not measured**, and until 1.2.1 this
-project claimed no command could measure it. That was wrong: `claude plugin
-eval` grades exactly this, with `tool_used: Skill` as a plugin-fired indicator
-and a no-plugin baseline arm. It is unmeasured because the command is in early
-access on the account here and its case schema is undocumented, so a suite
-written from `--help` fragments could not be run even once to see whether it
-loads — and a suite that silently fails to load reads as a gate while checking
-nothing. Since 1.2.0 the four commands give an entry path that does not depend
-on it.
+**Whether the skill fires unprompted is not measured**, and it is the only
+claim here with no command behind it. `claude plugin eval` grades exactly this
+— `tool_used: Skill` as the indicator, against a no-plugin baseline arm — but
+it is gated behind an account-level early access this project does not have,
+and a suite written from `--help` fragments could not be run once to see
+whether it loads. Since 1.2.0 the four commands give an entry path that does
+not depend on it.
 
 ## 12 · Development
 
@@ -734,17 +731,20 @@ python -m pip install -e ".[dev]"
 pytest -q
 ```
 
-Per-release test counts are in [CHANGELOG.md](CHANGELOG.md); a bare figure in a
-living document is a claim that rots. CI runs Python 3.10–3.13 on Linux and
-Windows, installs the built wheel into a clean environment and runs the
-documented CLI end to end — `bootstrap` through `describe promote` — plus the
-skill's own install line verbatim.
+Per-release test counts and line coverage are in
+[CHANGELOG.md](CHANGELOG.md); a bare figure in a living document is a claim
+that rots. `pytest --cov=ragyourcode` is the command behind the coverage one.
+CI runs Python 3.10–3.13 on Linux and Windows, installs the built wheel into a
+clean environment and runs the documented CLI end to end — `bootstrap` through
+`describe promote` — plus the skill's own install line verbatim, and grades
+every ruler including both vendored corpora.
 
 - [docs/FLOW.md](docs/FLOW.md) — the whole thing in four diagrams
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — how each stage works and why
-- [docs/TESTING.md](docs/TESTING.md) — what the suites protect
+- [docs/TESTING.md](docs/TESTING.md) — what the suites protect, and how covered
 - [docs/ROADMAP.md](docs/ROADMAP.md) — what shipped, what was rejected and why
 - [CONTRIBUTING.md](CONTRIBUTING.md) — ground rules, and how to add a language
 - [CHANGELOG.md](CHANGELOG.md) — every release with its measurements
+- [benchmarks/corpus/](benchmarks/corpus/) — the two vendored repositories
 
 MIT licensed.

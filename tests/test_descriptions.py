@@ -409,3 +409,86 @@ def test_describe_export_and_import_round_trip(tmp_path, capsys):
 
     assert main(["describe", "status", "--root", str(tmp_path)]) == 0
     assert json.loads(capsys.readouterr().out)["coverage"] == 1.0
+
+
+# --- a queue that offers a measured loss is an instruction to make things worse
+
+
+def _skip_repo(tmp_path: Path) -> Path:
+    (tmp_path / "billing.py").write_text(SOURCE, encoding="utf-8")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_billing.py").write_text(
+        "def test_retry_charge_gives_up():\n    assert True\n", encoding="utf-8"
+    )
+    (tmp_path / "tests" / "fixtures").mkdir()
+    (tmp_path / "tests" / "fixtures" / "sample.py").write_text(
+        "def sample_declaration():\n    return 1\n", encoding="utf-8"
+    )
+    assert main(["index", str(tmp_path)]) == 0
+    return tmp_path
+
+
+def _queue(root: Path, capsys) -> dict:
+    capsys.readouterr()
+    assert main(["describe", "export", "--root", str(root), "--limit", "50"]) == 0
+    return json.loads(capsys.readouterr().out)
+
+
+def test_describe_skip_withholds_a_directorys_own_files_but_not_what_is_nested_under_it(tmp_path, capsys):
+    """`tests/*.py` must not reach `tests/fixtures/**`.
+
+    The two were measured separately and came out opposite: describing the test
+    functions cost five real answers, describing the parser fixtures cost
+    nothing. A pattern language whose `*` crossed a separator would collapse
+    that distinction and withhold the half that is free.
+    """
+    root = _skip_repo(tmp_path)
+    offered = {unit["path"].replace("\\", "/") for unit in _queue(root, capsys)["units"]}
+    assert "tests/test_billing.py" in offered
+
+    (root / "rag-your-code.toml").write_text('[describe]\nskip = ["tests/*.py"]\n', encoding="utf-8")
+    batch = _queue(root, capsys)
+    offered = {unit["path"].replace("\\", "/") for unit in batch["units"]}
+    assert "tests/test_billing.py" not in offered
+    assert "tests/fixtures/sample.py" in offered
+    assert "billing.py" in offered
+    assert batch["declined"] == 1
+
+
+def test_describe_skip_can_name_one_declaration_rather_than_a_whole_file(tmp_path, capsys):
+    """The measurement behind this was about a single declaration, not a tree."""
+    root = _skip_repo(tmp_path)
+    (root / "rag-your-code.toml").write_text(
+        '[describe]\nskip = ["billing.py::retry_charge"]\n', encoding="utf-8"
+    )
+    batch = _queue(root, capsys)
+    offered = {unit["path"].replace("\\", "/") for unit in batch["units"]}
+    assert "billing.py" not in offered
+    assert "tests/test_billing.py" in offered
+    assert batch["declined"] == 1
+
+
+def test_what_the_queue_withholds_is_counted_rather_than_silently_subtracted(tmp_path, capsys):
+    """A queue that shrinks without saying so reads as `nothing left to do`."""
+    root = _skip_repo(tmp_path)
+    (root / "rag-your-code.toml").write_text('[describe]\nskip = ["tests/*.py"]\n', encoding="utf-8")
+    capsys.readouterr()
+    assert main(["describe", "status", "--root", str(root)]) == 0
+    status = json.loads(capsys.readouterr().out)
+    assert status["declined"] == 1
+    assert status["missing"] >= status["declined"]
+
+
+def test_import_and_export_agree_on_how_much_work_is_left(tmp_path, capsys):
+    """Two disagreeing counts is how an agent loops on a batch that never fills."""
+    root = _skip_repo(tmp_path)
+    (root / "rag-your-code.toml").write_text('[describe]\nskip = ["tests/*.py"]\n', encoding="utf-8")
+    written = root / "written.json"
+    written.write_text(
+        json.dumps({"descriptions": [{"id": UNIT_ID, "text": AUTHORED}]}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    capsys.readouterr()
+    assert main(["describe", "import", str(written), "--root", str(root)]) == 0
+    after_import = json.loads(capsys.readouterr().out)["remaining"]
+    assert after_import == len(_queue(root, capsys)["units"])

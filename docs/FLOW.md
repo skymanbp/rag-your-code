@@ -29,7 +29,10 @@ flowchart TD
 
 The yellow box decides whether any of this is worth having, and nothing but a
 model that has read the code can do it. Measured, it takes first-place accuracy
-from 0.314 to 0.443 on this repository's own ruler.
+from 0.314 to 0.429 on this repository's own ruler. It is also where a
+repository can record a *decision*: `describe.skip` withholds units it has
+measured describing as a loss, and the queue reports them as `declined` rather
+than quietly shortening.
 
 The blue box is the one most retrieval does not have. It is why the red box
 exists: an answer withheld with a reason beats a confident wrong one.
@@ -98,8 +101,9 @@ scale.
 A word counts as discriminating only while it stays under 5% of the corpus, and
 that rule is derived from the corpus rather than from a stopword list — which
 is what makes it work in a language nobody anticipated, and is also where it
-degrades: across a large corpus of short undocumented methods, ordinary English
-words fall under 5% and start counting as evidence.
+degrades: across a corpus of short, tersely documented declarations, ordinary
+English words fall under 5% and start counting as evidence. Silence is 0.967 on
+this repository, 0.900 on the Go corpus and 0.833 on Flask for that reason.
 
 Below 200 units both bars are eased in proportion. A ten-unit index cannot hold
 the vocabulary of a sentence, and refusing its own questions would be worse
@@ -148,4 +152,6 @@ use one.
 [README §6](../README.md#6--benchmark-dashboard) publishes every figure with the
 fingerprint of the corpus it was taken on, and
 [benchmarks/README.md](../benchmarks/README.md) lists the six commands that
-produce them. Nothing in this document is a figure you cannot re-derive.
+produce them. Nothing in this document is a figure you cannot re-derive — and
+since 1.5.0 the four diagrams above are parsed by `tests/test_diagrams.py`,
+because a mermaid block GitHub cannot render fails silently.

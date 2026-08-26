@@ -5,52 +5,67 @@ rule for all of them is the same: **a score is meaningless without the corpus
 it was taken on.** Two runs of an unchanged `search.py` reported 0.257 and
 0.229 hit@1 on the foreign ruler, and both were right — that repository had
 grown by ninety units in between, and nothing in the output said so. Since
-1.4.0 the foreign ruler's subject is [vendored at a pinned tag](corpus/), so
-that particular drift cannot happen again; the fingerprints stay because the
-*own* corpus still moves with every commit.
+1.4.0 the foreign subjects are [vendored at pinned tags](corpus/), so that
+particular drift cannot happen again; the fingerprints stay because the *own*
+corpus still moves with every commit.
 
-## Retrieval — the four rulers
+## Retrieval — the five rulers
 
 ```powershell
 # C: this repository, agent-written descriptions
 python -m benchmarks.repo_queries
 # B: this repository, parser-generated sentences only
 python -m benchmarks.repo_queries --cold
-# D: questions with no answer anywhere
+# D: questions with no answer anywhere, on each of the three corpora
 python -m benchmarks.repo_queries --questions benchmarks/absent_queries.json
 
-# A: a repository nobody here wrote, carried at a pinned tag in corpus/
+# A: Flask 3.1.3, Python, carried at a pinned tag in corpus/
 python -m ragyourcode.cli index benchmarks/corpus/flask
 python -m benchmarks.repo_queries --index benchmarks/corpus/flask --questions benchmarks/cold_queries.json
 python -m benchmarks.repo_queries --index benchmarks/corpus/flask --questions benchmarks/absent_queries.json
+
+# E: cobra v1.9.1, Go — the third corpus, and the first that is not Python
+python -m ragyourcode.cli index benchmarks/corpus/cobra
+python -m benchmarks.repo_queries --index benchmarks/corpus/cobra --questions benchmarks/cobra_queries.json
+python -m benchmarks.repo_queries --index benchmarks/corpus/cobra --questions benchmarks/absent_queries.json
 ```
 
-A, B and C grade whether the answer is **found**; D grades whether silence is
-**kept**, and is scored on silence rather than hit@k because there is nothing
-to hit. D is kept out of the aggregate: averaging a question that should return
-something with one that should return nothing produces a number that improves
-when either half gets worse.
+A, B, C and E grade whether the answer is **found**; D grades whether silence
+is **kept**, and is scored on silence rather than hit@k because there is
+nothing to hit. D is kept out of the aggregate: averaging a question that
+should return something with one that should return nothing produces a number
+that improves when either half gets worse.
+
+E exists because four constants were fitted on two corpora that were both
+Python and both written or chosen by one author. It is the third, in a language
+the parser reaches through the line scanner rather than the AST, and the
+defaults survived meeting it: both bars together still give the best silence
+there (0.900, against 0.833 for concentration alone and 0.767 for coverage
+alone). Forty questions resolves a change of several, not of one — quote it
+with that in mind.
 
 Every report prints `corpus  <n> units, fingerprint <hex>`. Quote it with any
 figure taken from here. `--min-coverage` and `--min-concentration` vary one
 gate at a time, which is how the ablation table in [ROADMAP](../docs/ROADMAP.md)
 was produced — `--min-concentration 0` leaves the coverage bar alone in place.
 
-`benchmarks/absent_queries.json` asserts that nothing in either repository
-answers its questions, and `tests/test_absent_queries.py` enforces that claim
-against both indexes. It has fired five times: most recently on a docstring
-that named the very subject it was explaining, and before that on a helper
-named after the statistic it computes. Rewrite the offending name, not the
-question. `CONTRIBUTING.md` keeps the tally and the rules each firing added.
+`benchmarks/absent_queries.json` asserts that nothing in any of the three
+repositories answers its questions, and `tests/test_absent_queries.py` enforces
+that claim against all three indexes. It has fired seven times: twice on the
+day the third corpus landed, which uses one guarded word in a completion
+example and produces another by lower-casing a mixed-case identifier. Rewrite
+the offending name — or, for a vendored corpus, the question. `CONTRIBUTING.md`
+keeps the tally and the rules each firing added.
 
 ## The head-to-head against a Grep loop
 
 ```powershell
 python -m benchmarks.grep_baseline
-python -m benchmarks.grep_baseline --index benchmarks/corpus/flask     --questions benchmarks/cold_queries.json --root benchmarks/corpus/flask
+python -m benchmarks.grep_baseline --index benchmarks/corpus/flask --questions benchmarks/cold_queries.json --root benchmarks/corpus/flask
+python -m benchmarks.grep_baseline --index benchmarks/corpus/cobra --questions benchmarks/cobra_queries.json --root benchmarks/corpus/cobra
 ```
 
-Produces both tables in README section 7. The baseline takes the query's words,
+Produces all three tables in README section 7. The baseline takes the query's words,
 drops the ones the corpus itself shows are everywhere, runs one substring
 search per remaining word over exactly the files the index was built from, and
 ranks each file by how many distinct words hit it, ties broken on path. Both
@@ -72,8 +87,9 @@ Times one warm `search()` and one query the index refuses, over this
 repository's own index. It repeats the whole measurement and prints the
 spread, because a single run does not have the precision the earlier figures
 were quoted to — four consecutive runs on an idle machine put p95 at 1.01,
-1.02, 1.22 and 2.06 ms. Run it on an idle machine; an earlier figure taken
-while a model was embedding in another process came out at twice the cost.
+1.02, 1.22 and 2.06 ms. Run it on an **idle** machine: the same corpus at the
+same commit measured 0.99 ms median while a coverage run was in progress and
+0.49 ms once it finished, and nothing in the report can see the difference.
 
 The figures the README used to carry came from a script that was never
 committed, on a corpus that no longer exists. That is what this file is for.
@@ -97,7 +113,7 @@ memory — separate because both are startup costs a warm benchmark hides.
 python -m benchmarks.run_benchmark --output benchmark-result.json
 ```
 
-Seven queries over a five-file source-controlled fixture, comparing lexical
+Seven queries over a five-file source-controlled fixture (nine units), comparing lexical
 overlap against lexical plus cosine. It is a regression tripwire, not a ruler:
 seven queries over nine units cannot distinguish a real improvement from
 noise, which is why `repo_queries.py` exists. Keep the expected paths and names

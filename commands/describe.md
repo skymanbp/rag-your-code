@@ -16,17 +16,17 @@ model: the identifier humanised, parameters and callees listed, the docstring
 appended. It introduces **no vocabulary the source did not already have** —
 which is exactly why a query for a concept nobody wrote down finds nothing.
 
-Measured on this project's own four rulers, moving from generated to
-agent-written descriptions took first-place accuracy from 0.314 to 0.443 and
-top-3 from 0.471 to 0.614. Against a Grep loop over the same questions it is
-the difference between 22.9% and **58.6%** right-file-first.
+Measured on this project's own rulers, moving from generated to agent-written
+descriptions took first-place accuracy from 0.314 to 0.429 and top-3 from 0.471
+to 0.600. Against a Grep loop over the same questions it is the difference
+between 22.9% and **58.6%** right-file-first.
 
 The line this paragraph used to carry — that a cold index *loses* to Grep —
-came from one undescribed repository and did not survive being asked of a
-second. On Flask 3.1.3 a cold index wins, 37.1% to 22.9%, because Flask's
-authors wrote docstrings and there was something to retrieve. Which side wins
-undescribed depends on how much prose the repository already contains. What
-does not depend on it is the gain above.
+came from one undescribed repository and did not survive being asked of two
+more. Cold, this side wins on Flask (37.1% to 22.9%), ties on cobra (17.5%),
+and lost on the retired subject. Which side wins undescribed depends on how
+much prose the repository already contains. What does not depend on it is the
+gain above.
 
 ## What to do
 
@@ -55,6 +55,14 @@ does not depend on it is the gain above.
      the export so you can check;
    - if a unit is trivial, say so briefly rather than padding it.
 
+   **If the unit's own docstring already reads like a good description, leave
+   it alone and say so.** What you write *replaces* the generated sentence, and
+   that sentence is the only route by which the author's docstring reaches the
+   description field — so describing a well-documented declaration demotes its
+   docstring to the body field and can lose ground. Measured here: three
+   attempts on one such declaration, long and short, each cost graded questions
+   and none gained any. Add vocabulary the source lacks, or add nothing.
+
    Descriptions are bilingual by default, so a question asked in either
    language reaches the code. `config list` shows `describe.languages`.
 
@@ -67,6 +75,13 @@ does not depend on it is the gain above.
 
 5. Repeat until `describe status` reports nothing pending. Report progress
    after each round rather than silently looping.
+
+`describe status` also reports `declined` — units a repository's own
+`describe.skip` withholds because it has measured describing them as a loss.
+They are counted rather than dropped in silence. Do not work around it: the
+setting is a recorded measurement, not an oversight. On this project it
+withholds 287 units, 286 of them test functions — describing those cost five
+real answers and six false silences when it was measured.
 
 ## Two things worth knowing
 

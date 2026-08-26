@@ -1,8 +1,10 @@
 # rag-your-code, configured for its own repository.
 #
-# One setting, for one reason: `benchmarks/corpus/` holds a vendored copy of a
+# Two settings, each acting on something this repository measured.
+#
+# First: `benchmarks/corpus/` holds a vendored copy of a
 # third-party repository that the foreign ruler grades. Indexing it here would
-# put eighteen hundred units of somebody else's code into this project's own
+# put 1,572 units of somebody else's code into this project's own
 # index -- which is not merely noise. Two of the four rulers measure retrieval
 # over *this* repository, and `benchmarks/absent_queries.json` asserts that
 # nothing here answers thirty questions, a claim a vendored web framework would
@@ -14,3 +16,28 @@
 
 [index]
 ignore = [".git", ".hg", ".svn", ".venv", "venv", "node_modules", "dist", "build", "__pycache__", ".rag-your-code", "corpus"]
+
+# Second: describing the test functions here was measured and rejected -- five
+# real answers and six false silences, with the table under 1.0.0 in
+# docs/ROADMAP.md. A test description restates what the source does, in the
+# source's own vocabulary, and then competes with it. Without this the describe
+# queue offers 286 units whose descriptions the project has already decided are
+# a loss, and an agent working the queue to the end would make retrieval worse
+# while believing it was improving it.
+#
+# `tests/fixtures/**` is deliberately not matched: describing the parser
+# fixtures was measured to cost nothing, because a fixture description is about
+# grammar -- `suspend function`, `destructor` -- and no question about this
+# project is asked in those words. `PurePosixPath.match` is what the setting
+# uses, so `*` does not cross a directory separator.
+
+[describe]
+skip = [
+    "tests/*.py",
+    # Measured three times, each a loss and never a gain: this declaration's
+    # own docstring already says what a reader would search by, and an authored
+    # description replaces the generated sentence that carries it -- so writing
+    # one demotes the docstring from the description field to the body. A long
+    # description cost one graded question, a short one cost three.
+    "src/ragyourcode/parser.py::_generic_units",
+]

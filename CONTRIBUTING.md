@@ -127,16 +127,25 @@ separate things falsified that within an hour of writing it: two subject words
 this repository had always contained, and two more that appeared *because the
 source explains the feature using them as an example*. Documentation and ruler
 cannot own the same vocabulary. The check is mechanical for that reason — and
-it has now fired **five times**, four of them on the author who had just
+it has now fired **seven times**, five of them on the author who had just
 written this paragraph. Some lessons do not stay learned by being written
 down; that is an argument for the gate, not for more care.
 
-The last two added a rule each. **A declaration name is indexed**: a helper in
+Three of them added a rule each. **A declaration name is indexed**: a helper in
 `benchmarks/query_latency.py` named after the statistic it computes put that
 statistic into the corpus, and the statistic was a subject word. **So is a
 docstring**, including a test's — the paragraph explaining that very fix named
 the protocol it was about, and the guard caught it on the next run. Write
 around the word; do not write it down.
+
+**And a vendored corpus is graded too.** Adding the Go one in 1.5.0 fired the
+guard twice on the same day: cobra names one guarded word in a shell-completion
+example, and produces another by lower-casing a mixed-case identifier — so two
+questions were one ordinary token from being answerable there. The rule for a
+corpus this project does not control is the reverse of the rule for one it
+does: **rewrite the question, never the corpus**, and never exempt a corpus
+from the guard. A guard with an exemption list weakens every time it is
+tested.
 
 A third instance added a detail worth knowing: **a query string inside a test
 is indexed.** Prose documents are exempt because `.md` is not a source suffix,

@@ -26,7 +26,9 @@ def describe_batch(units: list, store: DescriptionStore, cfg: Config, limit: int
     already has and add what it lacks rather than paraphrasing it.
     """
     groups = store.classify(units)
-    pending = store.pending(units, limit)
+    skip = cfg["describe.skip"]
+    pending = store.pending(units, limit, skip)
+    declined = store.declined(groups["missing"] + groups["superseded"], skip)
     languages = cfg["describe.languages"]
     return {
         "languages": list(languages),
@@ -35,7 +37,11 @@ def describe_batch(units: list, store: DescriptionStore, cfg: Config, limit: int
         "described": len(groups["described"]),
         "superseded": len(groups["superseded"]),
         "missing": len(groups["missing"]),
-        "remaining": len(groups["missing"]) + len(groups["superseded"]),
+        # Said out loud rather than subtracted quietly. A queue that shrinks
+        # without explanation reads as "nothing left to do", which is the same
+        # failure mode as a silently truncated result.
+        "declined": len(declined),
+        "remaining": len(groups["missing"]) + len(groups["superseded"]) - len(declined),
         "units": [
             {
                 "id": unit.id,
@@ -85,12 +91,15 @@ def store_descriptions(units: list, store: DescriptionStore, cfg: Config, items)
             stored.append(unit_id)
     if stored:
         store.save(units)
-    groups = store.classify(units)
     return {
         "stored": len(stored),
         "stored_ids": stored,
         "rejected": rejected,
-        "remaining": len(groups["missing"]) + len(groups["superseded"]),
+        # Net of what `describe.skip` withholds, so this agrees with the number
+        # `describe_batch` and `bootstrap` report. Two counts of "remaining"
+        # that disagree is how an agent decides the queue is unfinished and
+        # keeps asking for a batch that will always come back empty.
+        "remaining": len(store.pending(units, len(units), cfg["describe.skip"])),
         # The store is written but the published index still holds the previous
         # text. Said as its own field rather than folded into `stale`, which
         # answers a different question -- whether the index still describes the

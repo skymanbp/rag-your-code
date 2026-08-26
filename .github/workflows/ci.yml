@@ -61,6 +61,18 @@ jobs:
         # figure is merely recorded here.
         run: python -m benchmarks.repo_queries --questions benchmarks/absent_queries.json --output absent-queries-result.json
 
+      - name: The third graded repository, in a language nobody here chose
+        # Four constants were fitted on two corpora, both Python, both with
+        # documentation inside the declaration. Go writes it above, outside the
+        # unit's span, so this grades the line scanner and the rule table
+        # rather than the AST path. It is the evidence the roadmap called the
+        # most important missing one.
+        run: |
+          python -m ragyourcode.cli index benchmarks/corpus/cobra
+          python -m benchmarks.repo_queries --index benchmarks/corpus/cobra --questions benchmarks/cobra_queries.json --output cobra-queries-result.json
+          python -m benchmarks.repo_queries --index benchmarks/corpus/cobra --questions benchmarks/absent_queries.json --output absent-cobra-result.json
+          python -m benchmarks.grep_baseline --index benchmarks/corpus/cobra --questions benchmarks/cobra_queries.json --root benchmarks/corpus/cobra
+
       - name: The foreign ruler, reproducible here for the first time
         # Until 1.4.0 this ruler graded a repository nobody here controlled, so
         # CI could not run it at all: the corpus differed by the hour and no

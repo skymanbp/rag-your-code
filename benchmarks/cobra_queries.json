@@ -1,0 +1,538 @@
+{
+  "k": 3,
+  "repository": "cobra",
+  "vendored": "benchmarks/corpus/cobra",
+  "why": "The third graded repository, and the first that is not Python. Four constants -- `search.min_coverage`, `search.min_concentration`, `COMMON_TERM` and `COVERAGE_FULL_STRENGTH` -- were fitted on two corpora that a single author wrote or chose, both Python, both with documentation *inside* the declaration. Go writes it above, outside the unit's span, so this ruler grades the line-scanner path and the rule table rather than the AST path, on prose the parser has to pick up rather than read out of a syntax tree.",
+  "caveat": "Twenty subjects, each asked in English and in Chinese, phrased in a user's words rather than in the words of the doc comment that answers them. Forty questions is a smaller instrument than the seventy in repo_queries.json; it resolves a change of several questions, not of one. Every acceptable answer is checked against the index before anything is scored.",
+  "measured_against": {
+    "upstream": "https://github.com/spf13/cobra",
+    "tag": "v1.9.1",
+    "commit": "40b5bc1437a564fc795d388b23835e84f54cd1d1",
+    "released": "2025-02-16",
+    "licence": "Apache-2.0, carried at benchmarks/corpus/cobra/LICENSE.txt",
+    "omitted": "site/, assets/ and .git/; every .go file at that tag is present byte for byte",
+    "note": "Chosen by measuring three candidates against the subject words of benchmarks/absent_queries.json: cobra collides on eight ordinary English words, chi on eighteen and gin on seventeen including `oauth`, `codec` and `hostname`. Rebuild with `rag-your-code index benchmarks/corpus/cobra`."
+  },
+  "queries": [
+    {
+      "id": "cobra-exact-count-en",
+      "language": "en",
+      "kind": "concept",
+      "query": "how do I require a command to take exactly two arguments",
+      "acceptable": [
+        [
+          "args.go",
+          "ExactArgs"
+        ],
+        [
+          "args.go",
+          "RangeArgs"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-exact-count-zh",
+      "language": "zh",
+      "kind": "concept",
+      "query": "怎么要求一个命令必须恰好收两个参数",
+      "acceptable": [
+        [
+          "args.go",
+          "ExactArgs"
+        ],
+        [
+          "args.go",
+          "RangeArgs"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-min-count-en",
+      "language": "en",
+      "kind": "concept",
+      "query": "turn away a command that was run with too few arguments",
+      "acceptable": [
+        [
+          "args.go",
+          "MinimumNArgs"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-min-count-zh",
+      "language": "zh",
+      "kind": "concept",
+      "query": "参数给得太少的时候怎么把这次调用挡回去",
+      "acceptable": [
+        [
+          "args.go",
+          "MinimumNArgs"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-valid-args-en",
+      "language": "en",
+      "kind": "concept",
+      "query": "restrict a positional argument to a fixed set of allowed values",
+      "acceptable": [
+        [
+          "args.go",
+          "OnlyValidArgs"
+        ],
+        [
+          "args.go",
+          "ExactValidArgs"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-valid-args-zh",
+      "language": "zh",
+      "kind": "concept",
+      "query": "怎么限制位置参数只能取某几个值",
+      "acceptable": [
+        [
+          "args.go",
+          "OnlyValidArgs"
+        ],
+        [
+          "args.go",
+          "ExactValidArgs"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-combine-rules-en",
+      "language": "en",
+      "kind": "concept",
+      "query": "apply several argument rules to one command at once",
+      "acceptable": [
+        [
+          "args.go",
+          "MatchAll"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-combine-rules-zh",
+      "language": "zh",
+      "kind": "concept",
+      "query": "怎么把好几条参数规则一起套在同一个命令上",
+      "acceptable": [
+        [
+          "args.go",
+          "MatchAll"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-flags-together-en",
+      "language": "en",
+      "kind": "concept",
+      "query": "make two options usable only when both are given",
+      "acceptable": [
+        [
+          "flag_groups.go",
+          "MarkFlagsRequiredTogether"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-flags-together-zh",
+      "language": "zh",
+      "kind": "concept",
+      "query": "怎么让两个选项必须一起出现才算数",
+      "acceptable": [
+        [
+          "flag_groups.go",
+          "MarkFlagsRequiredTogether"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-flags-exclusive-en",
+      "language": "en",
+      "kind": "concept",
+      "query": "forbid two options from being used at the same time",
+      "acceptable": [
+        [
+          "flag_groups.go",
+          "MarkFlagsMutuallyExclusive"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-flags-exclusive-zh",
+      "language": "zh",
+      "kind": "concept",
+      "query": "怎么禁止两个选项同时使用",
+      "acceptable": [
+        [
+          "flag_groups.go",
+          "MarkFlagsMutuallyExclusive"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-flags-check-en",
+      "language": "en",
+      "kind": "why",
+      "query": "where are the rules between groups of options actually enforced",
+      "acceptable": [
+        [
+          "flag_groups.go",
+          "ValidateFlagGroups"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-flags-check-zh",
+      "language": "zh",
+      "kind": "why",
+      "query": "选项分组之间的规则到底在哪里被校验",
+      "acceptable": [
+        [
+          "flag_groups.go",
+          "ValidateFlagGroups"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-typo-suggestion-en",
+      "language": "en",
+      "kind": "why",
+      "query": "how does it suggest the right subcommand after the user misspells one",
+      "acceptable": [
+        [
+          "cobra.go",
+          "ld"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-typo-suggestion-zh",
+      "language": "zh",
+      "kind": "why",
+      "query": "子命令拼错的时候是怎么给出正确建议的",
+      "acceptable": [
+        [
+          "cobra.go",
+          "ld"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-exit-on-error-en",
+      "language": "en",
+      "kind": "symbol",
+      "query": "print a failure and stop the program right there",
+      "acceptable": [
+        [
+          "cobra.go",
+          "CheckErr"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-exit-on-error-zh",
+      "language": "zh",
+      "kind": "symbol",
+      "query": "打印错误然后就地退出程序",
+      "acceptable": [
+        [
+          "cobra.go",
+          "CheckErr"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-startup-hook-en",
+      "language": "en",
+      "kind": "concept",
+      "query": "run something once before any command executes",
+      "acceptable": [
+        [
+          "cobra.go",
+          "OnInitialize"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-startup-hook-zh",
+      "language": "zh",
+      "kind": "concept",
+      "query": "在任何命令跑起来之前先执行一段初始化",
+      "acceptable": [
+        [
+          "cobra.go",
+          "OnInitialize"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-shell-suggestions-en",
+      "language": "en",
+      "kind": "concept",
+      "query": "work out the candidate list a shell shows while the user is typing",
+      "acceptable": [
+        [
+          "completions.go",
+          "getCompletions"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-shell-suggestions-zh",
+      "language": "zh",
+      "kind": "concept",
+      "query": "用户按 tab 的时候候选项是在哪里算出来的",
+      "acceptable": [
+        [
+          "completions.go",
+          "getCompletions"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-help-while-typing-en",
+      "language": "en",
+      "kind": "concept",
+      "query": "show the user a hint in the middle of tab completion",
+      "acceptable": [
+        [
+          "active_help.go",
+          "AppendActiveHelp"
+        ],
+        [
+          "active_help.go",
+          "GetActiveHelpConfig"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-help-while-typing-zh",
+      "language": "zh",
+      "kind": "concept",
+      "query": "补全过程中怎么给用户插一句提示",
+      "acceptable": [
+        [
+          "active_help.go",
+          "AppendActiveHelp"
+        ],
+        [
+          "active_help.go",
+          "GetActiveHelpConfig"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-manpage-en",
+      "language": "en",
+      "kind": "concept",
+      "query": "turn the whole command tree into manual pages on disk",
+      "acceptable": [
+        [
+          "doc/man_docs.go",
+          "GenManTree"
+        ],
+        [
+          "doc/man_docs.go",
+          "GenManTreeFromOpts"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-manpage-zh",
+      "language": "zh",
+      "kind": "concept",
+      "query": "把整棵命令树生成手册页写到磁盘上",
+      "acceptable": [
+        [
+          "doc/man_docs.go",
+          "GenManTree"
+        ],
+        [
+          "doc/man_docs.go",
+          "GenManTreeFromOpts"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-markdown-en",
+      "language": "en",
+      "kind": "concept",
+      "query": "write a command's documentation out as markdown",
+      "acceptable": [
+        [
+          "doc/md_docs.go",
+          "GenMarkdown"
+        ],
+        [
+          "doc/md_docs.go",
+          "GenMarkdownCustom"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-markdown-zh",
+      "language": "zh",
+      "kind": "concept",
+      "query": "把一个命令的文档导出成 markdown",
+      "acceptable": [
+        [
+          "doc/md_docs.go",
+          "GenMarkdown"
+        ],
+        [
+          "doc/md_docs.go",
+          "GenMarkdownCustom"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-fixed-choices-en",
+      "language": "en",
+      "kind": "concept",
+      "query": "offer a fixed list of choices for an option's value",
+      "acceptable": [
+        [
+          "completions.go",
+          "FixedCompletions"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-fixed-choices-zh",
+      "language": "zh",
+      "kind": "concept",
+      "query": "怎么给一个选项的取值提供固定的候选清单",
+      "acceptable": [
+        [
+          "completions.go",
+          "FixedCompletions"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-no-files-en",
+      "language": "en",
+      "kind": "concept",
+      "query": "stop the shell from offering filenames for this option",
+      "acceptable": [
+        [
+          "completions.go",
+          "NoFileCompletions"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-no-files-zh",
+      "language": "zh",
+      "kind": "concept",
+      "query": "怎么让 shell 不要给这个选项补全文件名",
+      "acceptable": [
+        [
+          "completions.go",
+          "NoFileCompletions"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-required-flag-en",
+      "language": "en",
+      "kind": "symbol",
+      "query": "mark an option as mandatory",
+      "acceptable": [
+        [
+          "shell_completions.go",
+          "MarkFlagRequired"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-required-flag-zh",
+      "language": "zh",
+      "kind": "symbol",
+      "query": "怎么把一个选项标成必填",
+      "acceptable": [
+        [
+          "shell_completions.go",
+          "MarkFlagRequired"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-flag-completion-en",
+      "language": "en",
+      "kind": "concept",
+      "query": "attach a custom way of completing one option's value",
+      "acceptable": [
+        [
+          "completions.go",
+          "RegisterFlagCompletionFunc"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-flag-completion-zh",
+      "language": "zh",
+      "kind": "concept",
+      "query": "怎么给某个选项挂上自定义的补全逻辑",
+      "acceptable": [
+        [
+          "completions.go",
+          "RegisterFlagCompletionFunc"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-align-columns-en",
+      "language": "en",
+      "kind": "why",
+      "query": "how is the help listing kept in aligned columns",
+      "acceptable": [
+        [
+          "cobra.go",
+          "rpad"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-align-columns-zh",
+      "language": "zh",
+      "kind": "why",
+      "query": "帮助信息的那几列是怎么对齐的",
+      "acceptable": [
+        [
+          "cobra.go",
+          "rpad"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-completion-command-en",
+      "language": "en",
+      "kind": "concept",
+      "query": "add the built-in subcommand that emits a shell completion script",
+      "acceptable": [
+        [
+          "completions.go",
+          "InitDefaultCompletionCmd"
+        ]
+      ]
+    },
+    {
+      "id": "cobra-completion-command-zh",
+      "language": "zh",
+      "kind": "concept",
+      "query": "那个专门输出补全脚本的内置子命令是怎么加进去的",
+      "acceptable": [
+        [
+          "completions.go",
+          "InitDefaultCompletionCmd"
+        ]
+      ]
+    }
+  ]
+}

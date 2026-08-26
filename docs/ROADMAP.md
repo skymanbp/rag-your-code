@@ -28,12 +28,13 @@ Everything the 1.0.0 roadmap listed as still open, and what happened to it.
 | item | outcome |
 |---|---|
 | Qualified names outside Python | **Fixed** in 1.1.0, all 15 languages, from the spans the closer already produced. |
-| Descriptions cover 297 of 524 units | **Decided.** Test-function descriptions cost five real answers and six false silences; the table is under 1.0.0 below in this file. Now 301 of 584, with two more superseded by later edits. |
+| Descriptions cover 297 of 524 units | **Closed in 1.5.0.** Everything the measurement says to describe is described: 314 of 601, with the remaining 287 withheld by `describe.skip` and counted as `declined`. |
 | No stemming | **Measured and rejected.** Helps both own-repository rulers, costs the foreign one 3 of 35 hit@3. |
 | A test declaration outranks the code it tests | **Misdiagnosed, and corrected.** See below. |
 | English questions answered from words used here in another sense | **Fixed** by the concentration bar, 0.53 → 0.93 English silence. One residual, below. |
-| Whether the skill fires unprompted in a fresh session | **Measurable after all, and not measured.** The old "no command can check this" was wrong — `claude plugin eval` exists for exactly it. Blocked on early access, not on method. See below. |
-| Vectors are 55% of an index and earn nothing | **Diagnosed** (1.1.0) and **kept**: 72.1%, ±1 question, and the same storage is what makes the optional model work. |
+| Whether the skill fires unprompted in a fresh session | **Measurable after all, and not measured.** `claude plugin eval` exists for exactly it, and is gated behind an account-level early access this project does not have. Blocked on entitlement, not on method. |
+| Vectors are 55% of an index and earn nothing | **Diagnosed** (1.1.0) and **kept**: 72.1% here, 74.8% on Flask, 79.7% on cobra; ±1 question, and the same storage is what makes the optional model work. |
+| Four constants fitted on two corpora | **Tested on a third** in 1.5.0 — cobra v1.9.1, Go, 602 units. None moved. |
 | Tree-sitter parsing | **Decided against as a default**, and the policy for it settled. See non-goals. |
 | SQLite / ANN storage layer | Same. |
 
@@ -155,6 +156,96 @@ resulting score recorded here.
 Since 1.2.0 the property also matters less than it did: four commands give a
 deterministic entry path that does not depend on a model choosing to fire
 anything. It is a quality question now rather than the only way in.
+
+## 1.5.0 — the third corpus, and the queue that argued with the measurement
+
+### A third graded repository, in a language nobody here chose
+
+`benchmarks/corpus/cobra/` is cobra v1.9.1 at commit `40b5bc1`, Apache-2.0,
+`site/` and `assets/` omitted — 602 units of Go. It is the first graded
+repository that is not Python, and the reason is stated in
+[ARCHITECTURE](ARCHITECTURE.md): four constants — `search.min_coverage`,
+`search.min_concentration`, `COMMON_TERM`, `COVERAGE_FULL_STRENGTH` — were
+fitted on two corpora that were both Python and both carried documentation
+*inside* the declaration, where the AST hands it over. Go writes it above,
+outside the unit's span, so this ruler grades the line scanner and the rule
+table on prose the parser has to pick up.
+
+| gate | E cobra hit@1/3/MRR | cobra silence |
+|---|---|---|
+| neither | 0.100/0.200/0.146 | 0.000 |
+| coverage only | 0.075/0.175/0.121 | 0.767 |
+| concentration only | 0.075/0.150/0.108 | 0.833 |
+| **both (shipped)** | 0.075/0.150/0.108 | **0.900** |
+
+**Not one constant moved.** Both bars together give the best silence there, as
+they do on the other two, and the third corpus arrived long after the defaults
+were fixed. That is the closest thing to out-of-sample evidence this project
+has produced.
+
+It also publishes the lowest number here: **0.075 hit@1**, against 0.200 on
+Flask and 0.429 on this repository. The cause is not the language. Go documents
+in one terse sentence beginning with the identifier — `ExactArgs returns an
+error if there are not exactly n args.` — which the parser captures correctly
+and which shares almost nothing with the words a user asks in. Cold retrieval
+tracks prose density, and a fourth corpus would now be measuring language
+families rather than the constants.
+
+Chinese is 0.000 on all forty. That is the same limit rulers A and B report,
+on a third corpus.
+
+### The describe queue was an instruction to make retrieval worse
+
+`describe status` reported 283 units pending. **270 of them were test
+functions**, which 1.0.0 measured and rejected describing — five real answers
+and six false silences, table below under 1.0.0. Nothing in the tool said so,
+so an agent following `/rag-your-code:describe` to the end would have worked
+through all 270 believing it was improving retrieval.
+
+`describe.skip` is the fix: a list of path patterns whose units are withheld
+from the queue, empty by default because the measurement behind it is n=1, and
+set in this repository's own `rag-your-code.toml`. What it withholds is
+**counted and reported** as `declined`, never subtracted in silence — a queue
+that shrinks without explanation reads as "nothing left to do". Patterns match
+with `PurePosixPath.match`, so `tests/*.py` does not reach `tests/fixtures/**`;
+describing the parser fixtures was measured to cost nothing.
+
+### Describing a well-documented declaration loses ground
+
+The 13 units that were genuinely undescribed got descriptions. Twelve were free
+or better. The thirteenth, `parser.py::_generic_units`, cost a graded question
+every way it was tried:
+
+| | C hit@1/3/MRR |
+|---|---|
+| left to its generated sentence | **0.429/0.600/0.498** |
+| a long authored description | 0.414/0.557/0.471 |
+| a short authored description | 0.414/0.557/0.471 |
+
+The mechanism, not just the number: an authored description **replaces** the
+generated sentence, and that sentence is the only route by which the author's
+own docstring reaches the weight-3 `description` field. Writing one over a
+declaration whose docstring already says what a reader would search by demotes
+that docstring to the weight-1 body.
+
+**Measured and rejected:** keeping both, by appending the generated docstring
+after the authored text. It fixes the one declaration and costs the corpus —
+0.443 → 0.414 hit@1 — because it lengthens all 314 description fields and BM25F
+normalises per field length. `describe.skip` now accepts `path::name` so a
+single declaration can be recorded as decided.
+
+### Also
+
+- **The measured envelope was re-measured** and the old figures were optimistic
+  by more than noise: 10,000-unit queries average 15.6 ms, not the 3.90 ms
+  carried since before BM25F replaced the scoring that figure was taken under.
+  Six releases, one committed script, and nothing that made anyone re-run it.
+- **Line coverage is published**: 91% of 2,190 statements, with the command.
+  Nothing is asserted on it — a coverage floor rewards tests that execute lines.
+- **The four diagrams in FLOW.md are parsed by a test.** A mermaid block GitHub
+  cannot render fails silently, and they shipped in 1.4.2 with no gate.
+- **The absence guard fired twice more**, both on the new corpus, and both
+  questions were rewritten rather than the corpus exempted.
 
 ## 1.1.0 — words that are here, but never together
 

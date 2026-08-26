@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rag-your-code"
-version = "1.4.3"
+version = "1.5.0"
 description = "A local, explainable RAG index for codebases and coding agents"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -36,6 +36,10 @@ dependencies = []
 # reads pyproject.toml on 3.10, where `tomllib` does not exist yet.
 dev = [
     "pytest>=7",
+    # `pytest --cov=ragyourcode` is how docs/TESTING.md's coverage figure is
+    # produced, and a figure whose command is not installable is a figure
+    # nobody re-derives.
+    "pytest-cov>=4",
     "tomli>=2.0; python_version < '3.11'",
 ]
 # The one embedder that is both semantic and offline. An extra rather than a

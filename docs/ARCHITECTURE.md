@@ -22,22 +22,20 @@ and cosine over it is a normalised measure of *token overlap*, not of meaning:
 | `sum two numbers` vs `delete the user database table` | 0.0000 |
 
 A trained embedding model scores row 2 around 0.8. Here the synonym pair and
-the unrelated pair are indistinguishable, because no shared token is no shared
-token. What makes retrieval work regardless is that the prose people write
-about code — docstrings, comments, descriptions — is already natural language.
+the unrelated pair are indistinguishable: no shared token is no shared token.
+Retrieval works regardless because prose written about code is already natural
+language.
 
-Identifiers are *not* part of that, and it is worth being exact about it.
-`retry_charge` tokenizes to one opaque term, not to `retry` and `charge`; so
-does `TestRetryCharge`, and so does `_find_hardcoded_secret`. Splitting them
-was implemented and measured against all three rulers, with the query and the
-stored vectors rebuilt together so the comparison was not confounded, and it
-was **equal or worse on every one**: the pieces it produces are `get`, `find`,
-`check`, `test`, `handler`, which are exactly the words rarity weighting then
-discounts to nothing, while the exact-identifier signal is diluted among them.
-The words already reach retrieval through docstrings and through the
-humanised name in the generated description.
+Identifiers are *not* part of that. `retry_charge` tokenizes to one opaque
+term, not to `retry` and `charge`; so does `TestRetryCharge`. Splitting them
+was implemented and measured against all three rulers, query and stored vectors
+rebuilt together so the comparison was not confounded, and it was **equal or
+worse on every one**: the pieces are `get`, `find`, `check`, `test`, exactly
+the words rarity weighting discounts, while the exact-identifier signal is
+diluted among them. Those words already reach retrieval through docstrings and
+the humanised name in the generated description.
 
-What none of this can do is reach a concept nobody wrote down — which is what
+What none of this reaches is a concept nobody wrote down — which is what
 agent-authored descriptions exist to fix, and why they are described below as
 keyword expansion rather than as semantics.
 
@@ -45,15 +43,14 @@ keyword expansion rather than as semantics.
 
 Six replacement embeddings were implemented and measured on all three rulers --
 character n-grams, corpus co-occurrence via random indexing, truncated SVD by
-power iteration, posting-list signatures, a rarity- and field-weighted hash,
-and call-graph diffusion -- along with two changes that were not embeddings at
-all: expanding a unit's lexical postings with its graph neighbours' terms, and
-embedding only the authored fields. On the foreign-repository ruler, hit@3
-never once exceeded its no-vector value of 0.429.
-
-Every figure below attributed to "a foreign repository" predates 1.4.0, when
-that ruler moved to a vendored copy of Flask. These were rejections and were
-not re-run; the ones deciding a shipped default were, in [ROADMAP](ROADMAP.md).
+power iteration, posting-list signatures, a rarity- and field-weighted hash and
+call-graph diffusion -- plus two changes that were not embeddings at all:
+expanding a unit's lexical postings with its graph neighbours' terms, and
+embedding only the authored fields. On the foreign ruler, hit@3 never once
+exceeded its no-vector value of 0.429. Every figure below attributed to "a
+foreign repository" predates 1.4.0, when that ruler moved to a vendored Flask;
+these were rejections and were not re-run, while the ones deciding a shipped
+default were, in [ROADMAP](ROADMAP.md).
 
 The binding constraint is not the representation. `candidate_ids =
 lexical_scores.keys()` -- a vector reorders what the lexical half already
@@ -222,8 +219,8 @@ growing as roughly n^4.3), an `[^;]*` that consumed newlines and swallowed every
 declaration up to the last `)` in a file, and a leading `\s*` that began matches
 on preceding blank lines so 9 line numbers in 10 were wrong and the signature was
 the blank line. A pattern that cannot see a second line cannot consume one, and
-the same rewrite closed all three. Measured after: the same 530-byte file parses
-in 0.37 ms and a 10 KB one in 1.40 ms, so growth is linear.
+the same rewrite closed all three. Measured after: the same file parses in
+0.37 ms and a 10 KB one in 1.40 ms, so growth is linear.
 
 Adding a language is adding rows to the rule table; the scanner does not change.
 What counts as a unit is stated once in `tests/fixtures/languages/SPEC.md` -- a
@@ -262,20 +259,18 @@ reported as a clean index of zero units.
 
 ## Configuration
 
-Twenty-two settings live in one table in `config.py`. The loader, the validator,
-the fingerprint, the `config` subcommand and the generated template all read
-that table, so a value is named, defaulted, bounded and classified exactly
-once. Resolution is CLI flag > `rag-your-code.toml` > built-in default.
+Twenty-three settings live in one table in `config.py`. The loader, validator,
+fingerprint, `config` subcommand and generated template all read that table, so
+a value is named, defaulted, bounded and classified exactly once. Resolution is
+CLI flag > `rag-your-code.toml` > built-in default.
 
-There is deliberately no environment-variable layer. An index is an artifact of
+There is deliberately no environment-variable layer: an index is an artifact of
 a repository, not of a shell, and a setting that changes what gets indexed has
-to be visible to everyone who clones it.
+to be visible to everyone who clones it. An unknown key or out-of-range value
+raises rather than being dropped, because a setting silently ignored is
+indistinguishable from outside from one that had no effect.
 
-An unknown key or an out-of-range value raises rather than being dropped: a
-setting silently ignored is indistinguishable, from outside, from one that had
-no effect, so the user cannot tell a typo from a misunderstanding.
-
-Seven of the twenty-two — `index.ignore`, `index.suffixes`,
+Seven of the twenty-three — `index.ignore`, `index.suffixes`,
 `index.max_file_bytes`, `embedding.dimensions`, `embedding.provider`,
 `embedding.endpoint` and `embedding.model` — decide what an index *contains* or
 which vector space it lives in. A digest of just those is written into the
@@ -283,12 +278,12 @@ index, and a mismatch forces a full rebuild rather than reuse; reuse is keyed on
 file content, which cannot notice that the rules changed. The
 `embedding.dimensions` case used to fail in silence, because `search` skips the
 cosine term when vector widths disagree instead of raising, so the only symptom
-was quietly worse ranking. The remaining fifteen settings take effect
+was quietly worse ranking. The remaining sixteen settings take effect
 immediately and never invalidate an index.
 
-`tomllib` is standard library from 3.11. Below that, a subset reader in
-`config.py` covers what the settings table can express and refuses everything
-else with a line number; a differential test checks it against `tomllib` on
+`tomllib` is standard library from 3.11. Below that a subset reader in
+`config.py` covers what the settings table can express and refuses the rest
+with a line number; a differential test checks it against `tomllib` on
 every version that ships one. The alternative was a `tomli` runtime dependency,
 which would falsify what this project claims about having none.
 
@@ -359,14 +354,21 @@ language where retrieval still uses it.
 
 ## Evaluation
 
-Four rulers, measuring different things. `benchmarks/golden.json` grades ranking
-over a five-file synthetic fixture: small, stable, and asserted in CI as a
-regression tripwire. `benchmarks/repo_queries.json` grades seventy
-natural-language questions over this repository's own source, in English and
-Chinese, each listing every unit that genuinely answers it. The same script
-grades `benchmarks/cold_queries.json` — thirty-five questions about the Flask
-copy in `benchmarks/corpus/flask`, described by nobody — and
-`benchmarks/absent_queries.json`, thirty questions graded on silence.
+Five rulers. `golden.json` grades ranking over a five-file synthetic fixture
+(nine units): small, stable, asserted in CI as a regression tripwire.
+`repo_queries.json` grades seventy natural-language questions over this
+repository's own source, in English and Chinese, each listing every unit that
+genuinely answers it. The same script grades two foreign corpora carried at
+pinned tags — `cold_queries.json` over Flask 3.1.3 and `cobra_queries.json`
+over cobra v1.9.1, both described by nobody — and `absent_queries.json`, thirty
+questions graded on silence, run against all three indexes.
+
+The Go corpus arrived in 1.5.0, the first graded repository that is not Python.
+Four constants had been fitted on two corpora that were both Python and both
+carried documentation *inside* the declaration; Go writes it above, outside the
+span, so that ruler grades the line scanner and the rule table instead. Not one
+constant moved: both bars together still give the best silence there, 0.900
+against 0.833 for concentration alone.
 
 The second exists because the first cannot resolve a change to how vocabulary
 reaches the index — four candidate scoring changes measured over an
@@ -537,13 +539,13 @@ Three properties matter, and none of them was present before 0.6.0:
   hundred lines into a body it is a mention.
 
 `CodeUnit.searchable_fields` is the single definition of what retrieval may
-match, and `searchable_text` — what a unit is embedded from — is derived from
-it, so a field added for ranking cannot go missing from the vector. A test
-asserts the weight table covers every field.
+match, and `searchable_text` — what a unit is embedded from — derives from it,
+so a field added for ranking cannot go missing from the vector. A test asserts
+the weight table covers every field.
 
 The known limit is that a test declaration sometimes outranks real code: it
 repeats that code's vocabulary and adds assertions of its own. Over the three
-rulers as they ship that is 9 of 175 questions, and 0 of 35 on the foreign one.
+positive rulers that is 9 of 175 questions, and 0 of 35 on Flask.
 
 Two candidate sets, with distinct jobs. Every unit reached by any query term is
 scored, so recall is complete. A *selective* subset — the units reached by a term
@@ -558,8 +560,8 @@ still returns something. On a small corpus that fallback returns units with an
 empty `matched_terms` and a near-zero score, which is the honest signal that
 nothing actually matched.
 
-Complete recall is not free. Measured at 10,000 units, mean query time went from
-1.63 ms to 3.90 ms — the earlier figure was cheap because it scored a subset and
+Complete recall is not free. Measured at 10,000 units when it landed, mean query
+time went from 1.63 ms to 3.90 ms — the earlier figure was cheap because it
 under-filled the result list. Scoring accumulates match counts straight from the
 posting lists, materialises only the `limit` results actually returned, and
 recovers each one's matched terms by binary search over the sorted postings;
@@ -634,20 +636,21 @@ outside the codepage terminated the subprocess.
 
 ## Measured envelope
 
-One representative synthetic Windows run (500 files, 20 functions/file, 10,000
-units) took **1.84 s** for full parsing and embedding and **0.207 s** for a
-one-file incremental refresh (**8.9x**). Compact storage was **35.6%** of
-readable JSON (20.8 MB against 58.3 MB). In an isolated agent process, 10,000
-units loaded in **45.4 ms**, built a 10,509-term inverted index in **117.7 ms**,
-used **58.7 MiB** current and **65.0 MiB** peak RSS, and full-recall hybrid
-queries averaged **3.90 ms** (median 3.22 ms over 200 warmed samples). A full
-stale stat walk cost **60.4 ms**; the one-second monitor cache made repeated
-checks effectively free (0.0004 ms).
+Re-measured in 1.5.0, and the previous figures were optimistic by more than
+noise: the query cost had been carried since before BM25F replaced the scoring
+it was taken under. One synthetic Windows run (500 files, 20 functions/file,
+10,000 units) took **3.45 s** for full parsing and embedding and **0.286 s**
+for a one-file incremental refresh (**12.1x**). Compact storage is **35.6%** of
+readable JSON (20.8 MB against 58.3 MB), unchanged. In an isolated agent
+process, 10,000 units loaded in **79.3 ms**, built a 10,509-term inverted index
+in **420 ms**, used **72.2 MiB** current and **72.8 MiB** peak RSS, and
+full-recall hybrid queries averaged **15.6 ms** (median 14.6 ms over 200 warmed
+samples). A full stale stat walk cost **175 ms**; the one-second cache made
+repeated checks free (0.0006 ms). Three runs bound the spread: full build
+2.85–4.99 s, speedup 9.8–12.3x, query median 14.6–17.8 ms.
 
-Four runs bound the spread: build and walk timings vary by a few percent,
-`compact_write_ms` and `search_index_ms` by much more, so treat any single
-figure as directional. The archived run is the one closest to the four-run
-centre, `large-benchmark-result.json`.
+The published 3.90 ms stood for six releases because nothing re-ran the script.
+A number needs a committed command *and* a reason to run it again.
 
 The query estimator was itself a defect until 0.4.0: ten cold samples of a
 sub-millisecond call once made an unchanged query path look like a regression
@@ -708,12 +711,11 @@ a default.** Anything on this list that needs one follows `embedding.provider`
    which arrived without it. What remains is recall on constructs the rule
    table misses — and the language fixtures report 91/91 on declarations found,
    line numbers and signatures, so there is no measured headroom against which
-   an improvement could be told from a regression. The honest prerequisite is
-   finding constructs the current parser loses.
+   an improvement could be told from a regression.
 4. **Persistent scale layer:** SQLite metadata and an ANN vector index. The
    work it replaces is the full vector scan in `search.vector_recall`, which
    runs only under a semantic embedder; at the measured envelope (10,000 units,
-   3.90 ms mean query) that scan is affordable, so this waits on a repository
+   15.6 ms mean query) that scan is affordable, so this waits on a repository
    size nobody has brought yet rather than on a decision.
 5. **Richer GraphRAG:** `implements`, `tests`, `configures` and git co-change
    edges, with confidence and provenance on each. A `tests` edge has the one
@@ -723,28 +725,26 @@ a default.** Anything on this list that needs one follows `embedding.provider`
    budgets, privacy policy and observable stop reasons.
 7. **Evaluation:** multi-hop graph questions and real repository tasks in the
    golden set; recall@k, citation and edge accuracy, latency, context budget.
-   A third graded repository matters most: `search.min_coverage`,
-   `search.min_concentration`, `COMMON_TERM` and `COVERAGE_FULL_STRENGTH` are
-   all fitted on two.
+   ~~A third graded repository~~ — **done in 1.5.0**: cobra v1.9.1, Go, 602 units, and the four constants held unchanged on it.
 
 ## Safety and privacy
 
 No source leaves the machine under the default provider, which opens no socket.
-`embedding.provider` can name a remote endpoint instead, and that is the one
-path that sends unit text off this machine.
+`embedding.provider` can name a remote endpoint instead, the one path that
+sends unit text off this machine.
 
-A repository being scanned is untrusted input, and that includes any
+A repository being scanned is untrusted input, including any
 `.rag-your-code/index.json` it ships. Nothing read out of an index may name a
 filesystem path to act on: the vector sidecars a run supersedes are enumerated
 from the naming scheme `write_index` itself uses, never from the index being
-replaced. Enumerating also reclaims sidecars orphaned by an earlier run whose
-index was unreadable.
+replaced. Enumerating also reclaims sidecars orphaned by an earlier failed
+run.
 
 `rag-your-code.descriptions.json` is committed and will therefore meet merge
 conflicts and hand-editing. A malformed one is treated as empty rather than
 fatal: the cost is retrieval quality, which describing again recovers, where
-refusing to search until it is repaired would not be recoverable at all.
+refusing to search until it is repaired would not be.
 
 External embedding providers are opt-in — never in `dependencies` — and record
-provider, model and width in the index metadata. Path and content exclusion
-rules for them remain outstanding.
+provider, model and width in the index metadata. Content-level exclusion rules
+remain outstanding.

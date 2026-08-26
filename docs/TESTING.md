@@ -102,12 +102,12 @@ read, parsed to nothing, and reported as a clean index. And the 3.10 TOML
 reader is checked against `tomllib` over sixteen inputs on every version that
 ships one, so the fallback cannot drift away from the real grammar in silence.
 
-## The four rulers
+## The five rulers
 
 `benchmarks/golden.json` grades ranking over the five-file synthetic fixture
 and is asserted in CI. It is a regression tripwire, and it cannot resolve a
-change to how vocabulary reaches the index: seven queries over nine units
-have no resolution, and four candidate scoring changes measured over an
+change to how vocabulary reaches the index: seven queries over nine units have
+no resolution, and four candidate scoring changes measured over an
 eight-question set all landed between five and six correct.
 
 `benchmarks/repo_queries.json` grades seventy natural-language questions over
@@ -120,9 +120,9 @@ the same questions against units built with no description store, which is
 what a repository nobody has run `describe` on contains.
 
 `benchmarks/absent_queries.json` grades thirty questions whose answer is in
-neither repository, where returning nothing is the only correct reply. The
-other three are structurally blind to this: all of them ask questions that
-have an answer, so all of them can only score whether it was found. Scored on
+none of the three repositories, where returning nothing is the only correct
+reply. The others are structurally blind to this: all of them ask questions
+that have an answer, so all of them can only score whether it was found. Scored on
 silence, never folded into hit@k -- averaging a question that should return
 something with one that should return nothing yields a figure that improves
 when either half gets worse. It read 0.000 on both repositories when it was
@@ -162,6 +162,24 @@ handed. Through 1.3.0 the graded repository was external and the ruler was
 skipped when absent; it is now vendored, so the skip cannot happen and CI runs
 it on every push.
 
+`benchmarks/cobra_queries.json` grades forty questions about **cobra v1.9.1**,
+in Go, at `benchmarks/corpus/cobra`. It is the third graded repository and the
+first that is not Python, which is its whole point: four constants —
+`search.min_coverage`, `search.min_concentration`, `COMMON_TERM` and
+`COVERAGE_FULL_STRENGTH` — were fitted on two corpora that were both Python and
+both carried documentation inside the declaration, where the AST hands it over.
+Go writes it above, outside the unit's span, so this ruler grades the line
+scanner and the rule table on prose the parser has to pick up. None of the four
+moved: both bars together still give the best silence there (0.900, against
+0.833 for concentration alone). It also publishes the lowest number this
+project has: **0.075 hit@1**, twenty subjects each asked in two languages, and
+Chinese scores zero on all of them.
+
+Forty questions resolves a change of several, not of one. It was chosen over
+two other candidates by counting collisions with the absent ruler's subject
+words — cobra 8, gin 17, chi 18 — and it still cost two question rewrites on
+the day it landed.
+
 A change that helps one ruler and hurts another is a trade, not an
 improvement, and that is not visible from a single one. Three variations on
 length normalisation were measured across all three before 0.6.0 settled, and
@@ -176,7 +194,7 @@ every unit's id and searchable text. A score from these rulers means nothing
 without one: two runs of an unchanged `search.py` against the foreign
 repository returned 0.257 and 0.229 hit@1, because that repository had grown by
 ninety units in between. Both numbers were right and comparing them was
-worthless, and nothing in the output said so. Two of the four rulers read this
+worthless, and nothing in the output said so. Two of the five rulers read this
 repository's live working tree, so **editing the source moves the corpus and
 the change at the same time**; the only sound comparison is one corpus with the
 setting varied, which is why every knob `search` takes is reachable from
@@ -208,6 +226,35 @@ the test *is* the answer.
 Identifier splitting was the obvious candidate fix and is measured *not* to
 work; the reasoning and the numbers are in
 [ARCHITECTURE.md](ARCHITECTURE.md#what-this-is-precisely).
+
+## What the suite covers, as a number
+
+```powershell
+python -m pytest --cov=ragyourcode
+```
+
+**91%** of 2,190 statements, 198 uncovered. Per module: `search` 99%,
+`workflow` 98%, `descriptions` 97%, `parser` 96%, `embeddings` and `graph` 95%,
+`document` 94%, `indexer` 90%, `config` 86%, `providers` 83%, `cli` 81%.
+`agentic`, `annotate`, `models` and `__init__` are complete.
+
+The figure is published with its command and nothing is asserted on it. A
+coverage floor in CI rewards tests that execute lines, and this suite's value
+is in the assertions its files are named after — the uncovered remainder is
+mostly `cli` argument-parsing branches and `providers` network error paths,
+which is where a line-executing test would be least worth writing.
+
+## The diagrams are checked too
+
+`tests/test_diagrams.py` parses the four mermaid blocks in `docs/FLOW.md` and
+refuses an unquoted label carrying punctuation, a `\n` where `<br/>` belongs,
+an arrow naming a node no diagram declares, and a `style` line pointing at
+nothing. A mermaid block GitHub cannot render fails *silently* — a grey box,
+no error, and nothing in the repository notices. The blocks shipped in 1.4.2
+with no gate at all. A final case feeds each check a known-bad line, because a
+gate nobody has seen fail is a gate nobody has seen work; writing it caught the
+first version reading `with --compact` inside a node's own label as an edge
+from a node called `with`.
 
 ## Tests that read the documentation
 
@@ -297,7 +344,7 @@ limits with the reason each needs cross-line context.
 ## Baseline versus hybrid
 
 Six benchmark scripts exist and [benchmarks/README.md](../benchmarks/README.md)
-is the index of them: the four rulers, the query-latency timer, the Grep
+is the index of them: the five rulers, the query-latency timer, the Grep
 head-to-head, the scale harness and the cold-process loader. Two of the figures
 this project published used to come from scripts that were never committed;
 every published figure is now a command that prints its corpus fingerprint.

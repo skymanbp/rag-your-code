@@ -66,10 +66,10 @@
       "kind": "why",
       "absent": true,
       "acceptable": [],
-      "query": "why does the admission webhook reject a pod without resource limits",
+      "query": "why does the admission webhook reject a workload without resource limits",
       "subject": [
         "kubernetes",
-        "pod",
+        "workload",
         "cluster",
         "deployment"
       ]
@@ -80,10 +80,10 @@
       "kind": "why",
       "absent": true,
       "acceptable": [],
-      "query": "准入控制为什么会拒绝没有资源限额的容器组",
+      "query": "准入钩子为什么会拒绝没有资源限额的工作负载",
       "subject": [
         "kubernetes",
-        "pod",
+        "workload",
         "cluster",
         "deployment"
       ]
@@ -320,7 +320,7 @@
       "acceptable": [],
       "query": "why would a duplex print job stay stuck in the spool",
       "subject": [
-        "printer",
+        "spooler",
         "spool",
         "duplex",
         "toner"
@@ -334,7 +334,7 @@
       "acceptable": [],
       "query": "双面打印任务为什么会一直卡在打印队列里",
       "subject": [
-        "printer",
+        "spooler",
         "spool",
         "duplex",
         "toner"

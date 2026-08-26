@@ -32,3 +32,9 @@ agent-e2e-result.jsonl
 .runtime-tmp-*/
 memory/
 .ce/
+
+# `pytest --cov` leaves these; the figure is published, the artifact is not.
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
