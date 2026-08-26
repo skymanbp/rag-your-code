@@ -201,10 +201,15 @@ SETTINGS: tuple[Setting, ...] = (
     ),
     # How much of a question has to reach the index before an answer counts as
     # evidence rather than as a guess. Measured, not chosen: across two
-    # repositories, two languages and 126 questions, 0.40 is the largest value
-    # at which every question that was being answered correctly still is, and
-    # it silences 47% of questions whose answer is not in the repository at
-    # all. It is a ratio inside the query, so unlike a score threshold it does
+    # repositories, two languages and every question set under `benchmarks/`,
+    # 0.40 is the largest value at which every question that was being answered
+    # correctly still is. On its own it silences three fifths of the questions
+    # whose answer is not in the repository at all; the rest is what
+    # `search.min_concentration` below adds. The command is the claim --
+    # `repo_queries --questions benchmarks/absent_queries.json
+    # --min-concentration 0` -- because a count typed into a comment is a figure
+    # nothing checks, and both numbers this sentence used to carry had rotted.
+    # It is a ratio inside the query, so unlike a score threshold it does
     # not move when the corpus or the scale of the ranking does -- the defect
     # that made `confidence_threshold = 0.8` stop meaning anything.
     Setting(
@@ -221,8 +226,11 @@ SETTINGS: tuple[Setting, ...] = (
     # unrelated declarations -- four of six words found in four places with
     # nothing to do with one another or with what was asked. Measured across
     # four rulers, requiring a quarter of a query's rarity to land inside one
-    # unit leaves the two rulers over undescribed code unchanged and roughly
-    # halves the questions that get an answer they should not have. Rarity-
+    # unit leaves the two rulers over undescribed code unchanged and removes
+    # most of what the coverage bar alone still answers; the ablation table
+    # carries the numbers, in docs/ROADMAP.md, rather than this line, which
+    # said "roughly halves" while that table said an order of magnitude.
+    # Rarity-
     # weighted rather than counted, because a unit holding two ordinary words is
     # not better evidence than one holding the rare word the question is about.
     Setting(

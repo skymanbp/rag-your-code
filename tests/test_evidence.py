@@ -1,9 +1,10 @@
 """Retrieval must be able to say it has no answer.
 
 Ranking always produces a least-bad unit and returns it with a score and a
-rank, which read exactly like an answer. Graded against 32 questions about
-subjects neither this repository nor `benchmarks/cold_queries.json`'s
-repository implements, every single one came back answered -- `where are CUDA
+rank, which read exactly like an answer. Graded against every question in
+`benchmarks/absent_queries.json` -- subjects neither this repository nor
+`benchmarks/cold_queries.json`'s repository implements -- every single one came
+back answered, on both repositories. `where are CUDA
 kernels dispatched to the device` on the evidence of `are`, `the`, `to` and
 `where`. These assert the second question retrieval now asks: not which unit
 ranks highest, but whether any of this is evidence at all.

@@ -119,7 +119,7 @@ class Evidence:
 
     Ranking answers "which of these is best". It cannot answer "is any of this
     an answer", and reading the first as the second is what let a repository
-    reply to all 32 questions in `benchmarks/absent_queries.json` -- every one
+    reply to every question in `benchmarks/absent_queries.json` -- each one
     about a subject neither repository implements. `where are CUDA kernels
     dispatched to the device` came back with a test about word counting, on the
     evidence of `are`, `the`, `to` and `where`. That is not a Chinese problem
