@@ -14,7 +14,7 @@
       "subject": [
         "oauth",
         "refresh_token",
-        "rotate",
+        "client_secret",
         "credential_expiry"
       ]
     },
@@ -28,7 +28,7 @@
       "subject": [
         "oauth",
         "refresh_token",
-        "rotate",
+        "client_secret",
         "credential_expiry"
       ]
     },

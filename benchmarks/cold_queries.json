@@ -1,481 +1,516 @@
 {
   "k": 3,
-  "repository": "cc-enforcer",
-  "why": "Grades retrieval on a repository nobody here wrote. The seventy questions in repo_queries.json are asked about this project's own source, by the same party that wrote both the code and its descriptions, on an index where every unit under src/ carries a hand-written bilingual description. That is the warmest case there is, and it cannot see what a first-time user sees: a foreign repository, zero descriptions, ranking decided by nothing but the words the author happened to use.",
-  "caveat": "The questions are phrased in a user's words on purpose, not in the words of the docstring that answers them, so a hit means retrieval bridged a paraphrase rather than echoing a string it was handed. Answers were verified one by one against the declarations in the graded repository. The repository itself is external: when it is absent this ruler is skipped, never silently scored as zero.",
+  "repository": "flask",
+  "vendored": "benchmarks/corpus/flask",
+  "why": "Grades retrieval on a repository nobody here wrote. The seventy questions in repo_queries.json are asked about this project's own source, by the party that wrote both the code and its descriptions, over an index where every unit under src/ carries a hand-written bilingual description. That is the warmest case there is and it cannot see what a first-time user sees: a foreign repository, zero descriptions, and a vocabulary nobody here chose.",
+  "caveat": "The questions are phrased in a user's words on purpose, not in the words of the docstring that answers them, so a hit means retrieval bridged a paraphrase rather than echoing a string it was handed. Every acceptable answer is checked against the index before anything is scored.",
   "measured_against": {
-    "commit": "080424eab89b",
-    "uncommitted_files": 18,
-    "units": 1345,
-    "fingerprint": "471b78f9f806",
-    "note": "The commit alone does not identify this corpus: the tree carried 18 uncommitted files when it was graded, and the repository is not one this project controls. The fingerprint is the only thing that pins it. Quote it with any figure from this ruler, and expect a re-run here to differ."
+    "upstream": "https://github.com/pallets/flask",
+    "tag": "3.1.3",
+    "commit": "22d924701a6ae2e4cd01e9a15bbaf3946094af65",
+    "released": "2026-02-18",
+    "licence": "BSD-3-Clause, carried at benchmarks/corpus/flask/LICENSE.txt",
+    "omitted": "docs/ and .git/; everything else at that tag is present byte for byte",
+    "note": "Vendored rather than pointed at, so this ruler is reproducible by anyone who clones this repository and needs nothing of the machine it was written on. The previous subject was a repository this project did not control, graded against an uncommitted working tree no commit could restore, which left the local-model comparison in the roadmap unattributable. Rebuild the index with `rag-your-code index benchmarks/corpus/flask`."
   },
   "queries": [
     {
-      "id": "cold-secret-en",
+      "id": "cold-session-open",
       "language": "en",
       "kind": "concept",
-      "query": "what stops an API key from being pasted straight into a file",
+      "query": "how is the signed cookie turned back into a session dictionary",
       "acceptable": [
         [
-          "hooks/scripts/read_guard.py",
-          "_find_hardcoded_secret"
+          "src/flask/sessions.py",
+          "SecureCookieSessionInterface.open_session"
         ]
       ]
     },
     {
-      "id": "cold-secret-zh",
+      "id": "cold-session-save",
+      "language": "en",
+      "kind": "concept",
+      "query": "where does the outgoing response get its session cookie set",
+      "acceptable": [
+        [
+          "src/flask/sessions.py",
+          "SecureCookieSessionInterface.save_session"
+        ]
+      ]
+    },
+    {
+      "id": "cold-config-env",
+      "language": "en",
+      "kind": "concept",
+      "query": "how do environment variables become settings",
+      "acceptable": [
+        [
+          "src/flask/config.py",
+          "Config.from_prefixed_env"
+        ]
+      ]
+    },
+    {
+      "id": "cold-config-file",
+      "language": "en",
+      "kind": "concept",
+      "query": "loading settings from a python file at a path",
+      "acceptable": [
+        [
+          "src/flask/config.py",
+          "Config.from_pyfile"
+        ]
+      ]
+    },
+    {
+      "id": "cold-config-object",
+      "language": "en",
+      "kind": "concept",
+      "query": "reading the shouting-case attributes off an object into the settings",
+      "acceptable": [
+        [
+          "src/flask/config.py",
+          "Config.from_object"
+        ]
+      ]
+    },
+    {
+      "id": "cold-request-dispatch",
+      "language": "en",
+      "kind": "concept",
+      "query": "how does a matched route reach the function that answers it",
+      "acceptable": [
+        [
+          "src/flask/app.py",
+          "Flask.dispatch_request"
+        ],
+        [
+          "src/flask/app.py",
+          "Flask.full_dispatch_request"
+        ]
+      ]
+    },
+    {
+      "id": "cold-wsgi-entry",
+      "language": "en",
+      "kind": "concept",
+      "query": "what runs first when the server hands over an incoming call",
+      "acceptable": [
+        [
+          "src/flask/app.py",
+          "Flask.wsgi_app"
+        ],
+        [
+          "src/flask/app.py",
+          "Flask.__call__"
+        ]
+      ]
+    },
+    {
+      "id": "cold-error-http",
+      "language": "en",
+      "kind": "concept",
+      "query": "what happens to an exception that already carries a status code",
+      "acceptable": [
+        [
+          "src/flask/app.py",
+          "Flask.handle_http_exception"
+        ]
+      ]
+    },
+    {
+      "id": "cold-error-user",
+      "language": "en",
+      "kind": "concept",
+      "query": "finding the handler somebody registered for the exception a view raised",
+      "acceptable": [
+        [
+          "src/flask/app.py",
+          "Flask.handle_user_exception"
+        ],
+        [
+          "src/flask/sansio/app.py",
+          "App._find_error_handler"
+        ]
+      ]
+    },
+    {
+      "id": "cold-teardown",
+      "language": "en",
+      "kind": "concept",
+      "query": "callbacks that have to run even when the call failed",
+      "acceptable": [
+        [
+          "src/flask/app.py",
+          "Flask.do_teardown_request"
+        ],
+        [
+          "src/flask/app.py",
+          "Flask.do_teardown_appcontext"
+        ]
+      ]
+    },
+    {
+      "id": "cold-route-register",
+      "language": "en",
+      "kind": "concept",
+      "query": "how does decorating a function attach it to a url",
+      "acceptable": [
+        [
+          "src/flask/sansio/scaffold.py",
+          "Scaffold.route"
+        ],
+        [
+          "src/flask/sansio/app.py",
+          "App.add_url_rule"
+        ]
+      ]
+    },
+    {
+      "id": "cold-template-render",
+      "language": "en",
+      "kind": "concept",
+      "query": "turning a template name and some variables into finished markup",
+      "acceptable": [
+        [
+          "src/flask/templating.py",
+          "render_template"
+        ],
+        [
+          "src/flask/templating.py",
+          "_render"
+        ]
+      ]
+    },
+    {
+      "id": "cold-json-response",
+      "language": "en",
+      "kind": "concept",
+      "query": "building a reply whose body is json",
+      "acceptable": [
+        [
+          "src/flask/json/__init__.py",
+          "jsonify"
+        ],
+        [
+          "src/flask/json/provider.py",
+          "DefaultJSONProvider.response"
+        ]
+      ]
+    },
+    {
+      "id": "cold-json-roundtrip",
+      "language": "en",
+      "kind": "concept",
+      "query": "how are values json cannot represent kept in the session",
+      "acceptable": [
+        [
+          "src/flask/json/tag.py",
+          "TaggedJSONSerializer"
+        ],
+        [
+          "src/flask/json/tag.py",
+          "TaggedJSONSerializer.tag"
+        ]
+      ]
+    },
+    {
+      "id": "cold-static-file",
+      "language": "en",
+      "kind": "concept",
+      "query": "serving a file out of a folder without letting the path escape it",
+      "acceptable": [
+        [
+          "src/flask/helpers.py",
+          "send_from_directory"
+        ],
+        [
+          "src/flask/helpers.py",
+          "send_file"
+        ]
+      ]
+    },
+    {
+      "id": "cold-url-build",
+      "language": "en",
+      "kind": "concept",
+      "query": "building the address of an endpoint from its arguments",
+      "acceptable": [
+        [
+          "src/flask/helpers.py",
+          "url_for"
+        ],
+        [
+          "src/flask/app.py",
+          "Flask.url_for"
+        ]
+      ]
+    },
+    {
+      "id": "cold-test-client",
+      "language": "en",
+      "kind": "concept",
+      "query": "driving the whole application in a test without a real server",
+      "acceptable": [
+        [
+          "src/flask/testing.py",
+          "FlaskClient"
+        ],
+        [
+          "src/flask/app.py",
+          "Flask.test_client"
+        ]
+      ]
+    },
+    {
+      "id": "cold-async-view",
+      "language": "en",
+      "kind": "concept",
+      "query": "running a coroutine handler from code that is not itself asynchronous",
+      "acceptable": [
+        [
+          "src/flask/app.py",
+          "Flask.ensure_sync"
+        ],
+        [
+          "src/flask/app.py",
+          "Flask.async_to_sync"
+        ]
+      ]
+    },
+    {
+      "id": "cold-session-expiry-zh",
       "language": "zh",
       "kind": "concept",
-      "query": "怎么拦住把密钥写死在代码里",
+      "query": "永久会话过多久之后就不再被接受",
       "acceptable": [
         [
-          "hooks/scripts/read_guard.py",
-          "_find_hardcoded_secret"
+          "src/flask/sessions.py",
+          "SessionInterface.get_expiration_time"
         ]
       ]
     },
     {
-      "id": "cold-homepath",
-      "language": "en",
+      "id": "cold-blueprint-register-zh",
+      "language": "zh",
       "kind": "concept",
-      "query": "keep somebody's own home folder out of the source",
+      "query": "怎么把一组路由挂到应用的某个前缀下面",
       "acceptable": [
         [
-          "hooks/scripts/read_guard.py",
-          "_find_path_dependency"
+          "src/flask/sansio/blueprints.py",
+          "Blueprint.register"
+        ],
+        [
+          "src/flask/sansio/app.py",
+          "App.register_blueprint"
         ]
       ]
     },
     {
-      "id": "cold-swallow",
+      "id": "cold-template-lookup-zh",
+      "language": "zh",
+      "kind": "concept",
+      "query": "模板文件是到哪几个地方去找的",
+      "acceptable": [
+        [
+          "src/flask/templating.py",
+          "DispatchingJinjaLoader.get_source"
+        ],
+        [
+          "src/flask/templating.py",
+          "DispatchingJinjaLoader._iter_loaders"
+        ]
+      ]
+    },
+    {
+      "id": "cold-why-appctx",
       "language": "en",
       "kind": "why",
-      "query": "catch an error handler that silently swallows the failure",
+      "query": "what keeps two applications in one process from sharing state",
       "acceptable": [
         [
-          "hooks/scripts/read_guard.py",
-          "_scan_bare_try_except_pass"
-        ]
-      ]
-    },
-    {
-      "id": "cold-suppress",
-      "language": "en",
-      "kind": "concept",
-      "query": "a suppression comment with no explanation written beside it",
-      "acceptable": [
-        [
-          "hooks/scripts/read_guard.py",
-          "_find_unjustified_patch_marker"
+          "src/flask/ctx.py",
+          "AppContext"
         ],
         [
-          "hooks/scripts/read_guard.py",
-          "_has_rationale_at"
-        ],
-        [
-          "hooks/scripts/read_guard.py",
-          "_inline_reason_is_substantive"
+          "src/flask/ctx.py",
+          "AppContext.push"
         ]
       ]
     },
     {
-      "id": "cold-editsize",
+      "id": "cold-why-stream-context",
       "language": "en",
-      "kind": "concept",
-      "query": "decide whether this change is a tiny tweak or a real rewrite",
+      "kind": "why",
+      "query": "why does a generator lose the incoming call while it is still yielding",
       "acceptable": [
         [
-          "hooks/scripts/lib/editscale.py",
-          "classify_change"
+          "src/flask/helpers.py",
+          "stream_with_context"
         ]
       ]
     },
     {
-      "id": "cold-rolling-zh",
+      "id": "cold-why-setup-finished",
+      "language": "en",
+      "kind": "why",
+      "query": "why is adding a route refused once the application has started serving",
+      "acceptable": [
+        [
+          "src/flask/sansio/scaffold.py",
+          "setupmethod"
+        ],
+        [
+          "src/flask/sansio/app.py",
+          "App._check_setup_finished"
+        ]
+      ]
+    },
+    {
+      "id": "cold-why-autoescape",
+      "language": "en",
+      "kind": "why",
+      "query": "which file extensions get their variables escaped automatically",
+      "acceptable": [
+        [
+          "src/flask/sansio/app.py",
+          "App.select_jinja_autoescape"
+        ]
+      ]
+    },
+    {
+      "id": "cold-why-redirect-form",
+      "language": "en",
+      "kind": "why",
+      "query": "why does posting a form lose its fields when the address needed a trailing slash",
+      "acceptable": [
+        [
+          "src/flask/debughelpers.py",
+          "FormDataRoutingRedirect"
+        ]
+      ]
+    },
+    {
+      "id": "cold-why-logger",
+      "language": "en",
+      "kind": "why",
+      "query": "why is a second output handler not attached when one already exists",
+      "acceptable": [
+        [
+          "src/flask/logging.py",
+          "create_logger"
+        ],
+        [
+          "src/flask/logging.py",
+          "has_level_handler"
+        ]
+      ]
+    },
+    {
+      "id": "cold-why-cookie-size",
+      "language": "en",
+      "kind": "why",
+      "query": "what warns that the cookie has grown past what a browser will keep",
+      "acceptable": [
+        [
+          "src/flask/wrappers.py",
+          "Response.max_cookie_size"
+        ]
+      ]
+    },
+    {
+      "id": "cold-why-template-notfound",
+      "language": "en",
+      "kind": "why",
+      "query": "saying which places were searched when a template could not be found",
+      "acceptable": [
+        [
+          "src/flask/debughelpers.py",
+          "explain_template_loading_attempts"
+        ]
+      ]
+    },
+    {
+      "id": "cold-why-context-zh",
       "language": "zh",
       "kind": "why",
-      "query": "同一个文件被反复小修小补怎么发现",
+      "query": "为什么处理函数不用一路传参就能拿到当前请求",
       "acceptable": [
         [
-          "hooks/scripts/lib/state.py",
-          "try_record_small_edit"
+          "src/flask/ctx.py",
+          "RequestContext"
         ],
         [
-          "hooks/scripts/read_guard.py",
-          "_handle_pre_tool_use._check_rolling_patch"
-        ],
-        [
-          "hooks/scripts/lib/editscale.py",
-          "classify_change"
+          "src/flask/ctx.py",
+          "RequestContext.push"
         ]
       ]
     },
     {
-      "id": "cold-forcepush",
+      "id": "cold-why-null-session-zh",
+      "language": "zh",
+      "kind": "why",
+      "query": "没有设置密钥的时候会话会变成什么",
+      "acceptable": [
+        [
+          "src/flask/sessions.py",
+          "NullSession"
+        ],
+        [
+          "src/flask/sessions.py",
+          "SessionInterface.make_null_session"
+        ]
+      ]
+    },
+    {
+      "id": "cold-symbol-dotenv",
       "language": "en",
       "kind": "symbol",
-      "query": "refuse a force push unless it is the safe lease variant",
+      "query": "read settings out of a dotenv file before anything starts",
       "acceptable": [
         [
-          "hooks/scripts/bash_guard.py",
-          "_detect_force_push"
+          "src/flask/cli.py",
+          "load_dotenv"
         ]
       ]
     },
     {
-      "id": "cold-wipe",
-      "language": "en",
-      "kind": "why",
-      "query": "block a delete that would take out the whole machine",
-      "acceptable": [
-        [
-          "hooks/scripts/bash_guard.py",
-          "_is_catastrophic_rm"
-        ],
-        [
-          "hooks/scripts/bash_guard.py",
-          "_is_dangerous_rm_target"
-        ]
-      ]
-    },
-    {
-      "id": "cold-perm",
+      "id": "cold-symbol-endpoint-name",
       "language": "en",
       "kind": "symbol",
-      "query": "reject making a file writable by everyone",
+      "query": "derive the endpoint name from the view function itself",
       "acceptable": [
         [
-          "hooks/scripts/bash_guard.py",
-          "_is_chmod_777"
+          "src/flask/sansio/scaffold.py",
+          "_endpoint_from_view_func"
         ]
       ]
     },
     {
-      "id": "cold-oldstate",
-      "language": "en",
-      "kind": "concept",
-      "query": "throw away leftovers from sessions that finished long ago",
-      "acceptable": [
-        [
-          "hooks/scripts/gc_state.py",
-          "prune_old_sessions"
-        ]
-      ]
-    },
-    {
-      "id": "cold-i18n-en",
-      "language": "en",
-      "kind": "concept",
-      "query": "has the translation fallen behind the original",
-      "acceptable": [
-        [
-          "hooks/scripts/i18n_check.py",
-          "check_sync"
-        ]
-      ]
-    },
-    {
-      "id": "cold-i18n-zh",
-      "language": "zh",
-      "kind": "concept",
-      "query": "翻译版文档和英文版有没有脱节",
-      "acceptable": [
-        [
-          "hooks/scripts/i18n_check.py",
-          "check_sync"
-        ]
-      ]
-    },
-    {
-      "id": "cold-clip",
-      "language": "en",
-      "kind": "why",
-      "query": "drop entries so the injected text fits inside the size limit",
-      "acceptable": [
-        [
-          "hooks/scripts/inject_context.py",
-          "_clip_edicts"
-        ],
-        [
-          "hooks/scripts/inject_context.py",
-          "build_context"
-        ]
-      ]
-    },
-    {
-      "id": "cold-sessionid",
-      "language": "en",
-      "kind": "concept",
-      "query": "where does the identifier for this session come from",
-      "acceptable": [
-        [
-          "hooks/scripts/inject_context.py",
-          "_session_id_from"
-        ]
-      ]
-    },
-    {
-      "id": "cold-doneclaim",
-      "language": "en",
-      "kind": "concept",
-      "query": "did the assistant announce that it had finished",
-      "acceptable": [
-        [
-          "hooks/scripts/stop_guard.py",
-          "_has_done_claim"
-        ]
-      ]
-    },
-    {
-      "id": "cold-hedge",
-      "language": "en",
-      "kind": "why",
-      "query": "an uncertain word sitting right next to a claim of completion",
-      "acceptable": [
-        [
-          "hooks/scripts/stop_guard.py",
-          "_has_hedge_near_done"
-        ]
-      ]
-    },
-    {
-      "id": "cold-tldr",
-      "language": "en",
-      "kind": "concept",
-      "query": "is there a short plain summary at the end of the answer",
-      "acceptable": [
-        [
-          "hooks/scripts/stop_guard.py",
-          "_has_tldr"
-        ]
-      ]
-    },
-    {
-      "id": "cold-tldrlong",
-      "language": "en",
-      "kind": "concept",
-      "query": "a summary item that runs past its character cap",
-      "acceptable": [
-        [
-          "hooks/scripts/stop_guard.py",
-          "_find_overlong_tldr"
-        ]
-      ]
-    },
-    {
-      "id": "cold-transcript",
-      "language": "en",
-      "kind": "concept",
-      "query": "pull the assistant's last message out of the conversation log",
-      "acceptable": [
-        [
-          "hooks/scripts/stop_guard.py",
-          "_last_assistant_message_from_transcript"
-        ]
-      ]
-    },
-    {
-      "id": "cold-fileclaim",
-      "language": "en",
-      "kind": "why",
-      "query": "confirm the file it says it changed was really touched",
-      "acceptable": [
-        [
-          "hooks/scripts/stop_guard.py",
-          "_extract_file_claims"
-        ],
-        [
-          "hooks/scripts/stop_guard.py",
-          "_verify_claims"
-        ],
-        [
-          "hooks/scripts/lib/state.py",
-          "record_baseline"
-        ]
-      ]
-    },
-    {
-      "id": "cold-table-zh",
-      "language": "zh",
-      "kind": "concept",
-      "query": "把每一层通过与否渲染成表格",
-      "acceptable": [
-        [
-          "hooks/scripts/stop_guard.py",
-          "_render_status_table"
-        ]
-      ]
-    },
-    {
-      "id": "cold-syncgroup",
-      "language": "en",
-      "kind": "concept",
-      "query": "which other files have to be updated alongside this one",
-      "acceptable": [
-        [
-          "hooks/scripts/lib/sync_gate.py",
-          "evaluate"
-        ]
-      ]
-    },
-    {
-      "id": "cold-glob",
+      "id": "cold-symbol-timedelta",
       "language": "en",
       "kind": "symbol",
-      "query": "does this path match any of the patterns",
+      "query": "turn a plain number of seconds into a duration if it is not one already",
       "acceptable": [
         [
-          "hooks/scripts/lib/sync_gate.py",
-          "matches_any"
-        ]
-      ]
-    },
-    {
-      "id": "cold-projroot",
-      "language": "en",
-      "kind": "concept",
-      "query": "work out where the top of the repository is",
-      "acceptable": [
-        [
-          "hooks/scripts/lib/projroot.py",
-          "looks_like_project_root"
+          "src/flask/app.py",
+          "_make_timedelta"
         ],
         [
-          "hooks/scripts/lib/projroot.py",
-          "cwd_if_project_root"
+          "src/flask/sansio/app.py",
+          "_make_timedelta"
         ]
       ]
     },
     {
-      "id": "cold-shellsplit",
-      "language": "en",
-      "kind": "concept",
-      "query": "split one command line into the separate commands it runs",
-      "acceptable": [
-        [
-          "hooks/scripts/lib/shellcmd.py",
-          "segments"
-        ],
-        [
-          "hooks/scripts/lib/shellcmd.py",
-          "tokenize"
-        ]
-      ]
-    },
-    {
-      "id": "cold-gitsub",
+      "id": "cold-symbol-blueprint-split",
       "language": "en",
       "kind": "symbol",
-      "query": "which git subcommand is this invocation running",
+      "query": "split a dotted name into the ancestors it is nested under",
       "acceptable": [
         [
-          "hooks/scripts/lib/shellcmd.py",
-          "git_subcommand"
-        ]
-      ]
-    },
-    {
-      "id": "cold-lang",
-      "language": "en",
-      "kind": "concept",
-      "query": "guess the programming language from the file name",
-      "acceptable": [
-        [
-          "hooks/scripts/lib/srclex.py",
-          "lang_for_path"
-        ]
-      ]
-    },
-    {
-      "id": "cold-mask",
-      "language": "en",
-      "kind": "why",
-      "query": "blank out string contents so a scan cannot look inside them",
-      "acceptable": [
-        [
-          "hooks/scripts/lib/srclex.py",
-          "mask_literals"
-        ]
-      ]
-    },
-    {
-      "id": "cold-comments",
-      "language": "en",
-      "kind": "concept",
-      "query": "find where the human-written comments are in a file",
-      "acceptable": [
-        [
-          "hooks/scripts/lib/srclex.py",
-          "comment_text"
-        ],
-        [
-          "hooks/scripts/lib/srclex.py",
-          "doc_spans"
-        ]
-      ]
-    },
-    {
-      "id": "cold-continuation",
-      "language": "en",
-      "kind": "why",
-      "query": "join lines that carry on because a bracket is still open",
-      "acceptable": [
-        [
-          "hooks/scripts/lib/srclex.py",
-          "logical_lines"
-        ]
-      ]
-    },
-    {
-      "id": "cold-toml-zh",
-      "language": "zh",
-      "kind": "why",
-      "query": "老版本没有 tomllib 的时候怎么读配置文件",
-      "acceptable": [
-        [
-          "hooks/scripts/lib/tomlio.py",
-          "parse_toml_file"
-        ]
-      ]
-    },
-    {
-      "id": "cold-fence",
-      "language": "en",
-      "kind": "concept",
-      "query": "is this line sitting inside a fenced code block",
-      "acceptable": [
-        [
-          "hooks/scripts/lib/mdctx.py",
-          "fence_marker"
-        ],
-        [
-          "hooks/scripts/lib/mdctx.py",
-          "lines"
-        ]
-      ]
-    },
-    {
-      "id": "cold-dedupe",
-      "language": "en",
-      "kind": "why",
-      "query": "collapse repeated export lines and keep only the last one",
-      "acceptable": [
-        [
-          "hooks/scripts/lib/envfile.py",
-          "dedupe_text"
-        ]
-      ]
-    },
-    {
-      "id": "cold-edictscan",
-      "language": "en",
-      "kind": "concept",
-      "query": "check an edit against the rules the user wrote themselves",
-      "acceptable": [
-        [
-          "hooks/scripts/lib/edicts.py",
-          "find_edit_violation"
+          "src/flask/helpers.py",
+          "_split_blueprint_path"
         ]
       ]
     }

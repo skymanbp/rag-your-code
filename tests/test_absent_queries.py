@@ -53,6 +53,19 @@ def test_the_absent_ruler_is_well_formed():
     assert questions["why"].strip() and questions["caveat"].strip()
 
 
+def _intruders(units) -> list[tuple[str, str, int]]:
+    """Which absent question's own vocabulary reaches a corpus that must not
+    contain it.
+    """
+    index = build_search_index(units)
+    return [
+        (entry["id"], term, len(index.postings[term]))
+        for entry in load_questions(ABSENT_PATH)["queries"]
+        for term in entry["subject"]
+        if index.postings.get(term)
+    ]
+
+
 def test_no_subject_of_an_absent_question_exists_in_this_repository(units):
     """The absence claim, re-derived rather than trusted.
 
@@ -60,16 +73,36 @@ def test_no_subject_of_an_absent_question_exists_in_this_repository(units):
     that fails first when the repository grows into a subject the ruler
     assumed it would never contain.
     """
-    index = build_search_index(units)
-    intruders = [
-        (entry["id"], term, len(index.postings[term]))
-        for entry in load_questions(ABSENT_PATH)["queries"]
-        for term in entry["subject"]
-        if index.postings.get(term)
-    ]
-    assert not intruders, (
+    assert not _intruders(units), (
         "this repository now contains the vocabulary of a question the ruler calls unanswerable; "
-        f"retire or rewrite those questions rather than letting them score as misses: {intruders}"
+        f"retire or rewrite those questions rather than letting them score as misses: {_intruders(units)}"
+    )
+
+
+def test_no_subject_of_an_absent_question_exists_in_the_vendored_corpus():
+    """The other half of the same claim, which used to be unenforceable.
+
+    This ruler asserts its questions are unanswerable in *both* graded
+    repositories. Until the foreign one was vendored that half could only be
+    asserted, because the subject was somebody else's checkout and a re-run
+    here could not see what it had become. It is now a directory in this
+    repository at a pinned tag, so the claim is a test.
+
+    It has already earned its place. One question's subject list carried a
+    generic English verb where a specific term belonged, and the corpus below
+    uses that verb in a comment about signing keys -- so the question was one
+    ordinary word away from being answerable by accident. The verb was
+    replaced with a term that names the thing.
+
+    Naming the subject here would put it in the index and break the very
+    claim this asserts, which is why the paragraph above is written around it.
+    That has now happened five times; CONTRIBUTING.md keeps the tally.
+    """
+    corpus = ROOT / "benchmarks" / "corpus" / "flask"
+    assert corpus.is_dir(), f"the vendored corpus is missing from {corpus}"
+    assert not _intruders(build_units(corpus)), (
+        "the vendored corpus contains the vocabulary of a question the ruler calls unanswerable; "
+        f"rewrite the question rather than letting it score as a miss: {_intruders(build_units(corpus))}"
     )
 
 
