@@ -28,7 +28,7 @@ Everything the 1.0.0 roadmap listed as still open, and what happened to it.
 | item | outcome |
 |---|---|
 | Qualified names outside Python | **Fixed** in 1.1.0, all 15 languages, from the spans the closer already produced. |
-| Descriptions cover 297 of 524 units | **Decided.** Test-function descriptions cost five real answers and six false silences; the table is under 1.0.0 in [ROADMAP-history.md](ROADMAP-history.md). Now 304 of 578. |
+| Descriptions cover 297 of 524 units | **Decided.** Test-function descriptions cost five real answers and six false silences; the table is under 1.0.0 in [ROADMAP-history.md](ROADMAP-history.md). Now 304 of 581. |
 | No stemming | **Measured and rejected.** Helps both own-repository rulers, costs the foreign one 3 of 35 hit@3. |
 | A test declaration outranks the code it tests | **Misdiagnosed, and corrected.** See below. |
 | English questions answered from words used here in another sense | **Fixed** by the concentration bar, 0.53 → 0.93 English silence. One residual, below. |
@@ -45,32 +45,39 @@ defects, all of one shape: **a published figure with no command behind it.**
 
 | what was published | what was true |
 |---|---|
-| Latency `0.83 ms / p95 1.68 ms`, "557 units" | Measured by an uncommitted script, on a corpus that no longer existed. Re-measured by `benchmarks/query_latency.py`: median 0.65 ms, p95 1.13 ms over five consecutive runs -- but ten runs across one hour spanned 0.62-1.44 ms and 1.09-7.34 ms, a spread wider than any change the code has made to this number. The old figures sit inside it. |
+| Latency `0.83 ms / p95 1.68 ms`, "557 units" | Measured by an uncommitted script, on a corpus that no longer existed. Re-measured by `benchmarks/query_latency.py`, which repeats and prints a spread: fifteen invocations over two releases on one idle machine put the median between 0.62 and 1.44 ms and p95 between 1.09 and 7.34 ms. The old three-digit figures sit inside that band, which is the defect -- unfalsifiable rather than wrong. |
 | The whole Grep head-to-head, section 7 of the README | Same: no committed script, so "a Grep loop" had no definition anyone could argue with. Reconstructed as `benchmarks/grep_baseline.py`, which reproduced this side's figures exactly and moved the baseline's. |
-| Ruler A, 0.229 / 0.400 / 0.300 | **The ruler did not run.** Two questions pointed at a declaration the foreign repository had since moved and renamed; its own integrity check refused to grade rather than scoring them as misses, which is what that check exists for. |
+| Ruler A, 0.229 / 0.400 / 0.300 | **The ruler did not run.** Two questions pointed at a declaration the foreign repository had since moved and renamed; its own integrity check refused to grade rather than scoring them as misses, which is what that check exists for. Repointed in 1.3.0, and in 1.4.0 the subject was replaced by a vendored copy so it cannot happen unnoticed again. |
 | "all 32 questions in `absent_queries.json`", "126 questions", "silences 47%" | 30, no set of that size, and 0.600. None had ever been re-derived. |
 
 The fix in every case was the same and is now the rule: **the command is the
 claim.** `benchmarks/README.md` lists all six, and every one prints the corpus
 fingerprint beside its score.
 
-### The one thing that still cannot be reproduced
+### The foreign ruler is reproducible now, and that changed three answers
 
-Ruler A grades a repository this project does not own, and it was graded
-against that repository's *working tree* -- commit `080424eab89b` plus 18
-uncommitted files. `benchmarks/cold_queries.json` now records that, and the
-fingerprint `471b78f9f806` is the only thing that pins the corpus, because no
-commit does.
+1.3.0 left ruler A grading a repository this project did not own, against its
+*working tree* -- commit `080424eab89b` plus 18 uncommitted files, which no
+commit could restore. That was recorded as a trade: a moving subject nobody
+here tuned against, in exchange for a ruler nobody else could run.
 
-That is a genuine trade rather than an oversight. Vendoring a frozen copy would
-make the ruler reproducible for anyone and would cost this repository the
-property that makes ruler A worth having: that it is real code, still moving,
-that nobody here wrote or tuned against. Recording the state is the smaller
-claim, and it is the one the evidence supports.
+1.4.0 stopped making that trade. `benchmarks/corpus/flask/` carries Flask 3.1.3
+at commit `22d9247`, licensed BSD-3-Clause, `docs/` and `.git/` omitted and the
+rest as published. The subject is still code nobody here wrote; it is now also
+a subject anyone can grade. Three things followed immediately:
 
-The visible cost is in the model comparison above: the A row's two arms were
-taken against two different corpora, so it says nothing. B and C share a
-fingerprint across both arms and do.
+- **The model comparison stopped being a guess.** Both arms now run against one
+  fingerprint on every row, and the conclusion inverted -- see below.
+- **CI runs the foreign ruler**, together with the foreign absent ruler and the
+  foreign head-to-head. None of the three could run in CI before.
+- **The absence claim became a test.** `tests/test_absent_queries.py` checks
+  the fourth ruler's vocabulary against the vendored corpus as well as this
+  repository. It caught a generic English verb standing in for a specific term
+  in one question's subject list on its first run.
+
+The cost is real and is stated rather than hidden: a pinned corpus ages, and
+bumping the tag invalidates every figure taken against the old one.
+`benchmarks/corpus/README.md` carries the procedure for doing it deliberately.
 
 ### The test-ranking item was misdiagnosed
 
@@ -164,21 +171,27 @@ rare word the question is about.
 
 | gate, varied alone on one corpus | A hit@1/3/MRR | B hit@1/3/MRR | C hit@1/3/MRR | silence own / foreign |
 |---|---|---|---|---|
-| neither bar | 0.229/0.371/0.286 | 0.314/0.486/0.391 | 0.486/0.700/0.567 | 0.000 / 0.000 |
-| coverage 0.40 only | 0.229/0.371/0.286 | 0.314/0.471/0.383 | 0.486/0.686/0.562 | 0.600 / 0.767 |
-| concentration 0.28 only | 0.229/0.371/0.286 | 0.314/0.471/0.383 | 0.443/0.614/0.507 | 0.967 / 0.933 |
-| **both, shipped** | 0.229/0.371/0.286 | 0.314/0.471/0.383 | 0.443/0.614/0.507 | **0.967 / 0.933** |
+| neither bar | 0.200/0.286/0.238 | 0.314/0.486/0.391 | 0.486/0.700/0.567 | 0.000 / 0.000 |
+| coverage 0.40 only | 0.200/0.286/0.238 | 0.314/0.471/0.383 | 0.486/0.686/0.562 | 0.600 / 0.733 |
+| concentration 0.28 only | 0.200/0.286/0.238 | 0.314/0.471/0.383 | 0.443/0.614/0.507 | 0.967 / 0.800 |
+| **both, shipped** | 0.200/0.286/0.238 | 0.314/0.471/0.383 | 0.443/0.614/0.507 | **0.967 / 0.833** |
 
-Corpora: A and the foreign silence column, cc-enforcer at 1,345 units
-`471b78f9f806`; B, 579 units `dca2a4656659`; C and the own silence column, 579
-units `0a2f050dbafd`. Re-measured for 1.3.0 on those corpora, which is why the
-coverage-only row now silences 0.600 where it once silenced 0.700 -- the bar is
-unchanged and the repository it is applied to is not.
+Corpora: A and the foreign silence column, Flask 3.1.3 at 1,572 units
+`5fd51169eacc`; B, 581 units `8e1e71942c1c`; C and the own silence column, 581
+units `978a1d48a82a`.
 
-On these four rulers concentration subsumes coverage. Both ship anyway: they
-answer different questions, they produce different diagnoses, and
-`search.min_coverage` is a published setting whose removal would be a breaking
-change for no gain.
+**Through 1.3.0 this section said concentration subsumes coverage. It does not
+on a corpus this project did not choose.** Both bars silence 0.833 of the
+foreign absent questions where concentration alone silences 0.800 and coverage
+alone 0.733 -- one question, and the first measurable reason in four releases
+to keep both rather than the two good reasons that were never numbers: they
+answer different questions and they produce different diagnoses.
+
+A sweep of the concentration bar over both repositories says 0.28 stays. Every
+step up buys foreign silence out of the answers: at 0.35 foreign silence is
+0.867 and ruler A falls to 0.171 hit@1; at 0.50 silence is 1.000 and A is
+0.086, B 0.214, C 0.329. The default was chosen before this corpus existed and
+survived meeting it, which is the only kind of evidence a default can have.
 
 ### What a real model does, measured at last
 
@@ -186,24 +199,32 @@ change for no gain.
 unmeasured, because there was no key here and a number from a stub would be
 fiction. A model that runs locally needs no key.
 
-| ruler | signed hash | MiniLM, local | one corpus? |
+1.1.0 published this table and read it as a win. Two of its rows compared the
+two embedders on one corpus; the third compared them on two different states of
+a repository being edited while the script ran, and that was the row carrying
+the largest improvement. 1.4.0 repeated the whole thing against a pinned
+corpus, so every row is now one corpus and one fingerprint:
+
+| ruler | corpus | signed hash | MiniLM, local |
 |---|---|---|---|
-| A foreign, cold (35) | 0.229 / 0.400 / 0.300 | 0.286 / 0.457 / 0.357 | **no** |
-| B own, cold (70) | 0.314 / 0.471 / 0.383 | **0.329 / 0.486 / 0.400** | yes, `3f507a34a4d2` |
-| C own, described (70) | 0.443 / 0.614 / 0.507 | 0.443 / **0.671 / 0.540** | yes, `d6c2ecd8f13e` |
-| D silence, own / foreign | 0.967 / 0.933 | 0.967 / 0.933 | own yes, foreign no |
+| A foreign, cold (35) | 1,572 `5fd51169eacc` | **0.200 / 0.286 / 0.238** | 0.171 / 0.257 / 0.214 |
+| B own, cold (70) | 581 `8e1e71942c1c` | 0.314 / 0.471 / 0.383 | 0.314 / 0.471 / 0.383 |
+| C own, described (70) | 581 `978a1d48a82a` | **0.443 / 0.614 / 0.507** | 0.429 / 0.600 / 0.500 |
+| D silence, own / foreign | as above | 0.967 / 0.833 | 0.967 / 0.833 |
 
-Read the last column before the others. B and C put both embedders against a
-single fingerprint, so those rows say what the model is worth. **The A row does
-not**: its two arms were taken against `ecd28fce38a2` and `9834c411583e`, two
-states of a repository that was being edited while the script ran, so 0.229 →
-0.286 is a model change and a corpus change added together and cannot be
-attributed to either. It is left in the table with the confound named rather
-than quietly deleted, because the same stamp that exposes it is the reason it
-was visible at all. Pinning that ruler's corpus is the open item below.
+**The model is worse or identical on every ruler.** The 1.1.0 reading -- "better
+on every positive ruler" -- does not survive being repeated under control. What
+it had measured on ruler A was a repository that had grown between the two
+runs; what it had measured on B and C was one or two questions, which is inside
+the noise of a two-unit change to the corpus and reverses sign under it.
 
-On the rows that are attributable: better, refusal unchanged — but only after deleting a
-special case 1.0.0 had introduced.
+That is not an argument against a model in general. It is an argument that this
+one, on these rulers, buys nothing measurable, and that the previous claim to
+the contrary was an artifact of the thing this project built `corpus_stamp` to
+catch -- caught, in the end, by `corpus_stamp`.
+
+It remains shipped, as an optional extra nobody has to install, with its cost
+now stated beside it. And the exemption it arrived with had to go regardless:
 
 ### The exemption that reintroduced the defect
 

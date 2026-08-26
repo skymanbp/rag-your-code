@@ -147,17 +147,19 @@ answerable. The example was removed and the docstring now says why it is
 missing. **This is not a lesson that stays learned by being written down once**
 — which is the argument for the mechanical check rather than for care.
 
-`benchmarks/cold_queries.json` grades thirty-five questions about
-**cc-enforcer**, a repository nobody here wrote, indexed with no descriptions
-at all. It exists because the other two cannot see what a first-time user
-gets. Every defect fixed in 0.6.0 was invisible to them and obvious here:
+`benchmarks/cold_queries.json` grades thirty-five questions about **Flask
+3.1.3**, a repository nobody here wrote, indexed with no descriptions at all
+and carried in this repository at `benchmarks/corpus/flask` so the ruler is
+reproducible rather than dependent on somebody's checkout. It exists because
+the other two cannot see what a first-time user gets. Every defect fixed in 0.6.0 was invisible to them and obvious here:
 scoring by the fraction of query words present put the single largest
 declaration in the top three for four questions out of six, and left `calls`
 (97% of units) outweighing `daemon` (two units). Its questions are phrased in
 a user's words rather than in the words of the docstring that answers them, so
 a hit means retrieval bridged a paraphrase instead of echoing a string it was
-handed. The graded repository is external: when it is absent the ruler is
-skipped, never silently scored as zero.
+handed. Through 1.3.0 the graded repository was external and the ruler was
+skipped when absent; it is now vendored, so the skip cannot happen and CI runs
+it on every push.
 
 A change that helps one ruler and hurts another is a trade, not an
 improvement, and that is not visible from a single one. Three variations on

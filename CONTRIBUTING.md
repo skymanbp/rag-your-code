@@ -114,7 +114,8 @@ is the second confounded measurement in three releases, and both looked like
 results rather than like mistakes.
 
 **A number that moves for two reasons at once tells you nothing.** Two of the
-rulers grade this repository's live tree, so editing any file moves them. Every
+rulers grade this repository's live tree, so editing any file moves them — the
+foreign ruler is vendored at a pinned tag precisely so that it does not. Every
 before-and-after in this project has to hold the corpus fixed: build one unit
 list, vary only the thing under test. When 227 descriptions were removed, the
 score did not move at all — and the reason was not that descriptions do not
@@ -126,12 +127,18 @@ separate things falsified that within an hour of writing it: two subject words
 this repository had always contained, and two more that appeared *because the
 source explains the feature using them as an example*. Documentation and ruler
 cannot own the same vocabulary. The check is mechanical for that reason — and
-it has now caught the identical mistake in three consecutive releases, twice
-from the author who had just written this paragraph. Some lessons do not stay
-learned by being written down; that is an argument for the gate, not for more
-care.
+it has now fired **five times**, four of them on the author who had just
+written this paragraph. Some lessons do not stay learned by being written
+down; that is an argument for the gate, not for more care.
 
-The third instance added a detail worth knowing: **a query string inside a test
+The last two added a rule each. **A declaration name is indexed**: a helper in
+`benchmarks/query_latency.py` named after the statistic it computes put that
+statistic into the corpus, and the statistic was a subject word. **So is a
+docstring**, including a test's — the paragraph explaining that very fix named
+the protocol it was about, and the guard caught it on the next run. Write
+around the word; do not write it down.
+
+A third instance added a detail worth knowing: **a query string inside a test
 is indexed.** Prose documents are exempt because `.md` is not a source suffix,
 so quoting an absent question in README or CHANGELOG is free — but the same
 sentence used as the query argument in `tests/test_e2e_cli.py` put `oauth` into

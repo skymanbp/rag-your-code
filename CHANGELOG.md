@@ -3,6 +3,108 @@
 Notable changes per release. Dates are the release date; measurements are from
 the development machine (Windows 11, CPython 3.13) and are directional.
 
+## 1.4.0 — 2026-08-26
+
+The foreign ruler graded a repository on one machine. It is now a copy of
+Flask 3.1.3 carried in this repository, and repeating the measurements against
+a corpus that holds still reversed two published conclusions.
+
+### The corpus is in the repository
+
+`benchmarks/corpus/flask/` is Flask 3.1.3 at commit `22d9247`, BSD-3-Clause,
+`docs/` and `.git/` omitted and the rest as published — 1,572 units of code
+nobody here wrote, indexed with no descriptions, which is what a first-time
+user's index looks like. `rag-your-code.toml` at the repository root keeps it
+out of this project's own index; without that, eighteen hundred units of a web
+framework would enter two rulers that measure retrieval over *this* repository
+and falsify a third that asserts nothing here answers thirty questions.
+
+Through 1.3.0 the subject was a checkout that changed by the hour. It cost:
+two graded questions silently pointing at a renamed declaration, a published
+score that moved 0.257 → 0.229 with no code change, and a model comparison
+taken against two states of it at once.
+
+Three things became possible the moment it was vendored:
+
+- **CI runs the foreign ruler**, the foreign absent ruler and the foreign
+  head-to-head. None of the three could run in CI before.
+- **The absence claim became a test.** `tests/test_absent_queries.py` now
+  checks the fourth ruler's vocabulary against the vendored corpus as well as
+  this repository — the half that could only be asserted before. It caught a
+  generic English verb standing in for a specific term in one question's
+  subject list on the first run.
+- **The model comparison became attributable**, and inverted.
+
+### The local model is worse or identical on every ruler
+
+1.1.0 published the comparison as "better on every positive ruler". Repeated
+with both arms against one fingerprint per row:
+
+| ruler | corpus | signed hash | MiniLM, local |
+|---|---|---|---|
+| A foreign, cold (35) | 1,572 `5fd51169eacc` | **0.200 / 0.286 / 0.238** | 0.171 / 0.257 / 0.214 |
+| B own, cold (70) | 581 `8e1e71942c1c` | 0.314 / 0.471 / 0.383 | 0.314 / 0.471 / 0.383 |
+| C own, described (70) | 581 `978a1d48a82a` | **0.443 / 0.614 / 0.507** | 0.429 / 0.600 / 0.500 |
+| D silence, own / foreign | as above | 0.967 / 0.833 | 0.967 / 0.833 |
+
+The A-row gain was a repository that had grown between the two runs. The B and
+C gains were one or two questions, inside the noise of a two-unit change to the
+corpus, and they reverse sign under it. The extra stays shipped, with its cost
+stated: it buys the cross-language and paraphrase pairs the hash scores zero
+on, and nothing these rulers can see.
+
+### Concentration does not subsume coverage after all
+
+On the retired subject the two bars were interchangeable and the README said
+so. On Flask they are not: both together silence **0.833** of the foreign
+absent questions, against 0.800 for concentration alone and 0.733 for coverage
+alone. One question, and the first measurable reason in four releases to keep
+both.
+
+A sweep says the shipped 0.28 stays. Every step up buys foreign silence out of
+the answers — at 0.50 the foreign absent ruler is silent on all thirty while
+ruler A falls to 0.086 hit@1 from 0.200, B to 0.214, C to 0.329. The default
+was chosen before this corpus existed and survived meeting it.
+
+### Which side wins against Grep depends on the repository
+
+Through 1.3.0 the README said flatly that a Grep loop wins on an undescribed
+repository. That was one subject generalised. On Flask it reverses: **37.1%
+right file first against Grep's 22.9%**, and 57.1% against 45.7% in the top
+three, with no description added. The cold index there is retrieving against
+docstrings the author wrote; on the previous subject, a tool with terse
+comments and long identifiers, there was nothing for it to retrieve against and
+Grep won by a similar margin.
+
+What does not depend on the subject is what descriptions buy: on this
+repository, 58.6% against 22.9%, and half the payload.
+
+Both sides decline exactly the same five of the 35 foreign questions, and they
+are the five Chinese ones — a Chinese word is neither a substring of English
+source nor a token in an index built from it.
+
+### Also
+
+- **Foreign silence is 0.833**, down from 0.933 on the retired subject, and the
+  cause is a limit rather than a defect: a word counts as evidence unless it
+  occurs in more than 5% of units, which makes `how`, `when`, `does` and `are`
+  ubiquitous here — 304 units carry written prose — and discriminating across
+  1,572 units of short, undocumented methods.
+- **The absence guard fired for the fourth and fifth times**, both on the
+  author. Once on a declaration named after the statistic it computes, once on
+  a docstring explaining that very fix. `CONTRIBUTING.md` carries both rules: a
+  declaration name is indexed, and so is a docstring.
+- `benchmarks/corpus/README.md` carries the provenance, the licence, and the
+  procedure for bumping the tag — which invalidates every figure taken against
+  the old one, so it is written down rather than left to judgement.
+- `compileall` in CI skips the vendored corpus; gating on somebody else's
+  release is not this project's business.
+
+354 tests (from 353; **+1 added, 0 removed** by node-id set diff against
+v1.3.0). The addition is
+`test_no_subject_of_an_absent_question_exists_in_the_vendored_corpus`, which
+was unwritable until the corpus lived here.
+
 ## 1.3.0 — 2026-08-25
 
 1.2.1 declared the roadmap empty. Checking that claim by running the commands

@@ -51,19 +51,22 @@ all: expanding a unit's lexical postings with its graph neighbours' terms, and
 embedding only the authored fields. On the foreign-repository ruler, hit@3
 never once exceeded its no-vector value of 0.429.
 
+Every figure below attributed to "a foreign repository" predates 1.4.0, when
+that ruler moved to a vendored copy of Flask. These were rejections and were
+not re-run; the ones deciding a shipped default were, in [ROADMAP](ROADMAP.md).
+
 The binding constraint is not the representation. `candidate_ids =
 lexical_scores.keys()` -- a vector reorders what the lexical half already
 found and cannot make anything retrievable, and pure cosine fires only when
 nothing matched at all, on 1 question of 35. Postings expansion, the one
-change that *could* alter retrievability, was measured worse at every sharing
-weight tried (hit@1 0.257 to 0.171 to 0.114 to 0.086) because borrowed
-vocabulary makes every neighbour match every neighbour's question.
+change that *could* alter retrievability, was worse at every sharing weight
+tried (hit@1 0.257 to 0.171 to 0.114 to 0.086): borrowed vocabulary makes every
+neighbour match every neighbour's question.
 
-Two mechanism-level results are worth keeping. Corpus-learned semantics need
-orders of magnitude more text than a repository has -- 65% of the foreign
-corpus's 6000 terms appear in four or fewer units -- and on a described corpus
-the shipped hash helps *because* it is blunt, so every scheme that sharpened it
-lost ground there.
+Two mechanism-level results are worth keeping: corpus-learned semantics need
+orders of magnitude more text than a repository has -- 65% of that corpus's
+6000 terms appeared in four or fewer units -- and on a described corpus the
+shipped hash helps *because* it is blunt, so every sharpening lost ground.
 
 ### What the vector is actually contributing
 
@@ -182,14 +185,13 @@ the opposite requirement.
 
 ### Semantics may add candidates; hashed overlap may not
 
-`search.vector_recall` widens the candidate set by cosine, and it is gated on
-the embedder rather than on a preference. Under the feature hash the same
-widening measured worse — a cosine over hashed token overlap ranks unrelated
-units confidently — while a trained model is the only mechanism that can reach
-a unit sharing no token with the question, which six of thirty-five foreign
-ruler questions require. Lexical evidence stays dominant either way: a unit
-found by similarity alone scores at most `search.vector_weight`, so it
-surfaces where the words found little and yields where they found a lot.
+`search.vector_recall` widens the candidate set by cosine, gated on the
+embedder rather than on a preference. Under the feature hash the same widening
+measured worse — a cosine over hashed token overlap ranks unrelated units
+confidently — while a trained model is the only mechanism that can reach a unit
+sharing no token with the question, which six of thirty-five foreign ruler
+questions required. Lexical evidence stays dominant either way: a unit found by
+similarity alone scores at most `search.vector_weight`.
 
 This is unmeasured against a real model, and deliberately so: this project has
 no key, and a number produced by a stub would be fiction. What ships instead
@@ -478,8 +480,8 @@ Cost is bounded by what a discriminating term *is*: concentration reads the
 posting list of every distinctive word, and a word stays distinctive only while
 it is under `COMMON_TERM` of the corpus, so the work is a few percent of the
 index per query word. Measured by `python -m benchmarks.query_latency`, refusing
-an unanswerable query takes 0.025 ms against about 1.0 ms to answer one — some
-forty times cheaper. The README carries the spread and the corpus fingerprint.
+an unanswerable query takes 0.029 ms against about 1.0 ms to answer one — some
+thirty-five times cheaper. The README carries the spread and the fingerprint.
 
 The gate also makes the pure-cosine fallback structurally unreachable under
 the feature hash, which is where it did the most harm — a cosine over hashed
@@ -519,18 +521,16 @@ Three properties matter, and none of them was present before 0.6.0:
 
 - **Rarity, derived from the corpus, not from a stopword list.** A word in
   nearly every unit says nothing about which unit is wanted. On a foreign
-  repository `calls` reached 97% of units and `the` 49%, while `daemon`
-  reached two and `warm` none — and the score was four-sixths decided by the
-  words carrying no information. Deriving this from the corpus is what makes
-  it work in any language: a Chinese bigram earns its weight the same way.
+  repository `calls` reached 97% of units and `the` 49% while `daemon` reached
+  two, so the score was four-sixths decided by words carrying no information.
+  Deriving it from the corpus is what makes it work in any language.
 - **Length, per field rather than per unit.** The largest declaration held 539
   distinct terms against a median of 52, so it could contain any query by
-  accident, and it came back for four questions out of six. Normalising each
-  field against its own average is the part that matters: measured against one
-  length for the whole unit, a long body's advantage in raw count almost
-  exactly cancelled its penalty for being long.
-- **Where the word is.** A term in a name is what a declaration is called; the
-  same term two hundred lines into a body is a mention.
+  accident, and came back for four questions of six. Normalising each field
+  against its own average is the part that matters: against one length for the
+  whole unit, a long body's raw-count advantage cancelled its length penalty.
+- **Where the word is.** A term in a name is what a declaration is called; two
+  hundred lines into a body it is a mention.
 
 `CodeUnit.searchable_fields` is the single definition of what retrieval may
 match, and `searchable_text` — what a unit is embedded from — is derived from

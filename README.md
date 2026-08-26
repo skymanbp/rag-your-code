@@ -264,60 +264,83 @@ repository had grown by ninety units.
 
 | ruler | what it represents | n | hit@1 | hit@3 | MRR |
 |---|---|---|---|---|---|
-| **A** foreign repo, no descriptions | what a first-time user gets | 35 | 0.229 | 0.371 | 0.286 |
+| **A** Flask 3.1.3, no descriptions | what a first-time user gets | 35 | 0.200 | 0.286 | 0.238 |
 | **B** this repo, generated descriptions only | a cold index of familiar code | 70 | 0.314 | 0.471 | 0.383 |
 | **C** this repo, agent-written descriptions | the warmest case supported | 70 | 0.443 | 0.614 | 0.507 |
 
-The corpora, without which none of the above is reproducible — **A**
-cc-enforcer, 1,345 units, `471b78f9f806`; **B** 579 units, `dca2a4656659`;
-**C** 579 units, `0a2f050dbafd`. Ruler A's repository is one this project does
-not control. Between the previous release and this table it grew by 78 units
-and renamed a declaration two questions pointed at, which stopped the ruler
-running at all until they were repointed — hit@3 0.400 → 0.371 and MRR 0.300 →
-0.286 are that, not a change in retrieval.
+The corpora, without which none of the above is reproducible — **A** 1,572
+units, `5fd51169eacc`; **B** 581 units, `8e1e71942c1c`; **C** 581 units,
+`978a1d48a82a`. Ruler A grades **a copy of Flask 3.1.3 carried in this
+repository**, at [`benchmarks/corpus/flask`](benchmarks/corpus/flask), pinned
+to commit `22d9247`. Through 1.3.0 it graded a checkout on one machine, and
+that cost three things: two questions pointed at a declaration the subject had
+renamed, a published score moved 0.257 → 0.229 with no code change because the
+subject had grown, and the model comparison below was taken against two
+different states of it. All three are now a `git clone` away from being
+checked, and CI runs this ruler as an ordinary job.
 
 **Refusal — the fourth ruler, 30 questions with no answer anywhere**
 
-| | this repo | foreign repo |
+| | this repo | Flask |
 |---|---|---|
-| correctly met with silence | **0.967** | **0.933** |
-| English only | **0.933** | **0.867** |
+| correctly met with silence | **0.967** | **0.833** |
+| English only | **0.933** | 0.667 |
 | Chinese only | **1.000** | **1.000** |
 | results resting on no lexical evidence, rulers A–C | **0.000** | **0.000** |
+
+Foreign silence fell from 0.933 to 0.833 when the subject changed, and the
+cause is a limit of the design rather than a defect. A word counts as evidence
+unless it occurs in more than 5% of units — a stopword list derived from the
+corpus, so that it needs no list and works in any language. Here `how`, `when`,
+`does` and `are` are everywhere, because 304 units carry written English prose.
+Across 1,572 units of mostly short, undocumented methods they occur in 1–5% of
+them and start counting as evidence. Five English questions about subjects
+Flask does not implement get through on exactly that.
 
 **What each bar costs and buys** — one corpus, gate varied alone:
 
 | gate | A hit@1/3/MRR | B hit@1/3/MRR | C hit@1/3/MRR | silence own / foreign |
 |---|---|---|---|---|
-| neither (pre-1.0.0) | 0.229/0.371/0.286 | 0.314/0.486/0.391 | 0.486/0.700/0.567 | 0.000 / 0.000 |
-| coverage only (1.0.0) | 0.229/0.371/0.286 | 0.314/0.471/0.383 | 0.486/0.686/0.562 | 0.600 / 0.767 |
-| **both (1.1.0)** | **0.229/0.371/0.286** | **0.314/0.471/0.383** | 0.443/0.614/0.507 | **0.967 / 0.933** |
+| neither (pre-1.0.0) | 0.200/0.286/0.238 | 0.314/0.486/0.391 | 0.486/0.700/0.567 | 0.000 / 0.000 |
+| coverage only (1.0.0) | 0.200/0.286/0.238 | 0.314/0.471/0.383 | 0.486/0.686/0.562 | 0.600 / 0.733 |
+| concentration only | 0.200/0.286/0.238 | 0.314/0.471/0.383 | 0.443/0.614/0.507 | 0.967 / 0.800 |
+| **both (1.1.0)** | **0.200/0.286/0.238** | **0.314/0.471/0.383** | 0.443/0.614/0.507 | **0.967 / 0.833** |
 
-Rulers A and B are **identical to three decimals**. The entire cost is three
-questions of seventy at hit@1 on the warmest ruler, and six at hit@3. On these
-four rulers concentration
-subsumes coverage — stated plainly because it is true; coverage is kept because
-it answers a different question and names a different diagnosis.
+Ruler A is **unmoved by either bar**, and B by concentration. The whole cost is
+three questions of seventy at hit@1 on the warmest ruler, and six at hit@3.
 
-**Latency** — warm corpus, 579 units `0a2f050dbafd`, five consecutive
+Through 1.3.0 this section said concentration subsumes coverage. **On a corpus
+this project did not choose, it does not.** Both bars together silence 0.833 of
+the foreign absent questions, against 0.800 for concentration alone and 0.733
+for coverage alone. One question — and the first time in four releases that
+keeping both has been worth a measurable amount rather than worth a different
+diagnosis.
+
+Raising the concentration bar buys the remaining silence, and is refused,
+because it is bought out of the answers: at 0.50 the foreign absent ruler is
+silent on all thirty while ruler A falls to 0.086 hit@1 from 0.200, B to 0.214
+from 0.314 and C to 0.329 from 0.443. **0.28 was chosen before this corpus
+existed and survived meeting it**, which is the only kind of evidence a default
+can have.
+
+**Latency** — warm corpus, 581 units `978a1d48a82a`, five consecutive
 invocations of `python -m benchmarks.query_latency --repeats 10` (420 samples
 each):
 
 | | | across the five |
 |---|---|---|
-| query, median | **0.65 ms** | 0.62 – 0.92 |
-| query, p95 | 1.13 ms | 1.09 – 1.48 |
-| refusing an unanswerable query | **0.022 ms** | 0.019 – 0.024 |
-| refusal cheaper than answering by | **~35×** | 31 – 39 |
+| query, median | **1.0 ms** | 0.71 – 1.26 |
+| query, p95 | 1.7 ms | 1.2 – 3.7 |
+| refusing an unanswerable query | **0.029 ms** | 0.023 – 0.031 |
+| refusal cheaper than answering by | **~36×** | 31 – 44 |
 
 Two significant figures and a spread, because that is the precision the
-measurement has. A second set of five taken earlier the same hour, while the
-machine was busy, put the median at 1.0 ms and p95 at 3.0 ms; the gap between
-the two sets is the machine, and it is wider than any change the code has ever
-made to this number. Earlier releases published `0.83 ms / p95 1.68 ms` to
-three figures from a script that was never committed, on a corpus that no
-longer exists — both values sit inside today's range, which is the point: they
-were unfalsifiable rather than wrong.
+measurement has. Across fifteen invocations over two releases on the same idle
+machine the median has landed anywhere from 0.62 to 1.44 ms and p95 from 1.09
+to 7.34 ms — a band wider than any change the code has ever made to this
+number. Releases before 1.3.0 published `0.83 ms / p95 1.68 ms` to three
+figures from a script that was never committed; both values sit inside that
+band, which is the point: they were unfalsifiable rather than wrong.
 
 Refusal is cheap for a structural reason, not a tuned one: an unanswerable
 query touches only the posting lists of its own distinctive words, and never
@@ -346,8 +369,8 @@ reaches ranking at all.
 Directional local measurements, not service levels — but every one of them is
 now a command rather than a memory, which two of them were not before. Each
 prints the corpus fingerprint beside its score; quote both or neither.
-[`benchmarks/README.md`](benchmarks/README.md) lists the five scripts and what
-each is for.
+[`benchmarks/README.md`](benchmarks/README.md) lists the six scripts and what
+each is for, and the corpus one of them grades is now carried here too.
 
 ## 7 · `rag-your-code search` vs a Grep loop
 
@@ -357,34 +380,42 @@ many hit. That is what this reproduces — same corpus, same questions, same
 ruler, scored at **file** granularity so Grep is not penalised for lacking
 declaration spans.
 
-**On a repository nobody has described, Grep wins.** That is the measured
-result and it is not softened here.
+**Which side wins on an undescribed repository depends on the repository.**
+Through 1.3.0 this section said flatly that Grep wins there, because the one
+undescribed repository ever measured was a hook-heavy tool whose questions were
+answerable by matching identifiers. Swapping the subject for a public web
+framework reversed it. The honest claim is narrower than either table alone:
 
-| foreign repository · 35 questions · 1,345 units `471b78f9f806` · no descriptions | Grep loop | rag-your-code |
+| Flask 3.1.3 · 35 questions · 1,572 units `5fd51169eacc` · no descriptions | Grep loop | rag-your-code |
 |---|---|---|
-| right file first | **40.0%** | 28.6% |
-| right file in top 3 | **62.9%** | 48.6% |
-| lines it hands back, all questions | 8,937 | — |
-| characters returned, all questions | 841,484 | **282,102** |
-| questions it answers | **35** | 28 |
+| right file first | 22.9% | **37.1%** |
+| right file in top 3 | 45.7% | **57.1%** |
+| lines it hands back, all questions | 17,641 | — |
+| characters returned, all questions | 1,415,656 | **249,720** |
+| questions it answers | 30 | 30 |
 
 **Once the vocabulary exists, it is not close.**
 
-| this repository · 70 questions · 579 units `0a2f050dbafd` · 304 described | Grep loop | rag-your-code |
+| this repository · 70 questions · 581 units `978a1d48a82a` · 304 described | Grep loop | rag-your-code |
 |---|---|---|
 | right file first | 22.9% | **58.6%** |
-| right file in top 3 | 55.7% | **75.7%** |
-| lines it hands back, all questions | 11,636 | — |
-| characters returned, all questions | 1,101,618 | **621,837** |
+| right file in top 3 | 54.3% | **75.7%** |
+| lines it hands back, all questions | 11,833 | — |
+| characters returned, all questions | 1,122,902 | **626,022** |
 | questions it answers | **61** | 60 |
 
 Those two tables are the whole argument of section 3.3, measured against a real
 baseline instead of asserted. A cold index retrieves against a sentence the
-parser generated from identifiers the author already chose — so it is competing
-with Grep using Grep's own information, and losing, because Grep does not have
-to guess which of the matching files is the definition. Descriptions put words
-in the index that the source never contained, and first-place accuracy goes
-from below Grep's to **more than double** it.
+parser generated from identifiers the author already chose, plus whatever
+docstrings the author wrote — so how it fares against Grep is decided by how
+much prose the repository already contains. Flask has a written docstring on
+most public methods, and the cold index beats Grep there without a single
+description being added. On the previous subject, a tool with terse comments
+and long identifiers, the same cold index lost to Grep by the same margin.
+
+What does not depend on the subject is what descriptions buy: on this
+repository first-place accuracy goes to **more than double** Grep's, and the
+payload comes back ranked, spanned, and roughly half the size.
 
 **Both tables come from `python -m benchmarks.grep_baseline`**, which is what
 changed in 1.3.0. Until then this section — the strongest claim the project
@@ -407,12 +438,16 @@ Four qualifications, because the table would otherwise flatter both sides:
   `the` gets every file back in no order. It is also why Grep declines nine of
   the seventy questions here — those had no word left that this corpus does not
   use everywhere.
-- **Payload is counted in characters on both sides.** Grep hands back 18,000
-  characters per question it answers, unranked and without spans; this returns
-  10,400, ranked, capped by `search.max_chars`. That is a factor of 1.7, not
-  the order of magnitude an earlier version of this table implied by counting
-  one side in lines and the other in characters. Seven of 35 and ten of 70
-  questions come back empty here instead, with a reason.
+- **Payload is counted in characters on both sides.** On this repository Grep
+  hands back 18,400 characters per question it answers, unranked and without
+  spans, against 10,400 here, ranked and capped by `search.max_chars` — a
+  factor of 1.8. On Flask it is a factor of 5.7 — 47,200 characters against
+  8,300 — because a framework repeats its own vocabulary across many files and
+  Grep has no way to rank what it finds. Both sides decline the same five of
+  those 35 — and they are the five Chinese ones, all of them. A Chinese word is
+  not a substring of English source and it is not a token in an index built
+  from English source, so on a repository written in one language the cold
+  cross-language case is not this tool's failure but the corpus's.
 - **Grep wins outright when you know the string.** `grep -rn "COMMON_TERM"` is
   exact, instant and complete, and nothing here replaces it.
 
@@ -477,19 +512,23 @@ The extra is optional by construction: `dependencies = []` is what a default
 install gets, the import happens inside the constructor, and a test asserts the
 default provider imports none of it.
 
-**Measured, on the same four rulers.** This is the first release with a real
-model behind these numbers — 0.8.0 shipped the seam and said plainly that its
-benefit was unmeasured.
+**Measured on the same four rulers, both arms against one corpus.** 1.1.0
+published this comparison and read it as a win. Its largest gain was on the
+foreign ruler, whose two arms turned out to have been taken against two
+different states of a repository being edited while the script ran. Repeated
+against a pinned corpus:
 
-| ruler | signed hash (default) | MiniLM, local |
-|---|---|---|
-| **A** foreign, cold | 0.229 / 0.400 / 0.300 | **0.286 / 0.457 / 0.357** |
-| **B** own, cold | 0.314 / 0.471 / 0.383 | **0.329 / 0.486 / 0.400** |
-| **C** own, described | 0.443 / 0.614 / 0.507 | 0.443 / **0.671 / 0.540** |
-| **D** silence, own / foreign | 0.967 / 0.933 | 0.967 / 0.933 |
+| ruler | corpus | signed hash (default) | MiniLM, local |
+|---|---|---|---|
+| **A** foreign, cold | 1,572 `5fd51169eacc` | **0.200 / 0.286 / 0.238** | 0.171 / 0.257 / 0.214 |
+| **B** own, cold | 581 `8e1e71942c1c` | 0.314 / 0.471 / 0.383 | 0.314 / 0.471 / 0.383 |
+| **C** own, described | 581 `978a1d48a82a` | **0.443 / 0.614 / 0.507** | 0.429 / 0.600 / 0.500 |
+| **D** silence, own / foreign | as above | 0.967 / 0.833 | 0.967 / 0.833 |
 
-Better on every positive ruler, with refusal unchanged. The pairs the hash
-scores exactly zero:
+**Worse or identical on every ruler.** It is shipped anyway, as an extra nobody
+has to install, because it does one thing the hash cannot do at all and these
+rulers cannot see: reach a unit that shares no word with the question. The
+pairs the hash scores exactly zero:
 
 | pair | signed hash | MiniLM |
 |---|---|---|
@@ -506,6 +545,10 @@ Two vector-space replacements were measured and rejected: a similarity floor is
 a threshold on a score and the distributions overlap (0.469 vs 0.418 median),
 and a scale-free standout metric took ruler B from 0.329 to 0.186 for two
 thirds of the silence. Applying the lexical bars costs ruler A nothing.
+
+If you install it expecting the hit rates above to move, they will not. Install
+it for the cross-language and paraphrase cases in the table above, which is
+where the difference between the two columns actually lives.
 
 **A hosted endpoint** is the third option, and the only one that sends your
 source anywhere:
