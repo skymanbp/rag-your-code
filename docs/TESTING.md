@@ -289,6 +289,13 @@ limits with the reason each needs cross-line context.
 
 ## Baseline versus hybrid
 
+Six benchmark scripts exist and [benchmarks/README.md](../benchmarks/README.md)
+is the index of them: the four rulers, the query-latency timer, the Grep
+head-to-head, the scale harness and the cold-process loader. Two of the figures
+this project published used to come from scripts that were never committed;
+every published figure is now a command that prints its corpus fingerprint.
+This section covers only the golden-fixture tripwire.
+
 Run:
 
 ```powershell

@@ -264,9 +264,17 @@ repository had grown by ninety units.
 
 | ruler | what it represents | n | hit@1 | hit@3 | MRR |
 |---|---|---|---|---|---|
-| **A** foreign repo, no descriptions | what a first-time user gets | 35 | 0.229 | 0.400 | 0.300 |
+| **A** foreign repo, no descriptions | what a first-time user gets | 35 | 0.229 | 0.371 | 0.286 |
 | **B** this repo, generated descriptions only | a cold index of familiar code | 70 | 0.314 | 0.471 | 0.383 |
 | **C** this repo, agent-written descriptions | the warmest case supported | 70 | 0.443 | 0.614 | 0.507 |
+
+The corpora, without which none of the above is reproducible — **A**
+cc-enforcer, 1,345 units, `471b78f9f806`; **B** 579 units, `dca2a4656659`;
+**C** 579 units, `0a2f050dbafd`. Ruler A's repository is one this project does
+not control. Between the previous release and this table it grew by 78 units
+and renamed a declaration two questions pointed at, which stopped the ruler
+running at all until they were repointed — hit@3 0.400 → 0.371 and MRR 0.300 →
+0.286 are that, not a change in retrieval.
 
 **Refusal — the fourth ruler, 30 questions with no answer anywhere**
 
@@ -281,25 +289,39 @@ repository had grown by ninety units.
 
 | gate | A hit@1/3/MRR | B hit@1/3/MRR | C hit@1/3/MRR | silence own / foreign |
 |---|---|---|---|---|
-| neither (pre-1.0.0) | 0.229/0.400/0.300 | 0.314/0.486/0.391 | 0.471/0.686/0.552 | 0.000 / 0.000 |
-| coverage only (1.0.0) | 0.229/0.400/0.300 | 0.314/0.471/0.383 | 0.471/0.671/0.548 | 0.700 / 0.767 |
-| **both (1.1.0)** | **0.229/0.400/0.300** | **0.314/0.471/0.383** | 0.443/0.614/0.507 | **0.967 / 0.933** |
+| neither (pre-1.0.0) | 0.229/0.371/0.286 | 0.314/0.486/0.391 | 0.486/0.700/0.567 | 0.000 / 0.000 |
+| coverage only (1.0.0) | 0.229/0.371/0.286 | 0.314/0.471/0.383 | 0.486/0.686/0.562 | 0.600 / 0.767 |
+| **both (1.1.0)** | **0.229/0.371/0.286** | **0.314/0.471/0.383** | 0.443/0.614/0.507 | **0.967 / 0.933** |
 
-Rulers A and B are **identical to three decimals**. The entire cost is four
-questions of seventy on the warmest ruler. On these four rulers concentration
+Rulers A and B are **identical to three decimals**. The entire cost is three
+questions of seventy at hit@1 on the warmest ruler, and six at hit@3. On these
+four rulers concentration
 subsumes coverage — stated plainly because it is true; coverage is kept because
 it answers a different question and names a different diagnosis.
 
-**Latency** — warm corpus, 557 units, 420 samples after warm-up:
+**Latency** — warm corpus, 579 units `0a2f050dbafd`, five consecutive
+invocations of `python -m benchmarks.query_latency --repeats 10` (420 samples
+each):
 
-| | |
-|---|---|
-| query, median | **0.83 ms** |
-| query, p95 | 1.68 ms |
-| refusing an unanswerable query | **0.03 ms** |
+| | | across the five |
+|---|---|---|
+| query, median | **0.65 ms** | 0.62 – 0.92 |
+| query, p95 | 1.13 ms | 1.09 – 1.48 |
+| refusing an unanswerable query | **0.022 ms** | 0.019 – 0.024 |
+| refusal cheaper than answering by | **~35×** | 31 – 39 |
 
-Refusal is cheaper than answering by a factor of forty: an unanswerable query
-touches only the posting lists of its own distinctive words, never the corpus.
+Two significant figures and a spread, because that is the precision the
+measurement has. A second set of five taken earlier the same hour, while the
+machine was busy, put the median at 1.0 ms and p95 at 3.0 ms; the gap between
+the two sets is the machine, and it is wider than any change the code has ever
+made to this number. Earlier releases published `0.83 ms / p95 1.68 ms` to
+three figures from a script that was never committed, on a corpus that no
+longer exists — both values sit inside today's range, which is the point: they
+were unfalsifiable rather than wrong.
+
+Refusal is cheap for a structural reason, not a tuned one: an unanswerable
+query touches only the posting lists of its own distinctive words, and never
+reaches ranking at all.
 
 **Scale**, synthetic 10,000-unit repository (500 files):
 
@@ -321,8 +343,11 @@ touches only the posting lists of its own distinctive words, never the corpus.
 | with a usable signature | **91 / 91** |
 | units invented that do not exist | **0** |
 
-Directional local measurements, not service levels. Reproduce with
-`python benchmarks/repo_queries.py` and `python benchmarks/large_repo.py`.
+Directional local measurements, not service levels — but every one of them is
+now a command rather than a memory, which two of them were not before. Each
+prints the corpus fingerprint beside its score; quote both or neither.
+[`benchmarks/README.md`](benchmarks/README.md) lists the five scripts and what
+each is for.
 
 ## 7 · `rag-your-code search` vs a Grep loop
 
@@ -335,23 +360,23 @@ declaration spans.
 **On a repository nobody has described, Grep wins.** That is the measured
 result and it is not softened here.
 
-| foreign repository · 35 questions · 1,267 units · no descriptions | Grep loop | rag-your-code |
+| foreign repository · 35 questions · 1,345 units `471b78f9f806` · no descriptions | Grep loop | rag-your-code |
 |---|---|---|
-| right file first | **34.3%** | 31.4% |
-| right file in top 3 | **60.0%** | 48.6% |
-| lines matched across the repo, all questions | 33,213 | — |
-| characters returned, all questions | — | **163,294** |
-| questions it answers | 35 | 28 |
+| right file first | **40.0%** | 28.6% |
+| right file in top 3 | **62.9%** | 48.6% |
+| lines it hands back, all questions | 8,937 | — |
+| characters returned, all questions | 841,484 | **282,102** |
+| questions it answers | **35** | 28 |
 
 **Once the vocabulary exists, it is not close.**
 
-| this repository · 70 questions · 569 units · 304 described | Grep loop | rag-your-code |
+| this repository · 70 questions · 579 units `0a2f050dbafd` · 304 described | Grep loop | rag-your-code |
 |---|---|---|
-| right file first | 25.7% | **58.6%** |
-| right file in top 3 | 64.3% | **75.7%** |
-| lines matched across the repo, all questions | 40,150 | — |
-| characters returned, all questions | — | **277,327** |
-| questions it answers | 70 | 60 |
+| right file first | 22.9% | **58.6%** |
+| right file in top 3 | 55.7% | **75.7%** |
+| lines it hands back, all questions | 11,636 | — |
+| characters returned, all questions | 1,101,618 | **621,837** |
+| questions it answers | **61** | 60 |
 
 Those two tables are the whole argument of section 3.3, measured against a real
 baseline instead of asserted. A cold index retrieves against a sentence the
@@ -361,15 +386,32 @@ to guess which of the matching files is the definition. Descriptions put words
 in the index that the source never contained, and first-place accuracy goes
 from below Grep's to **more than double** it.
 
-Three qualifications, because the table would otherwise flatter both sides:
+**Both tables come from `python -m benchmarks.grep_baseline`**, which is what
+changed in 1.3.0. Until then this section — the strongest claim the project
+makes — was published from a script that had never been committed, so nothing
+here could be checked and the word "Grep loop" had no precise meaning. The
+committed version defines it: take the query's words, drop the ones the corpus
+itself shows are everywhere, run one substring search per remaining word over
+exactly the files the index was built from, rank each file by how many distinct
+words hit it, break ties on path. Reconstructing it reproduced this side's
+figures exactly and moved Grep's, which is the expected shape — the ranked arm
+was always a call into shipped code, and the baseline never was.
+
+Four qualifications, because the table would otherwise flatter both sides:
 
 - **Scored at file granularity**, which understates this side. A Grep hit is a
   file; a hit here is a declaration with an exact span, a score, and the words
   it matched on. The agent that reads the result opens 40 lines, not a file.
-- **Grep answers everything.** It never declines, which is why it hands back
-  33,213 matching lines for 35 questions — about 950 lines per question, no
-  ranking, no spans, no indication which match is the definition. This returns
-  roughly 5,800 characters per question, ranked. Seven of 35 and ten of 70
+- **Dropping the corpus-common words is generous to Grep**, and it is what
+  makes the baseline a fair one rather than a straw man: an agent that greps
+  `the` gets every file back in no order. It is also why Grep declines nine of
+  the seventy questions here — those had no word left that this corpus does not
+  use everywhere.
+- **Payload is counted in characters on both sides.** Grep hands back 18,000
+  characters per question it answers, unranked and without spans; this returns
+  10,400, ranked, capped by `search.max_chars`. That is a factor of 1.7, not
+  the order of magnitude an earlier version of this table implied by counting
+  one side in lines and the other in characters. Seven of 35 and ten of 70
   questions come back empty here instead, with a reason.
 - **Grep wins outright when you know the string.** `grep -rn "COMMON_TERM"` is
   exact, instant and complete, and nothing here replaces it.

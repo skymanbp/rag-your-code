@@ -3,6 +3,122 @@
 Notable changes per release. Dates are the release date; measurements are from
 the development machine (Windows 11, CPython 3.13) and are directional.
 
+## 1.3.0 — 2026-08-25
+
+1.2.1 declared the roadmap empty. Checking that claim by running the commands
+turned up four published figures with no command behind them, and one ruler
+that had stopped running altogether.
+
+### The Grep head-to-head is now a command
+
+README section 7 — the strongest claim the project makes, that retrieval beats
+an agent driving Grep once a repository has been described — was published from
+a script that was never committed. Nothing in it could be checked, and "a Grep
+loop" had no definition precise enough to argue with.
+
+**`benchmarks/grep_baseline.py`** is that script, written to the description in
+the README and then measured. It takes the query's words, drops the ones the
+corpus itself shows are everywhere, runs one substring search per remaining
+word over exactly the files the index was built from, ranks each file by how
+many distinct words hit it, and breaks ties on path. Both arms are scored at
+file granularity, and both payloads are counted in characters — the old table
+counted one side in lines and the other in characters, which compares nothing.
+
+Reconstruction reproduced this side's figures exactly (58.6% / 75.7% / 60 of 70
+answered) and moved the baseline's, which is the expected shape: the ranked arm
+was always a call into shipped code and the baseline never was. The qualitative
+result is unchanged and both directions still hold — Grep wins on an
+undescribed repository, 40.0% to 28.6%; on a described one it is 22.9% to
+58.6%. The payload advantage is a factor of 1.7, not the order of magnitude the
+old mismatched units implied.
+
+### Latency is a command too, and was quoted to more figures than it has
+
+`0.83 ms / p95 1.68 ms` came from the same kind of uncommitted script, on a
+557-unit corpus that no longer exists. **`benchmarks/query_latency.py`** repeats
+the whole measurement and prints the spread, because a single run does not have
+the precision three figures claim.
+
+Ten invocations across one hour on one machine put the median anywhere from
+0.62 to 1.44 ms and p95 from 1.09 to 7.34 ms, depending on nothing but what
+else the machine was doing. The old figures sit inside that range — they were
+unfalsifiable rather than wrong, which is the harder defect to notice. The
+README now publishes two significant figures with the range beside them,
+0.65 ms and p95 1.13 ms over five consecutive runs on the final corpus.
+
+The README's "a factor of forty" was right and its own table was not: the two
+rows above it divided to twenty-eight. The script derives the ratio now, and it
+comes out at 35.
+
+### Ruler A had stopped running
+
+Two questions in `cold_queries.json` pointed at `read_guard.py::_classify_change`
+in the foreign repository. That declaration had moved to
+`lib/editscale.py::classify_change`, and the ruler's integrity check refused to
+grade rather than scoring the questions as misses — which is exactly what that
+check exists for, and it had been failing unnoticed because nothing ran it.
+
+Repointed, and re-measured on a foreign corpus that has grown from 1,267 to
+1,345 units: A is 0.229 / 0.371 / 0.286, where 0.400 and 0.300 were the
+corpus, not retrieval. B, C and both silence rulers are unchanged to three
+decimals.
+
+`cold_queries.json` now records what it was graded against: commit
+`080424eab89b` plus 18 uncommitted files, 1,345 units, fingerprint
+`471b78f9f806`. The commit does not identify that corpus and no commit can.
+
+### Every published table now carries its corpus
+
+The README has said since 1.1.0 that "every report carries a fingerprint of the
+corpus it graded". Every report did. **None of the tables printing those
+reports did**, which is the half that a reader sees. They do now, and the
+ablation table was re-measured to have one — the coverage-only row silences
+0.600 where it silenced 0.700, from the same bar on a larger repository.
+
+The visible cost of not having done this: the local-model comparison in the
+roadmap has an A row whose two arms were taken against `ecd28fce38a2` and
+`9834c411583e`, two states of a repository being edited while the script ran.
+It is left in place with the confound named. B and C share a fingerprint across
+both arms and remain attributable.
+
+### Counts that had never been re-derived
+
+- `search.py` said "all 32 questions in `benchmarks/absent_queries.json`". That
+  file has held 30 since its only commit; it was never 32.
+- `tests/test_evidence.py` carried the same 32.
+- `config.py` said `min_coverage` was measured "across two repositories, two
+  languages and 126 questions" — no question set here has ever summed to 126 —
+  and that it "silences 47%", which measures 0.600 today.
+- Its `min_concentration` note said the bar "roughly halves" the answers that
+  should not have been given, while the ablation table two documents away said
+  an order of magnitude.
+
+All four now name the command or the table instead of a number, which is the
+rule `repo_queries.py` had already written down and this file had not followed:
+a figure in prose is a claim nothing checks.
+
+### The absence guard fired a fourth time
+
+`query_latency.py` named a helper after the statistic it computes. That word is
+a subject of a question the absent ruler asserts nothing here answers, and a
+declaration named after it puts it in the index. `tests/test_absent_queries.py`
+caught it before anything was published — the first firing on a declaration
+name rather than on a query string inside a test.
+
+### Also
+
+- **`benchmarks/README.md`** lists all six scripts and the command for each. It
+  had documented two, neither of them the four rulers.
+- Ruler A's documented command no longer writes an index into the repository it
+  grades; a ruler should not need write access to its subject.
+
+353 tests (from 352; **+1 added, 0 removed** by node-id set diff against
+v1.2.1). The addition is
+`test_metadata.py::test_every_benchmark_script_is_listed_in_its_own_index`,
+which fails in both directions: a script in `benchmarks/` its own README does
+not name, and a command in that README naming a script that does not exist.
+Discovery by glob, so the seventh script cannot be the one nothing checks.
+
 ## 1.2.1 — 2026-08-25
 
 A documentation correction, and the claim it corrects had been shipped in three
