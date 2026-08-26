@@ -1,0 +1,16 @@
+# rag-your-code, configured for its own repository.
+#
+# One setting, for one reason: `benchmarks/corpus/` holds a vendored copy of a
+# third-party repository that the foreign ruler grades. Indexing it here would
+# put eighteen hundred units of somebody else's code into this project's own
+# index -- which is not merely noise. Two of the four rulers measure retrieval
+# over *this* repository, and `benchmarks/absent_queries.json` asserts that
+# nothing here answers thirty questions, a claim a vendored web framework would
+# falsify by accident.
+#
+# The list restates the built-in defaults because a list setting replaces
+# rather than extends. `tests/test_config_file.py` asserts it stays a superset
+# of them, so a default added upstream cannot silently stop applying here.
+
+[index]
+ignore = [".git", ".hg", ".svn", ".venv", "venv", "node_modules", "dist", "build", "__pycache__", ".rag-your-code", "corpus"]
