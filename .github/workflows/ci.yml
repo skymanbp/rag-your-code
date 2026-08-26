@@ -32,7 +32,10 @@ jobs:
       - name: Run the suite
         run: python -m pytest -q
       - name: Byte-compile everything the docs tell you to
-        run: python -m compileall -q src tests benchmarks
+        # `benchmarks/corpus/` is a vendored third-party repository kept as a
+        # ruler's subject, not code this project maintains. Compiling it would
+        # be gating on somebody else's release.
+        run: python -m compileall -q -x "benchmarks[\/]corpus" src tests benchmarks
 
   benchmark:
     # Quality metrics are deterministic and are a user-facing contract; timings
@@ -57,6 +60,17 @@ jobs:
         # that must not rot is asserted in tests/test_absent_queries.py and the
         # figure is merely recorded here.
         run: python -m benchmarks.repo_queries --questions benchmarks/absent_queries.json --output absent-queries-result.json
+
+      - name: The foreign ruler, reproducible here for the first time
+        # Until 1.4.0 this ruler graded a repository nobody here controlled, so
+        # CI could not run it at all: the corpus differed by the hour and no
+        # commit could restore the one a published number came from. It is now
+        # a vendored copy at a pinned tag, which makes it a job like any other.
+        run: |
+          python -m ragyourcode.cli index benchmarks/corpus/flask
+          python -m benchmarks.repo_queries --index benchmarks/corpus/flask --questions benchmarks/cold_queries.json --output cold-queries-result.json
+          python -m benchmarks.repo_queries --index benchmarks/corpus/flask --questions benchmarks/absent_queries.json --output absent-foreign-result.json
+          python -m benchmarks.grep_baseline --index benchmarks/corpus/flask --questions benchmarks/cold_queries.json --root benchmarks/corpus/flask
 
       - name: Assert the published quality numbers still hold
         run: |

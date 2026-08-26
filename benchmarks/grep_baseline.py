@@ -118,6 +118,11 @@ def main() -> int:
     args = parser.parse_args()
 
     index_path = Path(args.index) if args.index else ROOT / ".rag-your-code" / "index.json"
+    if index_path.is_dir():
+        # `--index <repository>` is the obvious thing to type, and the ruler
+        # next door already accepts it. Two flags meaning the same thing in two
+        # scripts is how a documented command becomes wrong in one of them.
+        index_path = index_path / ".rag-your-code" / "index.json"
     root = Path(args.root) if args.root else ROOT
     _, units = read_index(index_path)
     search_index = build_search_index(units)

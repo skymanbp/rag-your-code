@@ -4,7 +4,10 @@ Six scripts. Five of them measure something the README publishes, and the
 rule for all of them is the same: **a score is meaningless without the corpus
 it was taken on.** Two runs of an unchanged `search.py` reported 0.257 and
 0.229 hit@1 on the foreign ruler, and both were right — that repository had
-grown by ninety units in between, and nothing in the output said so.
+grown by ninety units in between, and nothing in the output said so. Since
+1.4.0 the foreign ruler's subject is [vendored at a pinned tag](corpus/), so
+that particular drift cannot happen again; the fingerprints stay because the
+*own* corpus still moves with every commit.
 
 ## Retrieval — the four rulers
 
@@ -16,10 +19,10 @@ python -m benchmarks.repo_queries --cold
 # D: questions with no answer anywhere
 python -m benchmarks.repo_queries --questions benchmarks/absent_queries.json
 
-# A: a repository nobody here wrote. Index it somewhere outside that repository
-# rather than into it -- a ruler must not require write access to its subject.
-python -m ragyourcode.cli index <path-to-cc-enforcer> --output foreign-index.json
-python -m benchmarks.repo_queries --index foreign-index.json --questions benchmarks/cold_queries.json
+# A: a repository nobody here wrote, carried at a pinned tag in corpus/
+python -m ragyourcode.cli index benchmarks/corpus/flask
+python -m benchmarks.repo_queries --index benchmarks/corpus/flask --questions benchmarks/cold_queries.json
+python -m benchmarks.repo_queries --index benchmarks/corpus/flask --questions benchmarks/absent_queries.json
 ```
 
 A, B and C grade whether the answer is **found**; D grades whether silence is
@@ -43,7 +46,7 @@ the question.
 
 ```powershell
 python -m benchmarks.grep_baseline
-python -m benchmarks.grep_baseline --index foreign-index.json     --questions benchmarks/cold_queries.json --root <path-to-cc-enforcer>
+python -m benchmarks.grep_baseline --index benchmarks/corpus/flask     --questions benchmarks/cold_queries.json --root benchmarks/corpus/flask
 ```
 
 Produces both tables in README section 7. The baseline takes the query's words,
