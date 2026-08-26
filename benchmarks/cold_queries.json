@@ -3,6 +3,13 @@
   "repository": "cc-enforcer",
   "why": "Grades retrieval on a repository nobody here wrote. The seventy questions in repo_queries.json are asked about this project's own source, by the same party that wrote both the code and its descriptions, on an index where every unit under src/ carries a hand-written bilingual description. That is the warmest case there is, and it cannot see what a first-time user sees: a foreign repository, zero descriptions, ranking decided by nothing but the words the author happened to use.",
   "caveat": "The questions are phrased in a user's words on purpose, not in the words of the docstring that answers them, so a hit means retrieval bridged a paraphrase rather than echoing a string it was handed. Answers were verified one by one against the declarations in the graded repository. The repository itself is external: when it is absent this ruler is skipped, never silently scored as zero.",
+  "measured_against": {
+    "commit": "080424eab89b",
+    "uncommitted_files": 18,
+    "units": 1345,
+    "fingerprint": "471b78f9f806",
+    "note": "The commit alone does not identify this corpus: the tree carried 18 uncommitted files when it was graded, and the repository is not one this project controls. The fingerprint is the only thing that pins it. Quote it with any figure from this ruler, and expect a re-run here to differ."
+  },
   "queries": [
     {
       "id": "cold-secret-en",
@@ -79,8 +86,8 @@
       "query": "decide whether this change is a tiny tweak or a real rewrite",
       "acceptable": [
         [
-          "hooks/scripts/read_guard.py",
-          "_classify_change"
+          "hooks/scripts/lib/editscale.py",
+          "classify_change"
         ]
       ]
     },
@@ -99,8 +106,8 @@
           "_handle_pre_tool_use._check_rolling_patch"
         ],
         [
-          "hooks/scripts/read_guard.py",
-          "_classify_change"
+          "hooks/scripts/lib/editscale.py",
+          "classify_change"
         ]
       ]
     },
