@@ -32,11 +32,10 @@ grep for. **Reading whole files** is thorough and blows the context budget:
 five files of a real repository is tens of thousands of tokens, most of them
 irrelevant.
 
-Retrieval sits in between — and brings a third problem that the first two do
-not have. Grep can tell you it found nothing. **A ranking cannot.** It always
+Retrieval sits in between, and brings a third problem the first two do not
+have. Grep can tell you it found nothing. **A ranking cannot.** It always
 produces a least-bad candidate and returns it with a score and a rank that read
-exactly like an answer, whether or not the repository contains anything
-relevant. That is the failure this project spent its last two releases on.
+exactly like an answer, whether or not the repository holds anything relevant.
 
 ## 2 · What it does
 
@@ -50,9 +49,9 @@ relevant. That is the failure this project spent its last two releases on.
 | **Serve** | A CLI, and a JSON-lines protocol for a long-lived agent subprocess. |
 
 **Scope.** Retrieval over source declarations. Not a code-understanding model,
-not a generation step, not an IDE index. Questions are answered in the
-vocabulary somebody wrote down — in the code, in its documentation, or in a
-description an agent added.
+not a generation step, not an IDE index. Questions are answered in vocabulary
+somebody wrote down: in the code, its documentation, or a description an agent
+added.
 
 ## 3 · What is actually hard here
 
@@ -60,11 +59,11 @@ Three things, and all three are measured rather than argued.
 
 ### 3.1 · Ranking cannot say "no answer"
 
-Eight releases measured how well retrieval *finds* the answer. None could
-measure what it does when there is no answer, because every question graded had
-one. A fourth ruler — thirty questions about subjects neither graded repository
-implements — settled it in a single run: **all thirty answered**, in both
-languages, on both repositories.
+Eight releases measured how well retrieval *finds* the answer. None could see
+what it does when there is none, because every question graded had one. A
+fourth ruler — thirty questions about subjects neither graded repository
+implements — settled it in one run: **all thirty answered**, both languages,
+both repositories.
 
 | asked of a repository containing no such code | answered with | on the evidence of |
 |---|---|---|
@@ -72,8 +71,8 @@ languages, on both repositories.
 | `准入控制为什么会拒绝没有资源限额的容器组` | the UTF-8 console setup | `拒绝` `控制` `没有` |
 | `how is the OAuth refresh token rotated` | a description-store method | `before` `is` `refresh` `the` |
 
-Not a Chinese problem and not a ranking problem — a **missing question**.
-Nothing in the pipeline ever asked *is any of this evidence*.
+Not a Chinese problem and not a ranking problem — a **missing question**: nothing
+in the pipeline ever asked *is any of this evidence*.
 
 Retrieval now asks two questions that ranking cannot:
 
@@ -86,28 +85,26 @@ until you notice which half.
 **Concentration** — what share of the query's *rarity* lands inside a single
 declaration. Coverage alone asks whether each word occurs somewhere, which a
 question about a subject nothing here implements can satisfy entirely out of
-unrelated units: four of six words found in four different declarations, none
-of which has anything to do with the question or with one another. Rarity-
-weighted rather than counted, because a unit holding two ordinary words is not
-better evidence than one holding the rare word the question is about.
+unrelated units: four of six words in four declarations with nothing to do with
+the question or with one another. Rarity-weighted rather than counted, because
+two ordinary words are not better evidence than the rare word asked about.
 
-Both are **ratios inside the query**, never thresholds on a score. A score
-threshold is tied to whatever scale the ranking currently produces, and this
-project has already had one silently stop existing the moment BM25F changed
-the scale.
+Both are **ratios inside the query**, never thresholds on a score: a score
+threshold is tied to whatever scale the ranking produces, and this project has
+already had one silently stop existing the moment BM25F changed that scale.
 
 ### 3.2 · The vector was carrying nothing, and here is why
 
 The default embedder is a signed feature hash. Ablating it entirely moves the
 three positive rulers by **±1 question in either direction** while the vectors
-occupy **65.3%** of the index. That was known since 0.6.0 and left unexplained.
+occupy **72.1%** of the index. That was known since 0.6.0 and left unexplained.
 The explanation, measured here:
 
-- **Not saturation.** Median 56 distinct tokens per unit into 384 buckets;
-  13.6% expected occupancy; 0.4% of units exceed the width. Widening to 16,384
-  raises fidelity to true overlap from r=0.40 to r=0.56 and buys no ranking.
-- **Not redundancy.** Its cosine correlates only **+0.45** with the BM25F score
-  over 26,490 scored candidates, so it does carry variance of its own.
+- **Not saturation.** Median 56 distinct tokens per unit into 384 buckets, 0.4%
+  of units over the width; widening to 16,384 raises fidelity from r=0.40 to
+  r=0.56 and buys no ranking.
+- **Not redundancy.** Its cosine correlates only **+0.45** with BM25F over
+  26,490 scored candidates, so it does carry variance of its own.
 - **The variance is the wrong variance.** A signed hash counts every token
   equally. The independent part of what it measures is therefore precisely the
   contribution of words that are everywhere — the part rarity weighting exists
@@ -116,20 +113,19 @@ The explanation, measured here:
   vector cannot make anything retrievable. Six of thirty-five foreign-ruler
   questions have an accepted answer sharing **no token at all** with the query.
 
-Eight replacement schemes were implemented and measured across releases —
-character n-grams, random indexing, truncated SVD, posting-list signatures, a
-rarity-weighted hash, call-graph diffusion, postings expansion, authored-fields-
-only. None beat using no vector. The conclusion is not that the hash needs
-tuning; it is that **a vector computed from the same words cannot know anything
-the words do not already say.** Making it useful requires a model — which is
-now an installable option, and measured below.
+Eight replacement schemes were measured across releases — character n-grams,
+random indexing, truncated SVD, posting-list signatures, a rarity-weighted
+hash, call-graph diffusion, postings expansion, authored-fields-only. None beat
+using no vector: **a vector computed from the same words cannot know anything
+the words do not already say.** Making it useful takes a model, which is an
+installable option and is measured below.
 
 ### 3.3 · Retrieval reaches only what somebody wrote down
 
 `retry_charge` tokenizes to one opaque term, not to *retry* and *charge*.
-Splitting identifiers was implemented and measured with query and stored
-vectors rebuilt together: equal or worse on every ruler, because the pieces are
-`get`, `find`, `check`, `test`, which rarity weighting immediately discounts.
+Splitting identifiers was measured with query and stored vectors rebuilt
+together: equal or worse on every ruler, because the pieces are `get`, `find`,
+`check`, `test`, which rarity weighting discounts.
 
 So the vocabulary ladder is the answer, cheapest rung first:
 
@@ -141,6 +137,9 @@ So the vocabulary ladder is the answer, cheapest rung first:
 | agent description | agent | a sidecar | needs machinery | tokens |
 
 ## 4 · How it works
+
+The same pipeline drawn out, with the refusal path and the three surfaces:
+**[docs/FLOW.md](docs/FLOW.md)**.
 
 ```
 your repository
@@ -163,19 +162,18 @@ qualified names, call lists and spans are exact. Every other language goes
 through three separated layers: a scanner reading one line at a time, a rule
 table per language, and a span closer following brace depth, Ruby's `end`, or
 the next declaration. Because a pattern never sees a second line, a reported
-line number **is** the scanner's loop index and cannot drift, and no
-declaration can swallow the ones after it. A 441-byte JavaScript file that once
-took 12.6 s to parse now takes 0.36 ms.
+line number **is** the loop index and cannot drift, and no declaration can
+swallow the ones after it. A 530-byte JavaScript file that took 12.6 s to parse
+now takes 0.37 ms.
 
-Qualified names come from the spans the closer already produced — a declaration
-nested inside another's span is nested in it, whatever the braces did on the
-way. One mechanism, so there is no second one to disagree with the first.
+Qualified names come from the spans the closer already produced: nested inside
+another's span *is* nested in it, whatever the braces did on the way. One
+mechanism, so there is no second one to disagree with it.
 
-**Ranking.** BM25F with per-field length normalisation. Normalising per field
-is the part that matters: measured against one length for the whole unit, a
-body repeating a word forty times still beat the declaration actually named
-after it, because a long body's advantage in raw count almost exactly cancelled
-its penalty for being long.
+**Ranking.** BM25F with per-field length normalisation, which is the part that
+matters: against one length for the whole unit, a body repeating a word forty
+times still beat the declaration named after it, because its raw-count
+advantage cancelled its length penalty.
 
 | field | weight | why |
 |---|---|---|
@@ -189,26 +187,33 @@ its penalty for being long.
 their low weight the same way a Chinese bigram does — by being everywhere — so
 it works in a language nobody anticipated and no list has to be maintained.
 
-**Safety.** A repository being scanned is untrusted input, including any
-`.rag-your-code/index.json` it ships. Nothing read out of an index may name a
-path to act on: superseded vector sidecars are enumerated from the naming
-scheme the writer itself uses. A crafted index used to make the documented
-`index` command delete an arbitrary in-tree file and report success.
+**Safety.** A scanned repository is untrusted input, including any
+`.rag-your-code/index.json` it ships, so nothing read out of an index may name
+a path to act on: superseded vector sidecars are enumerated from the writer's
+own naming scheme. A crafted index once made `index` delete an arbitrary
+in-tree file and report success.
 
 ## 5 · Before and after
 
 A question with no lexical shortcut, asked of this repository:
 
-```console
+````console
 $ rag-your-code search "where does it decide whether to answer at all" --limit 1
-[src/ragyourcode/search.py:116:Evidence] score=0.449
-This class evidence. and calls dataclass. ... Documented intent: Whether a query
-reached this index at all, kept apart from how its results rank. ...
+[src/ragyourcode/search.py:117:Evidence] score=0.446
+The verdict on whether a question reached this index at all, kept separate from
+how results rank. ... 中文：判定一个提问究竟有没有够到索引的结论。...
+```python
+class Evidence:
+    """Whether a query reached this index at all, kept apart from ..."""
 ```
+````
 
-The same question through Grep is not askable — there is no string to search
-for. The nearest guess, `grep -rn "decide"`, returns matches scattered across
-the repository that a reader must then triage by hand.
+There is no string here to grep for: *decide* occurs nowhere in that
+declaration and matched nothing. What ranked it first is ordinary words —
+*answer*, *whether*, *where* — weighted against this corpus, where they are
+rare enough to tell declarations apart. What the agent-written description adds
+is the other language: 「在哪里判定一个提问有没有答案」 returns the same
+declaration first, at 0.392, sharing not one character with its source.
 
 Now the case that motivated 1.0.0 and 1.1.0 — a question this repository has no
 answer to at all:
@@ -232,15 +237,15 @@ it happens to use elsewhere.
                "matched_terms": ["job","leave","print"],
                "ubiquitous_terms": ["a","does","the","why"],
                "coverage": 0.5,    "min_coverage": 0.4,
-               "concentration": 0.1682, "min_concentration": 0.28,
+               "concentration": 0.1691, "min_concentration": 0.28,
                "applied_min_coverage": 0.4, "applied_min_concentration": 0.28,
                "hint": "..."}}
 ```
 
-Read `coverage: 0.5` against `concentration: 0.1682`. Half the distinctive
-words are here — `job`, `leave`, `print` — and they are spread thin enough that
-no declaration holds a sixth of what was asked. Before 1.1.0 that question came
-back with a confident-looking result.
+Read `coverage: 0.5` against `concentration: 0.1691`. Half the distinctive
+words are here — `job`, `leave`, `print` — and spread thin enough that no
+declaration holds a fifth of what was asked, against a bar of 0.28. Before
+1.1.0 that question came back with a confident-looking result.
 
 Four reasons, because each is recovered by a different move:
 
@@ -254,7 +259,7 @@ Four reasons, because each is recovered by a different move:
 ## 6 · Benchmark dashboard
 
 Four rulers, 135 distinct questions in English and Chinese, graded 235 times —
-two of them run against both repositories. Three grade whether the answer is
+one of them runs against both repositories. Three grade whether the answer is
 **found**; the fourth grades whether silence is **kept**. Every report
 carries a fingerprint of the corpus it graded, because between two runs of an
 unchanged `search.py` the foreign ruler moved 0.257 → 0.229 purely because that
@@ -292,7 +297,7 @@ Foreign silence fell from 0.933 to 0.833 when the subject changed, and the
 cause is a limit of the design rather than a defect. A word counts as evidence
 unless it occurs in more than 5% of units — a stopword list derived from the
 corpus, so that it needs no list and works in any language. Here `how`, `when`,
-`does` and `are` are everywhere, because 304 units carry written English prose.
+`does` and `are` are everywhere, because 301 units carry written English prose.
 Across 1,572 units of mostly short, undocumented methods they occur in 1–5% of
 them and start counting as evidence. Five English questions about subjects
 Flask does not implement get through on exactly that.
@@ -306,8 +311,9 @@ Flask does not implement get through on exactly that.
 | concentration only | 0.200/0.286/0.238 | 0.314/0.471/0.383 | 0.443/0.614/0.509 | 0.967 / 0.800 |
 | **both (1.1.0)** | **0.200/0.286/0.238** | **0.314/0.471/0.383** | 0.443/0.614/0.509 | **0.967 / 0.833** |
 
-Ruler A is **unmoved by either bar**, and B by concentration. The whole cost is
-three questions of seventy at hit@1 on the warmest ruler, and six at hit@3.
+Ruler A is **unmoved by either bar**; B loses one hit@3 question to either bar
+alone and nothing further when both apply. The rest of the cost is three of
+seventy at hit@1 on the warmest ruler, and six at hit@3.
 
 Through 1.3.0 this section said concentration subsumes coverage. **On a corpus
 this project did not choose, it does not.** Both bars together silence 0.833 of
@@ -396,7 +402,7 @@ framework reversed it. The honest claim is narrower than either table alone:
 
 **Once the vocabulary exists, it is not close.**
 
-| this repository · 70 questions · 584 units `c9df00350cbd` · 304 described | Grep loop | rag-your-code |
+| this repository · 70 questions · 584 units `c9df00350cbd` · 301 described | Grep loop | rag-your-code |
 |---|---|---|
 | right file first | 22.9% | **58.6%** |
 | right file in top 3 | 54.3% | **77.1%** |
@@ -405,28 +411,26 @@ framework reversed it. The honest claim is narrower than either table alone:
 | questions it answers | **61** | 60 |
 
 Those two tables are the whole argument of section 3.3, measured against a real
-baseline instead of asserted. A cold index retrieves against a sentence the
-parser generated from identifiers the author already chose, plus whatever
-docstrings the author wrote — so how it fares against Grep is decided by how
-much prose the repository already contains. Flask has a written docstring on
-most public methods, and the cold index beats Grep there without a single
-description being added. On the previous subject, a tool with terse comments
-and long identifiers, the same cold index lost to Grep by the same margin.
+baseline instead of asserted. A cold index retrieves against a generated
+sentence plus whatever docstrings the author wrote, so how it fares against Grep
+is decided by how much prose the repository already has. Flask documents most
+public methods and the cold index beats Grep there with no description added; on
+the previous subject, terse comments and long identifiers, it lost by the same
+margin.
 
 What does not depend on the subject is what descriptions buy: on this
 repository first-place accuracy goes to **more than double** Grep's, and the
 payload comes back ranked, spanned, and roughly half the size.
 
-**Both tables come from `python -m benchmarks.grep_baseline`**, which is what
-changed in 1.3.0. Until then this section — the strongest claim the project
-makes — was published from a script that had never been committed, so nothing
-here could be checked and the word "Grep loop" had no precise meaning. The
-committed version defines it: take the query's words, drop the ones the corpus
-itself shows are everywhere, run one substring search per remaining word over
-exactly the files the index was built from, rank each file by how many distinct
-words hit it, break ties on path. Reconstructing it reproduced this side's
-figures exactly and moved Grep's, which is the expected shape — the ranked arm
-was always a call into shipped code, and the baseline never was.
+**Both tables come from `python -m benchmarks.grep_baseline`**, new in 1.3.0.
+Until then this section — the strongest claim the project makes — came from a
+script that was never committed, so nothing here could be checked and "Grep
+loop" had no precise meaning. The committed version defines it: take the
+query's words, drop the ones the corpus itself shows are everywhere, run one
+substring search per remaining word over exactly the files the index was built
+from, rank each file by how many distinct words hit it, break ties on path.
+Reconstructing it reproduced this side's figures exactly and moved Grep's —
+the expected shape, since the ranked arm was always a call into shipped code.
 
 Four qualifications, because the table would otherwise flatter both sides:
 
@@ -461,16 +465,14 @@ the time to describe.
 
 **Build the ruler before reshaping the thing measured.** Four candidate scoring
 changes once landed between five and six correct over an eight-question set —
-that is the resolution limit of the instrument, not a ranking of options. There
-are 135 now across four rulers, and every claim in this README is a number from
-one of them.
+the instrument's resolution limit, not a ranking. There are 135 questions now
+across four rulers, and every claim here is a number from one of them.
 
 **Measure somewhere it can fail.** Every ruler this project had once graded a
-repository its own authors wrote. Indexed cold against a foreign repository the
-same code scored 0.086 hit@1 against a self-reported 0.457. Ruler A exists so
-that can never be comfortable again — and stemming, which helps both own-repo
-rulers, was rejected on exactly this evidence: it costs the foreign ruler 3 of
-35 hit@3.
+repository its own authors wrote; cold against a foreign one the same code
+scored 0.086 hit@1 against a self-reported 0.457. Ruler A exists so that can
+never be comfortable again — and stemming, which helps both own-repo rulers,
+was rejected on it: 3 of 35 hit@3 on the foreign one.
 
 **Make the error structurally impossible rather than checking for it.** A line
 number that *is* the loop index cannot drift. A description keyed by a digest
@@ -480,18 +482,16 @@ of its own code cannot outlive it.
 ratios do not.
 
 **Derive figures from data; a hand-maintained number is a claim nobody checks.**
-The parser fingerprints its own source. The settings table in this README is
-asserted against `config.py` in both directions — it had drifted nine settings
-behind before that test existed.
+The settings table in this README is asserted against `config.py` in both
+directions — it had drifted nine settings behind before that test existed.
 
-**The contract does not move.** `CodeUnit`, index schema 2, and the JSON-lines
+**The contract does not move.** `CodeUnit`, index schema 2 and the JSON-lines
 protocol are unchanged across every release; new information arrives in new
-fields beside the old ones, never by widening an enumeration callers branch on.
+fields, never by widening an enumeration callers branch on.
 
-**Publish what was measured and rejected.** Twelve changes have been
-implemented, measured and dropped. They are recorded in
-[docs/ROADMAP.md](docs/ROADMAP.md) with their numbers, because "we tried that
-and it cost 3 of 35" is worth more than an unexplored idea.
+**Publish what was measured and rejected.** Twelve changes were implemented,
+measured and dropped, with their numbers, in [docs/ROADMAP.md](docs/ROADMAP.md)
+— "we tried that and it cost 3 of 35" beats an unexplored idea.
 
 ## 9 · Bringing your own model
 
@@ -604,10 +604,9 @@ Four commands and one skill. No hooks, no agents, no MCP server:
 
 Measured with `claude plugin details` on an installed copy: **~249 tokens added
 to every session** (skill ~30, each command ~50–60), and 590–2,400 only when
-one of them fires. That is up from ~39 in 1.1.0, and the increase is the price
-of being findable — a skill fires only when a model decides it should, which
-left the whole plugin with no entry point a person could discover. The commands
-install the Python package on first use.
+one fires. Up from ~39 in 1.1.0, and the increase is the price of being
+findable: a skill fires only when a model decides it should, which left the
+plugin with no entry point a person could discover.
 
 **As a CLI:**
 
@@ -619,14 +618,13 @@ rag-your-code describe status                   # description coverage
 rag-your-code describe promote | git apply      # move descriptions into the code
 ```
 
-`bootstrap` exists because indexing is not the same as being searchable. A
-fresh index retrieves against the sentence the parser generated, which adds no
-word the source did not have. It reports which rung the repository is on and
-hands over that rung's work; run it again after each round.
+`bootstrap` exists because indexing is not the same as being searchable: a
+fresh index retrieves against a generated sentence that adds no word the source
+did not have. It reports which rung the repository is on and hands over that
+rung's work; run it again after each round.
 
 The index is written under `.rag-your-code/`; **your source files are never
-modified**. `describe promote` emits a diff for you to review — the tool never
-writes source itself.
+modified**. `describe promote` emits a diff to review — it never writes source.
 
 ### Configuration
 
@@ -682,35 +680,37 @@ than following the console codepage.
 
 Named because they are measured, not because they are excuses.
 
-**One English question in fifteen still gets answered when it should not.**
-`how is a hostname resolved when the nameserver times out` finds `hostname`,
-`resolved` and `times` genuinely co-occurring in one unrelated declaration, on
-both repositories. No lexical rule separates a real vocabulary collision from a
-real answer. Chinese sits at 1.000 silence on both.
+**One English question in fifteen is answered when it should not be** on this
+repository, and five in fifteen on Flask. `how is a hostname resolved when the
+nameserver times out` finds `hostname`, `resolved` and `times` genuinely
+co-occurring in one unrelated declaration. No lexical rule separates a real
+vocabulary collision from a real answer. Chinese sits at 1.000 silence on both.
 
 **Chinese cold-start hit@1 is 0.000** on rulers A and B. Chinese reaches a
 repository through descriptions or not at all: the code contains no Chinese, so
 a cold index has no Chinese vocabulary to match. `describe` is the fix and it
-works — ruler C is 0.333 — but there is no free rung of the ladder for it.
+works — ruler C is 0.250 on its twelve Chinese questions — but there is no free
+rung of the ladder for it. A Grep loop scores 0.000 there too, on the same
+questions: it is the corpus's limit, not this tool's.
 
 **There is no stemming.** `catastrophic backtracking` does not reach
 `backtracks catastrophically`. A light suffix stripper was implemented and
 measured on all four rulers: it improves both own-repository rulers and costs
 the foreign one 3 of 35 hit@3, so it was rejected.
 
-**A test declaration sometimes outranks real code** — 10 of 175 questions across
-three rulers, where a test at rank 1 displaced an accepted answer at rank 2–3.
-The long-standing explanation, that a test outranks the code it *tests*, is
-wrong: of the eight inspected, seven are unrelated tests winning on
-prose. A callee-before-caller rerank fires on zero questions and the `name`
-field weight moves nothing, because an underscored test name is a single token.
+**A test declaration sometimes outranks real code** — 9 of 175 questions across
+three rulers, a test at rank 1 displacing an accepted answer at rank 2–3, and
+none of them on Flask. The long-standing explanation, that a test outranks the
+code it *tests*, is wrong: five of the nine are unrelated tests winning on
+prose. A callee-before-caller rerank fires on zero questions, and the `name`
+field weight moves nothing because an underscored test name is one token.
 
-**The vectors are 65.3% of the index and earn ±1 question** under the default
-embedder. Not removed: the same storage is what makes an optional model work,
-and the schema stays one shape.
+**The vectors are 72.1% of the index and earn ±1 question** under the default
+embedder. Kept: the same storage is what makes an optional model work.
 
-**`search.vector_recall` scans every vector per query.** Affordable at the
-measured envelope, and exactly the work an ANN index would replace.
+**`search.vector_recall` scans every vector per query** — under a semantic
+embedder. The default hash never widens at all. Affordable at the measured
+envelope, and exactly the work an ANN index would replace.
 
 **Tree-sitter parsing and a SQLite/ANN storage layer are not here.** Both would
 need a dependency, and the policy for those is settled: they follow the
@@ -736,9 +736,9 @@ pytest -q
 
 Per-release test counts are in [CHANGELOG.md](CHANGELOG.md); a bare figure in a
 living document is a claim that rots. CI runs Python 3.10–3.13 on Linux and
-Windows, plus a job that installs the built wheel into a clean environment and
-runs every documented command, and another that runs the skill's own install
-line verbatim.
+Windows, installs the built wheel into a clean environment and runs the
+documented CLI end to end — `bootstrap` through `describe promote` — plus the
+skill's own install line verbatim.
 
 - [docs/FLOW.md](docs/FLOW.md) — the whole thing in four diagrams
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — how each stage works and why

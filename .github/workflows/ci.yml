@@ -126,12 +126,15 @@ jobs:
           cd /tmp/probe
           # Exactly the commands skills/rag-your-code/SKILL.md prescribes.
           /tmp/clean/bin/python -c "import ragyourcode"
+          /tmp/clean/bin/python -m ragyourcode.cli bootstrap .
           /tmp/clean/bin/python -m ragyourcode.cli index .
           /tmp/clean/bin/python -m ragyourcode.cli search "charge an amount" --json
+          /tmp/clean/bin/python -m ragyourcode.cli search "charge an amount" --graph --hops 1
           /tmp/clean/bin/python -m ragyourcode.cli annotate
           /tmp/clean/bin/python -m ragyourcode.cli config init
           /tmp/clean/bin/python -m ragyourcode.cli config set index.ignore '["vendor"]'
           /tmp/clean/bin/python -m ragyourcode.cli describe status
+          /tmp/clean/bin/python -m ragyourcode.cli describe promote
           /tmp/clean/bin/python -m ragyourcode.cli index .
           # The declared console script must work too.
           /tmp/clean/bin/rag-your-code search "charge an amount" --json

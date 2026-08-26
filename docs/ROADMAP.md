@@ -28,12 +28,12 @@ Everything the 1.0.0 roadmap listed as still open, and what happened to it.
 | item | outcome |
 |---|---|
 | Qualified names outside Python | **Fixed** in 1.1.0, all 15 languages, from the spans the closer already produced. |
-| Descriptions cover 297 of 524 units | **Decided.** Test-function descriptions cost five real answers and six false silences; the table is under 1.0.0 in [ROADMAP-history.md](ROADMAP-history.md). Now 304 of 584. |
+| Descriptions cover 297 of 524 units | **Decided.** Test-function descriptions cost five real answers and six false silences; the table is under 1.0.0 below in this file. Now 301 of 584, with two more superseded by later edits. |
 | No stemming | **Measured and rejected.** Helps both own-repository rulers, costs the foreign one 3 of 35 hit@3. |
 | A test declaration outranks the code it tests | **Misdiagnosed, and corrected.** See below. |
 | English questions answered from words used here in another sense | **Fixed** by the concentration bar, 0.53 → 0.93 English silence. One residual, below. |
 | Whether the skill fires unprompted in a fresh session | **Measurable after all, and not measured.** The old "no command can check this" was wrong — `claude plugin eval` exists for exactly it. Blocked on early access, not on method. See below. |
-| Vectors are 55% of an index and earn nothing | **Diagnosed** (1.1.0) and **kept**: 65.3%, ±1 question, and the same storage is what makes the optional model work. |
+| Vectors are 55% of an index and earn nothing | **Diagnosed** (1.1.0) and **kept**: 72.1%, ±1 question, and the same storage is what makes the optional model work. |
 | Tree-sitter parsing | **Decided against as a default**, and the policy for it settled. See non-goals. |
 | SQLite / ANN storage layer | Same. |
 
@@ -82,16 +82,19 @@ bumping the tag invalidates every figure taken against the old one.
 ### The test-ranking item was misdiagnosed
 
 "A test declaration often outranks the code it tests" had been on the list
-since 0.6.0. Three measurements retired it:
+since 0.6.0. Four measurements retired it:
 
-- Across three rulers, **10 of 175** questions have a test at rank 1 with an
-  accepted answer sitting at rank 2–3. That is the real cost, and it is smaller
-  than the raw count of tests-at-rank-1 suggested, because sometimes the test
-  is a legitimate answer.
-- Inspected case by case, **seven of the eight examined** are tests with *no relationship*
-  to the code they displaced — `test_readme_badge_match` displacing an i18n
-  checker, `test_the_default_provider_opens_no_socket` displacing a path
-  guard. So no mechanism keyed on "the code it tests" can address it.
+- Across three rulers, **9 of 175** questions have a test at rank 1 with an
+  accepted answer sitting at rank 2–3 — re-derived on the corpora as they ship
+  after the ruler-A subject changed in 1.4.0, where the published figure was 10.
+  Tests reach rank 1 on 14 of the 175; the rest of those are legitimate answers.
+  On the foreign ruler it is **0 of 35**: none of Flask's 1,094 test units
+  reaches rank 1, so the whole cost is on this repository's own two rulers.
+- Of those nine, **five displace code the test has no relationship to** —
+  `test_every_searchable_field_carries_a_weight` displacing `parser.py`'s
+  generic scanner, `test_the_default_provider_opens_no_socket` displacing the
+  agent's path guard. So a mechanism keyed on "the code it tests" could address
+  four of nine at best.
 - A callee-before-caller rerank, which is what such a mechanism would look
   like, fires on **zero** questions.
 - Lowering the `name` field weight from 8 to 4, and raising its length
@@ -104,12 +107,13 @@ win prose queries. That is ranking noise, not the stated defect.
 
 ### The residual on the absent ruler
 
-One English question of fifteen, on both repositories: `how is a hostname
+One English question of fifteen on this repository — `how is a hostname
 resolved when the nameserver times out` finds `hostname`, `resolved` and
-`times` genuinely co-occurring in one unrelated declaration. That is a real
-vocabulary collision, and no lexical rule separates it from a real answer
-without costing more than it saves — three further rules were measured and
-each cost more. Chinese sits at 1.000 silence on both repositories.
+`times` genuinely co-occurring in one unrelated declaration — and five of
+fifteen on Flask, where ordinary English words fall under the ubiquity bar.
+That is a real vocabulary collision, and no lexical rule separates it from a
+real answer without costing more than it saves — three further rules were
+measured and each cost more. Chinese sits at 1.000 silence on both.
 
 ### The one thing not checked here — and the claim about it was wrong
 

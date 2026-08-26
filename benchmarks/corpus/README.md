@@ -33,7 +33,7 @@ foreign ruler as an ordinary job.
 ## It is not indexed as part of this project
 
 `rag-your-code.toml` at the repository root adds `corpus` to `index.ignore`.
-Without it, eighteen hundred units of somebody else's code would enter this
+Without it, 1,572 units of somebody else's code would enter this
 project's own index — which is not merely noise. Two of the four rulers measure
 retrieval over *this* repository, and `benchmarks/absent_queries.json` asserts
 that nothing here answers thirty questions, a claim a vendored web framework

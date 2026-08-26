@@ -20,8 +20,10 @@ Then **read the returned files and line ranges directly** before saying
 anything about the code. Results are navigation, not the file: `results` carries
 the identifier, path, line range, signature, description, score and matched
 terms, and the code arrives once in `context`, trimmed to a budget.
-`omitted_for_budget` says how many results the context did not reach — use
-`open` or read the file for those.
+`omitted_for_budget` says how many results the context did not reach — read
+those from the `path` and line range each result reports, or raise
+`--max-chars`. (`open` is an action of the JSON-lines `agent` protocol, not a
+subcommand.)
 
 Cite every claim as `path:line`, taken from the result rather than remembered.
 

@@ -38,9 +38,10 @@ was produced — `--min-concentration 0` leaves the coverage bar alone in place.
 
 `benchmarks/absent_queries.json` asserts that nothing in either repository
 answers its questions, and `tests/test_absent_queries.py` enforces that claim
-against the real index. It has fired four times, most recently on a helper
-named after a statistic in `query_latency.py`. Rewrite the offending name, not
-the question.
+against both indexes. It has fired five times: most recently on a docstring
+that named the very subject it was explaining, and before that on a helper
+named after the statistic it computes. Rewrite the offending name, not the
+question. `CONTRIBUTING.md` keeps the tally and the rules each firing added.
 
 ## The head-to-head against a Grep loop
 
@@ -98,6 +99,6 @@ python -m benchmarks.run_benchmark --output benchmark-result.json
 
 Seven queries over a five-file source-controlled fixture, comparing lexical
 overlap against lexical plus cosine. It is a regression tripwire, not a ruler:
-seven queries over sixty units cannot distinguish a real improvement from
+seven queries over nine units cannot distinguish a real improvement from
 noise, which is why `repo_queries.py` exists. Keep the expected paths and names
 stable, and record the embedding provider with any published result.

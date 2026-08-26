@@ -24,9 +24,11 @@ python -m ragyourcode.cli search "<something this repository certainly does>" --
 
 Four things, in this order, and briefly:
 
-1. **Is the index current?** Any command warns when it is stale. Three
-   different things make it stale and only one is a file edit: the repository
-   content moved, the rules that decide what a unit is changed, or the written
+1. **Is the index current?** Read it from a field rather than from a warning:
+   `stale_index` in `describe status`, `stale` in `search --json`. `config
+   list` never opens the index and reports nothing about it. Three different
+   things make it stale and only one is a file edit: the repository content
+   moved, the rules that decide what a unit is changed, or the written
    descriptions changed. Any of them means `/rag-your-code:index`.
 
 2. **Description coverage** — described, superseded and missing.

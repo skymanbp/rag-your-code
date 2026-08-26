@@ -3,6 +3,71 @@
 Notable changes per release. Dates are the release date; measurements are from
 the development machine (Windows 11, CPython 3.13) and are directional.
 
+## 1.4.3 — 2026-08-25
+
+A documentation audit, run as eleven parallel readers over every live document
+with each finding independently verified against the code before it was
+believed. Thirty-two survived. Three of them were in the plugin's own commands.
+
+### The commands told an agent to run things that do not exist
+
+`/rag-your-code:index` offered `--compact` on `bootstrap`, which has no such
+flag — `bootstrap . --compact` exits 2. `/rag-your-code:search` sent a reader
+to `open` for results the context budget dropped; `open` is an action of the
+JSON-lines `agent` protocol, not a subcommand. `/rag-your-code:status` said
+"any command warns when it is stale", and none of the three commands it
+prescribes does: staleness is a field (`stale_index` in `describe status`,
+`stale` in `search --json`), and `config list` never opens the index at all.
+
+### Two published numbers were wrong, not stale
+
+The vectors are **72.1%** of an index, not 65.3% — re-derived from the two
+indexes that ship (5,229,592 B against 1,459,238 B with the vectors removed;
+74.8% on the Flask copy). The figure entered in 1.2.0 and was never re-measured
+through four releases.
+
+**301 units carry a written description**, not 304. The sidecar has held 303
+entries since 1.4.0 and two are superseded, so no state of this repository ever
+had 304; `describe status` has been answering the question all along.
+
+### A retired subject was still being quoted as current
+
+"On the foreign ruler a test declaration is 11 of 35 top-1 results" was
+measured on the repository retired in 1.4.0. On Flask it is **0 of 35** — none
+of its 1,094 test units reaches rank 1 at all. Re-derived across the three
+rulers as they ship, a test displaces an accepted answer on **9 of 175**
+questions, where 10 was published, and the illustrative case named in ROADMAP
+(`test_readme_badge_match`) exists in no corpus a reader can open. It was a
+test in the retired subject. Both examples are now live ones.
+
+### Also
+
+- `search.vector_recall` is gated on a semantic embedder (`search.py:509`), so
+  the default hash never scans a vector. README section 11 listed the full scan
+  as an unqualified current cost while section 9 already said it stays off.
+- ARCHITECTURE said "there is no network code to disable". There has been since
+  0.8.0; the true claim is the narrower one `providers.py` itself makes — the
+  *default provider* opens no socket.
+- ARCHITECTURE said the local-model arm was unmeasured "because this project
+  has no key". A local model needs no key and was measured in 1.4.0.
+- Four of twelve settings decide what an index contains → **seven of
+  twenty-two**, the number `config.py` has carried since `embedding.provider`
+  arrived. "Two rulers" → four. The agent protocol's action list was missing
+  `bootstrap`. The golden fixture is nine units, not sixty. Flask is 1,572
+  units, not "eighteen hundred". The parse regression was a 530-byte file at
+  0.37 ms, not 441 bytes at 0.36.
+- Concentration 0.1691 is *more* than a sixth, so "no declaration holds a
+  sixth" contradicted the JSON block above it.
+- Only one of the four rulers grades both repositories; 35 + 70 + 70 + 30 + 30
+  is where 235 comes from.
+- CI now runs `bootstrap`, `search --graph` and `describe promote` in the
+  clean-wheel job. It claimed to run every documented command and ran none of
+  those three — including the one SKILL.md prescribes first.
+
+356 tests, unchanged. Every published figure re-reproduced: C 0.443/0.614/0.509
+at `c9df00350cbd`, B 0.314/0.471/0.383 at `fb1f841fa43a`, A 0.200/0.286/0.238
+at `5fd51169eacc`, silence 0.967 own and 0.833 foreign.
+
 ## 1.4.2 — 2026-08-26
 
 Documentation, and one claim the plugin was shipping.
@@ -36,8 +101,8 @@ a figure that cannot be re-derived from `benchmarks/`.
   argument is short: it takes the full `name@marketplace` id, and the
   marketplace cache has to be refreshed first or the check finds nothing new.
 
-356 tests, unchanged: no `.py` file was touched, so every corpus fingerprint
-published in 1.4.1 still holds.
+356 tests, unchanged: the only `.py` change was the version constant, which
+creates no indexed unit, so every corpus fingerprint published in 1.4.1 holds.
 
 ## 1.4.1 — 2026-08-26
 
@@ -109,8 +174,8 @@ a corpus that holds still reversed two published conclusions.
 `docs/` and `.git/` omitted and the rest as published — 1,572 units of code
 nobody here wrote, indexed with no descriptions, which is what a first-time
 user's index looks like. `rag-your-code.toml` at the repository root keeps it
-out of this project's own index; without that, eighteen hundred units of a web
-framework would enter two rulers that measure retrieval over *this* repository
+out of this project's own index; without that, those units would enter two
+rulers that measure retrieval over *this* repository
 and falsify a third that asserts nothing here answers thirty questions.
 
 Through 1.3.0 the subject was a checkout that changed by the hour. It cost:
@@ -182,7 +247,7 @@ source nor a token in an index built from it.
 - **Foreign silence is 0.833**, down from 0.933 on the retired subject, and the
   cause is a limit rather than a defect: a word counts as evidence unless it
   occurs in more than 5% of units, which makes `how`, `when`, `does` and `are`
-  ubiquitous here — 304 units carry written prose — and discriminating across
+  ubiquitous here — 301 units carry written prose — and discriminating across
   1,572 units of short, undocumented methods.
 - **The absence guard fired for the fourth and fifth times**, both on the
   author. Once on a declaration named after the statistic it computes, once on

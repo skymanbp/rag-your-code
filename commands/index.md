@@ -24,9 +24,10 @@ needs before search is actually good.
    python -m ragyourcode.cli bootstrap .
    ```
 
-   Use `--compact` for a repository with many thousands of declarations. Use
-   `--full` only after a parser or schema upgrade, or suspected corruption —
-   the default incremental path reuses unchanged files.
+   Use `--full` only after a parser or schema upgrade, or suspected corruption
+   — the default incremental path reuses unchanged files. `--compact` is a flag
+   on `index`, not on `bootstrap`; a repository already built with
+   `index --compact` stays compact when bootstrap refreshes it.
 
 3. Report back three things, briefly:
 

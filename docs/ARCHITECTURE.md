@@ -97,7 +97,7 @@ Which is the general result, and it is why no better hash would have worked: a
 vector computed from the same words cannot know anything those words do not
 already say. Information the words lack has to come from a model, and the
 vectors are kept in the schema so that switching to one changes a setting
-rather than a format — at a measured cost of 65.3% of an index's bytes.
+rather than a format — at a measured cost of 72.1% of an index's bytes.
 
 ## Current end-to-end path
 
@@ -193,9 +193,9 @@ sharing no token with the question, which six of thirty-five foreign ruler
 questions required. Lexical evidence stays dominant either way: a unit found by
 similarity alone scores at most `search.vector_weight`.
 
-This is unmeasured against a real model, and deliberately so: this project has
-no key, and a number produced by a stub would be fiction. What ships instead
-is the instrument — `benchmarks/repo_queries.py --index` grades any index.
+Measured since 1.4.0 against a local `sentence-transformers` model, which needs
+no key: worse than or identical to the hash on every ruler — the table is in
+[ROADMAP](ROADMAP.md). A hosted endpoint is still unmeasured, for want of one.
 
 Agent-authored descriptions are deliberately the cheaper answer to the same
 problem a provider embedder would solve. They keep `dependencies = []`, keep
@@ -248,13 +248,12 @@ block: prose wraps on a comma far more often than code ends on one.
 The parser is also an input the index records. Cached units are a function of
 a file's bytes *and* of the code that parsed them, but reuse was keyed on the
 bytes alone, so upgrading the parser left every unchanged file carrying units
-the old one produced until that file happened to change. That was the third
-such input after the settings and the descriptions, and since all three mean
-the same thing and call for the same action they are one field: a
-`build_fingerprint` over the build settings and a digest of the parser's own
-source. Digesting the source rather than declaring a version number costs one
-rebuild for a comment-only edit and removes the possibility of a forgotten
-bump.
+the old one produced until that file happened to change. It joins the settings
+in one field — a `build_fingerprint` over the build settings and a digest of
+the parser's own source — while the authored descriptions keep a
+`descriptions_fingerprint` of their own beside it. Digesting the source rather
+than declaring a version number costs one rebuild for a comment-only edit and
+removes the possibility of a forgotten bump.
 
 The parser's dispatch table is also the source of truth for which suffixes the
 walker accepts. They were separate lists agreeing by coincidence, and a suffix
@@ -276,14 +275,16 @@ An unknown key or an out-of-range value raises rather than being dropped: a
 setting silently ignored is indistinguishable, from outside, from one that had
 no effect, so the user cannot tell a typo from a misunderstanding.
 
-Four of the twelve — `index.ignore`, `index.suffixes`, `index.max_file_bytes`
-and `embedding.dimensions` — decide what an index *contains*. A digest of just
-those is written into the index, and a mismatch forces a full rebuild rather
-than reuse; reuse is keyed on file content, which cannot notice that the rules
-changed. The `embedding.dimensions` case in particular used to fail in silence,
-because `search` skips the cosine term when vector widths disagree instead of
-raising, so the only symptom was quietly worse ranking. The remaining eight
-settings take effect immediately and never invalidate an index.
+Seven of the twenty-two — `index.ignore`, `index.suffixes`,
+`index.max_file_bytes`, `embedding.dimensions`, `embedding.provider`,
+`embedding.endpoint` and `embedding.model` — decide what an index *contains* or
+which vector space it lives in. A digest of just those is written into the
+index, and a mismatch forces a full rebuild rather than reuse; reuse is keyed on
+file content, which cannot notice that the rules changed. The
+`embedding.dimensions` case used to fail in silence, because `search` skips the
+cosine term when vector widths disagree instead of raising, so the only symptom
+was quietly worse ranking. The remaining fifteen settings take effect
+immediately and never invalidate an index.
 
 `tomllib` is standard library from 3.11. Below that, a subset reader in
 `config.py` covers what the settings table can express and refuses everything
@@ -358,11 +359,14 @@ language where retrieval still uses it.
 
 ## Evaluation
 
-Two rulers, measuring different things. `benchmarks/golden.json` grades ranking
+Four rulers, measuring different things. `benchmarks/golden.json` grades ranking
 over a five-file synthetic fixture: small, stable, and asserted in CI as a
 regression tripwire. `benchmarks/repo_queries.json` grades seventy
 natural-language questions over this repository's own source, in English and
-Chinese, each listing every unit that genuinely answers it.
+Chinese, each listing every unit that genuinely answers it. The same script
+grades `benchmarks/cold_queries.json` — thirty-five questions about the Flask
+copy in `benchmarks/corpus/flask`, described by nobody — and
+`benchmarks/absent_queries.json`, thirty questions graded on silence.
 
 The second exists because the first cannot resolve a change to how vocabulary
 reaches the index — four candidate scoring changes measured over an
@@ -537,9 +541,9 @@ match, and `searchable_text` — what a unit is embedded from — is derived fro
 it, so a field added for ranking cannot go missing from the vector. A test
 asserts the weight table covers every field.
 
-The known limit is that a test declaration often outranks the code it tests,
-because it repeats that code's vocabulary and adds assertions of its own. On
-the foreign ruler that is 11 of 35 top-1 results, down from 14.
+The known limit is that a test declaration sometimes outranks real code: it
+repeats that code's vocabulary and adds assertions of its own. Over the three
+rulers as they ship that is 9 of 175 questions, and 0 of 35 on the foreign one.
 
 Two candidate sets, with distinct jobs. Every unit reached by any query term is
 scored, so recall is complete. A *selective* subset — the units reached by a term
@@ -601,21 +605,20 @@ ambiguous symbols are omitted or capped rather than guessed.
 ## ARAG
 
 The JSON-lines agent supports `search`, `research`, `neighbors`, `open`,
-`describe_pending`, `describe_put`, `refresh`, and `stats`. `research` is a
-deterministic two-stage controller: search, then at most one graph expansion
-when confidence is low. It returns each step and a stop reason. `open` rejects
+`bootstrap`, `describe_pending`, `describe_put`, `refresh` and `stats`.
+`research` is a deterministic two-stage controller: search, then at most one
+graph expansion when confidence is low. It returns each step and a stop
+reason. `open` rejects
 paths outside the repository root, refuses files above `agent.max_open_bytes`,
 and truncates its reply at `agent.max_open_chars` with `truncated: true` — a
 line count is not a size, and a three-line file can hold megabytes on one line.
-Graph/research hop and step budgets are capped, and non-finite numeric fields
-saturate at their bound rather than raising.
+Hop and step budgets are capped; non-finite numeric fields saturate.
 
 No single request may end a session. The loop reports a malformed field as
 `invalid_request` and anything unanticipated as `request_failed` with the
-exception type, then serves the next line. Enumerating expected exception types
-was the earlier design and the reason `limit: 1e400` terminated the daemon. This is the safe
-contract for a future LLM planner; an LLM may propose follow-up queries but
-must not bypass these budgets or evidence requirements.
+exception type, then serves the next line; enumerating expected exception types
+was the earlier design and the reason `limit: 1e400` killed the daemon. An LLM
+planner may propose follow-up queries but cannot bypass these budgets.
 
 `stats` distinguishes two questions that are easy to conflate. `stale` says
 whether the index still describes the repository; `index_behind` says whether
@@ -641,27 +644,25 @@ queries averaged **3.90 ms** (median 3.22 ms over 200 warmed samples). A full
 stale stat walk cost **60.4 ms**; the one-second monitor cache made repeated
 checks effectively free (0.0004 ms).
 
-Four runs bound the spread: build and walk timings vary by a few percent, and
-`compact_write_ms` and `search_index_ms` by considerably more, so treat any
-single figure as directional rather than as a service level. The archived run
-is the one closest to the four-run centre and is `large-benchmark-result.json`.
+Four runs bound the spread: build and walk timings vary by a few percent,
+`compact_write_ms` and `search_index_ms` by much more, so treat any single
+figure as directional. The archived run is the one closest to the four-run
+centre, `large-benchmark-result.json`.
 
 The query estimator was itself a defect until 0.4.0: ten cold samples of a
-sub-millisecond call once made an unchanged query path look like a real
-regression across three runs. It now warms up and takes 200 samples, and
-records the median beside the mean so a reader can judge what the number is
-worth.
+sub-millisecond call once made an unchanged query path look like a regression
+across three runs. It now warms up, takes 200 samples, and records the median
+beside the mean.
 
 ## Distribution
 
 Two artifacts ship from one repository, and they are deliberately separate.
 
 The **Python package** on PyPI is the whole implementation. Publishing goes
-through trusted publishing, so no API token exists to leak or rotate, and the
-workflow refuses a tag that disagrees with the declared version, verifies the
-wheel still carries its licence and typing marker, and installs the built
-artifact into a clean environment to run the documented commands before
-uploading anything.
+through trusted publishing, so no API token exists to leak or rotate; the
+workflow refuses a tag disagreeing with the declared version, verifies the wheel
+still carries its licence and typing marker, and runs the documented commands
+from a clean-environment install before uploading anything.
 
 The **Claude Code plugin** contains four commands and one skill: no hooks, no
 agents, no MCP server. Measured with `claude plugin details` on an installed
@@ -674,24 +675,22 @@ someone does.
 Through 1.1.0 that figure was ~39, for one skill alone. The increase is the
 price of being findable: a skill fires when a model judges it relevant, so a
 user who installed this had no entry point they could discover, and the largest
-lever on retrieval quality sat inside a page that loads only after a model has
-already decided to search. An MCP server was rejected for the same job — tool
-schemas are always-on whether or not anyone searches, and the JSON-lines
-`agent` protocol already serves the subprocess case.
+lever on retrieval quality sat behind a page that loads only after a model has
+decided to search. An MCP server was rejected for the same job — tool schemas
+are always-on too, and `agent` already serves the subprocess case.
 
 A third path costs nothing: when a search is **refused** and declarations are
 still undescribed, the command line says so and names the next step. Tied to a
 refusal rather than to a weak-looking result, because "the results looked poor"
 needs a threshold on a score — the defect `confidence_threshold = 0.8` already
-demonstrated — while a refusal is a fact, and the moment something was lost.
-Silent on `matched_terms_are_scattered`, where descriptions cannot help.
+demonstrated — while a refusal is a fact. Silent on
+`matched_terms_are_scattered`, where descriptions cannot help.
 
 The seam between them is step 0 of the skill, which installs the package if
 importing it fails. That one line has been wrong twice — first naming a module
-nothing installed, then naming a package index this project did not publish
-to — both times because no gate ever ran it. It is now executed verbatim by a
-CI job that extracts it from the skill, and a test asserts that every
-documented install target names a source that resolves.
+nothing installed, then a package index this project did not publish to — both
+times because no gate ran it. A CI job now extracts and executes it verbatim,
+and a test asserts every documented install target resolves.
 
 ## Evolution plan
 
@@ -705,34 +704,34 @@ a default.** Anything on this list that needs one follows `embedding.provider`
 2. ~~**`qualified_name` outside Python**~~ — **done in 1.1.0**, from the spans
    the closer already produces rather than from a second mechanism.
 3. **Richer parsing:** Tree-sitter, capturing references, inheritance and
-   configuration symbols. Not built, and the reason is that its headline
-   benefit here was item 2, which arrived without it. What remains is recall on
-   constructs the rule table misses — and the language fixtures report 91/91 on
-   declarations found, line numbers and signatures, so there is no measured
-   headroom against which an improvement could be told from a regression.
-   Building the ruler first would mean finding constructs the current parser
-   loses, which is the honest prerequisite.
+   configuration symbols. Not built: its headline benefit here was item 2,
+   which arrived without it. What remains is recall on constructs the rule
+   table misses — and the language fixtures report 91/91 on declarations found,
+   line numbers and signatures, so there is no measured headroom against which
+   an improvement could be told from a regression. The honest prerequisite is
+   finding constructs the current parser loses.
 4. **Persistent scale layer:** SQLite metadata and an ANN vector index. The
    work it replaces is the full vector scan in `search.vector_recall`, which
    runs only under a semantic embedder; at the measured envelope (10,000 units,
    3.90 ms mean query) that scan is affordable, so this waits on a repository
    size nobody has brought yet rather than on a decision.
 5. **Richer GraphRAG:** `implements`, `tests`, `configures` and git co-change
-   edges, with confidence and provenance on every edge. A `tests` edge is the
-   one with a measured motive — though note that of eight cases where a test
-   displaced a real answer, seven involved a test that does not test the code
-   it displaced, so the edge would address less of it than it appears to.
+   edges, with confidence and provenance on each. A `tests` edge has the one
+   measured motive — though of nine cases where a test displaced a real
+   answer, five did not test the code they displaced.
 6. **LLM planner:** bounded follow-up queries, preserving the current tool
    budgets, privacy policy and observable stop reasons.
 7. **Evaluation:** multi-hop graph questions and real repository tasks in the
    golden set; recall@k, citation and edge accuracy, latency, context budget.
    A third graded repository matters most: `search.min_coverage`,
    `search.min_concentration`, `COMMON_TERM` and `COVERAGE_FULL_STRENGTH` are
-   fitted on two.
+   all fitted on two.
 
 ## Safety and privacy
 
-No source leaves the machine. There is no network code to disable.
+No source leaves the machine under the default provider, which opens no socket.
+`embedding.provider` can name a remote endpoint instead, and that is the one
+path that sends unit text off this machine.
 
 A repository being scanned is untrusted input, and that includes any
 `.rag-your-code/index.json` it ships. Nothing read out of an index may name a
@@ -746,5 +745,6 @@ conflicts and hand-editing. A malformed one is treated as empty rather than
 fatal: the cost is retrieval quality, which describing again recovers, where
 refusing to search until it is repaired would not be recoverable at all.
 
-External embedding providers, when added, must be opt-in, clearly reported in
-the index metadata, and support path and content exclusion rules.
+External embedding providers are opt-in — never in `dependencies` — and record
+provider, model and width in the index metadata. Path and content exclusion
+rules for them remain outstanding.

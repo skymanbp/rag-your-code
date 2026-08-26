@@ -39,7 +39,7 @@ exists: an answer withheld with a reason beats a confident wrong one.
 ```mermaid
 flowchart LR
     R[("repository")] --> W["walk<br/>index.ignore · index.suffixes<br/>index.max_file_bytes"]
-    W --> P["parse<br/>15 languages, one rule table"]
+    W --> P["parse<br/>Python via ast,<br/>14 more through one rule table"]
     P --> U["CodeUnit<br/>id · path · kind · qualified_name<br/>signature · start/end line · source<br/>description · calls · imports"]
     D[["descriptions sidecar"]] -.-> U
     U --> V["embed<br/>signed-feature-hash — default, offline<br/>sentence-transformers — optional extra<br/>openai-compatible — an endpoint"]
@@ -54,7 +54,8 @@ the identifier humanised, plus the signature, plus the author's docstring — so
 it introduces **no word the source did not already contain**. That is the whole
 reason the yellow box in diagram 1 exists.
 
-The build fingerprint covers only the settings that change *what is indexed*.
+The build fingerprint covers the settings that change what a unit is — the
+`[index]` and `[embedding]` ones — plus a digest of the parser's own source.
 Changing a result limit invalidates nothing; changing the vector width or the
 suffix list invalidates everything, because an index built under those is not
 stale — it is an index of something else.

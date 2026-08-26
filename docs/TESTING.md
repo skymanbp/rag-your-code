@@ -37,8 +37,9 @@ The test suite currently covers:
   prefixes while local-module and receiver calls still resolve;
 - configuration: every default restated against the 0.3.0 literal it replaced,
   nine kinds of bad file refused with a reason, the build fingerprint proved to
-  move for the four settings that decide what an index contains and to stay put
-  for the eight that do not, each setting traced to the behaviour it names, and
+  move for build settings and to stay put for retrieval ones — with the
+  seven-member build set pinned by name, so a new one cannot arrive uncovered —
+  each setting traced to the behaviour it names, and
   `config set` shown to preserve every comment it does not consume;
 - descriptions: an authored one reaching three queries the generated one cannot
   (including a Chinese query), a source edit removing it from use while the
@@ -105,7 +106,7 @@ ships one, so the fallback cannot drift away from the real grammar in silence.
 
 `benchmarks/golden.json` grades ranking over the five-file synthetic fixture
 and is asserted in CI. It is a regression tripwire, and it cannot resolve a
-change to how vocabulary reaches the index: seven queries over sixty units
+change to how vocabulary reaches the index: seven queries over nine units
 have no resolution, and four candidate scoring changes measured over an
 eight-question set all landed between five and six correct.
 
@@ -194,11 +195,15 @@ had both gone stale.
 
 ### What the ranking still gets wrong
 
-A test declaration often outranks the code it tests. It repeats that code's
+A test declaration sometimes outranks real code: it repeats that code's
 vocabulary and adds the vocabulary of its assertions, and BM25 counts that as
-evidence — correctly, by its own lights. On the foreign ruler this is 11 of 35
-top-1 results, improved from 14 but not solved. A path heuristic would fix the
-number and be wrong in principle, since sometimes the test *is* the answer.
+evidence — correctly, by its own lights. Re-derived on the corpora as they
+ship, this is **9 of 175** questions across three rulers where a test at rank 1
+displaces an accepted answer at rank 2–3 — and **0 of 35** on the foreign
+ruler, where none of Flask's 1,094 test units reaches rank 1 at all. So it is a
+property of this repository's own two rulers, not a general one, and a path
+heuristic would fix the number while being wrong in principle, since sometimes
+the test *is* the answer.
 
 Identifier splitting was the obvious candidate fix and is measured *not* to
 work; the reasoning and the numbers are in
