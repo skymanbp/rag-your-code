@@ -18,9 +18,15 @@ which is exactly why a query for a concept nobody wrote down finds nothing.
 
 Measured on this project's own four rulers, moving from generated to
 agent-written descriptions took first-place accuracy from 0.314 to 0.443 and
-top-3 from 0.471 to 0.614, and against a Grep loop it is the difference between
-losing (31.4% vs 34.3% on an undescribed repository) and winning decisively
-(57.1% vs 25.7% once described).
+top-3 from 0.471 to 0.614. Against a Grep loop over the same questions it is
+the difference between 22.9% and **58.6%** right-file-first.
+
+The line this paragraph used to carry — that a cold index *loses* to Grep —
+came from one undescribed repository and did not survive being asked of a
+second. On Flask 3.1.3 a cold index wins, 37.1% to 22.9%, because Flask's
+authors wrote docstrings and there was something to retrieve. Which side wins
+undescribed depends on how much prose the repository already contains. What
+does not depend on it is the gain above.
 
 ## What to do
 

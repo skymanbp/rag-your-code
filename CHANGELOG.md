@@ -3,6 +3,42 @@
 Notable changes per release. Dates are the release date; measurements are from
 the development machine (Windows 11, CPython 3.13) and are directional.
 
+## 1.4.2 — 2026-08-26
+
+Documentation, and one claim the plugin was shipping.
+
+### The command that tells an agent to write descriptions was citing a reversed result
+
+`/rag-your-code:describe` argued its case with "losing 31.4% vs 34.3% on an
+undescribed repository". That figure came from the subject retired in 1.4.0 and
+had reversed when it was re-measured against a second one: a cold index beats a
+Grep loop on Flask, 37.1% to 22.9%. The command now says what is actually true
+— which side wins undescribed depends on how much prose the repository already
+carries — and keeps the part that does not depend on it, 22.9% against 58.6%
+once descriptions exist.
+
+This surface had been swept for fingerprints and unit counts in 1.3.0 and 1.4.0
+and passed both times, because neither sweep looked for bare percentages. The
+sweep was the thing that was wrong.
+
+### docs/FLOW.md
+
+Four diagrams: the loop a user lives in, indexing, the answering path with both
+evidence bars and all four refusal reasons, and the three surfaces — four
+commands, one skill, and the nine-action JSON-lines protocol. Nothing in it is
+a figure that cannot be re-derived from `benchmarks/`.
+
+### Also
+
+- The README says how to *update* the plugin, not only how to install it.
+  `claude plugin update rag-your-code` is refused with `Plugin "rag-your-code"
+  not found`, which reads like the plugin is missing rather than like the
+  argument is short: it takes the full `name@marketplace` id, and the
+  marketplace cache has to be refreshed first or the check finds nothing new.
+
+356 tests, unchanged: no `.py` file was touched, so every corpus fingerprint
+published in 1.4.1 still holds.
+
 ## 1.4.1 — 2026-08-26
 
 Found by installing 1.4.0 from PyPI into a clean environment and using it on an

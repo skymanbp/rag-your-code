@@ -438,19 +438,15 @@ Four qualifications, because the table would otherwise flatter both sides:
   `the` gets every file back in no order. It is also why Grep declines nine of
   the seventy questions here — those had no word left that this corpus does not
   use everywhere.
-- **Payload is counted in characters on both sides**, and 1.4.1 changed what
-  fits in it. A generated description ends with the author's docstring so the
-  docstring is searchable, and the source printed below it said the same thing
-  again — 2,381 of 3,382 characters of prose header on Flask were a verbatim
-  repeat of the code beneath. The block no longer prints what the code shows,
-  and the same 12,000-character budget now carries **119 declarations instead
-  of 92** there, 323 instead of 305 here. Grep
-  hands back 18,600 characters per question it answers, unranked and without
-  spans, against 10,300 here, ranked and capped by `search.max_chars` — a
-  factor of 1.8. On Flask it is a factor of 5.5 — 47,200 characters against
-  8,600 — because a framework repeats its own vocabulary across many files and
-  Grep has no way to rank what it finds. Both sides decline the same five of
-  those 35 — and they are the five Chinese ones, all of them. A Chinese word is
+- **Payload is counted in characters on both sides.** Grep hands back 18,600
+  characters per question it answers here, unranked and without spans, against
+  10,300 ranked and capped by `search.max_chars` — a factor of 1.8, and 5.5 on
+  Flask, where a framework repeats its vocabulary across many files and Grep
+  cannot rank what it finds. 1.4.1 changed what fits in that cap: the block had
+  been reprinting the docstring the code below already showed, 2,381 of 3,382
+  characters of prose header on Flask, so the same budget now carries **119
+  declarations instead of 92** there and 323 instead of 305 here. Both sides
+  decline the same five of those 35 — the five Chinese ones, all of them. A Chinese word is
   not a substring of English source and it is not a token in an index built
   from English source, so on a repository written in one language the cold
   cross-language case is not this tool's failure but the corpus's.
@@ -531,10 +527,10 @@ against a pinned corpus:
 | **C** own, described | 581 `978a1d48a82a` | **0.443 / 0.614 / 0.507** | 0.429 / 0.600 / 0.500 |
 | **D** silence, own / foreign | as above | 0.967 / 0.833 | 0.967 / 0.833 |
 
-**Worse or identical on every ruler.** It is shipped anyway, as an extra nobody
-has to install, because it does one thing the hash cannot do at all and these
-rulers cannot see: reach a unit that shares no word with the question. The
-pairs the hash scores exactly zero:
+**Worse or identical on every ruler.** The 581-unit stamps are the corpus both
+arms shared, kept rather than refreshed — that is what a stamp is for. It ships
+anyway because it does one thing the hash cannot and these rulers cannot see:
+reach a unit sharing no word with the question. The pairs it scores zero on:
 
 | pair | signed hash | MiniLM |
 |---|---|---|
@@ -587,6 +583,14 @@ measured worse, so it stays off there.
 /plugin marketplace add skymanbp/rag-your-code
 /plugin install rag-your-code@rag-your-code
 /reload-plugins
+```
+
+Updating needs the full id and a marketplace refresh first; the bare name is
+refused with `Plugin "rag-your-code" not found`, which reads like it is gone:
+
+```bash
+claude plugin marketplace update rag-your-code
+claude plugin update rag-your-code@rag-your-code   # then restart
 ```
 
 Four commands and one skill. No hooks, no agents, no MCP server:
@@ -736,6 +740,7 @@ Windows, plus a job that installs the built wheel into a clean environment and
 runs every documented command, and another that runs the skill's own install
 line verbatim.
 
+- [docs/FLOW.md](docs/FLOW.md) — the whole thing in four diagrams
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — how each stage works and why
 - [docs/TESTING.md](docs/TESTING.md) — what the suites protect
 - [docs/ROADMAP.md](docs/ROADMAP.md) — what shipped, what was rejected and why
