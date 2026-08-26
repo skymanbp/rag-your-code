@@ -44,7 +44,7 @@ whether or not the repository holds anything relevant.
 | **Refuse** | Two evidence tests decide whether *any* result is an answer; when neither is met, retrieval returns nothing plus a machine-readable diagnosis. |
 | **Expand** | Optional bounded walk over `calls` / `imports` / `contains`, each hop carrying its edge path as evidence. |
 | **Describe** | Your agent writes the vocabulary the source never contained, stored in a committed sidecar or promoted into the code as a reviewable diff. |
-| **Serve** | A CLI, and a JSON-lines protocol for a long-lived agent subprocess. |
+| **Serve** | A CLI, plus a JSON-lines protocol for a long-lived agent subprocess. |
 
 **Scope.** Retrieval over source declarations — not a code-understanding model,
 not a generation step, not an IDE index. Questions are answered in vocabulary
@@ -310,9 +310,8 @@ sets like `[a, is, the, how, after]`.
 | **both (1.1.0)** | **0.200/0.286/0.238** | **0.314/0.471/0.381** | 0.429/0.600/0.498 | 0.075/0.150/0.108 | **0.967 / 0.833 / 0.900** |
 
 Ruler A is **unmoved by either bar**; B loses one hit@3 question to either bar
-alone and nothing further when both apply. The rest of the cost is four of
-seventy at hit@1 on the warmest ruler and six at hit@3, plus one of forty and
-two of forty on the Go one.
+alone and nothing further when both apply. The rest is four of seventy at hit@1
+on the warmest ruler and six at hit@3, plus one and two of forty on the Go one.
 
 **Both bars together give the best silence on all three corpora.** Through
 1.3.0 this section said concentration subsumes coverage; on Flask it does not
@@ -688,24 +687,25 @@ questions: it is the corpus's limit, not this tool's.
 measured on every ruler that then existed: it improves both own-repository
 rulers and costs the foreign one 3 of 35 hit@3, so it was rejected.
 
-**A test declaration sometimes outranks real code** — 9 of 175 questions across
-three rulers, a test at rank 1 displacing an accepted answer at rank 2–3, and
-none of them on Flask. The long-standing explanation, that a test outranks the
-code it *tests*, is wrong: five of the nine are unrelated tests winning on
-prose. A callee-before-caller rerank fires on zero questions, and the `name`
-field weight moves nothing because an underscored test name is one token.
+**A test declaration sometimes outranks real code** — 9 of 215 questions across
+all four positive rulers, a test at rank 1 displacing an accepted answer at
+rank 2–3, and **none of them on either foreign corpus**. The long-standing
+explanation, that a test outranks the code it *tests*, is wrong: five of the
+nine are unrelated tests winning on prose. A callee-before-caller rerank fires
+on zero questions, and the `name` field weight moves nothing because an
+underscored test name is one token.
 
 **Describing a declaration that already has a good docstring loses ground.** An
 authored description *replaces* the generated sentence, which is the only route
-by which the author's own docstring reaches the weight-3 description field — so
-writing one demotes that docstring to the weight-1 body. Measured on
-`parser.py::_generic_units`: a long description cost one graded question, a
-short one cost three, and appending the docstring to all 314 descriptions
-instead cost 0.443 → 0.414 hit@1. `describe.skip` records the decision.
+by which the author's docstring reaches the weight-3 description field — so
+writing one demotes it to the weight-1 body. On `parser.py::_generic_units` a
+long description cost one graded question and a short one cost three; appending
+the docstring to all 314 instead cost 0.443 → 0.414 hit@1. `describe.skip`
+records the decision.
 
 **The vectors are 72.1% of the index and earn ±1 question** under the default
-embedder — 74.8% on Flask and 79.7% on cobra. Kept: the same storage is what
-makes an optional model work.
+embedder — 74.8% on Flask, 79.7% on cobra. Kept: the same storage is what makes
+an optional model work.
 
 **`search.vector_recall` scans every vector per query** — under a semantic
 embedder. The default hash never widens at all. Affordable at the measured

@@ -85,12 +85,14 @@ bumping the tag invalidates every figure taken against the old one.
 "A test declaration often outranks the code it tests" had been on the list
 since 0.6.0. Four measurements retired it:
 
-- Across three rulers, **9 of 175** questions have a test at rank 1 with an
-  accepted answer sitting at rank 2–3 — re-derived on the corpora as they ship
-  after the ruler-A subject changed in 1.4.0, where the published figure was 10.
-  Tests reach rank 1 on 14 of the 175; the rest of those are legitimate answers.
-  On the foreign ruler it is **0 of 35**: none of Flask's 1,094 test units
-  reaches rank 1, so the whole cost is on this repository's own two rulers.
+- Across all four positive rulers, **9 of 215** questions have a test at rank 1
+  with an accepted answer sitting at rank 2–3 — re-derived on the corpora as
+  they stand in 1.5.0, where 10 of 175 had been published against the retired
+  subject. Tests reach rank 1 on 14 of the 215; the rest are legitimate
+  answers. On **both** foreign rulers it is zero — none of Flask's 1,094 test
+  units and none of cobra's 324 reaches rank 1 — so the whole cost sits on this
+  repository's own two rulers, which is a fact about this corpus rather than
+  about testing.
 - Of those nine, **five displace code the test has no relationship to** —
   `test_every_searchable_field_carries_a_weight` displacing `parser.py`'s
   generic scanner, `test_the_default_provider_opens_no_socket` displacing the

@@ -216,12 +216,12 @@ had both gone stale.
 A test declaration sometimes outranks real code: it repeats that code's
 vocabulary and adds the vocabulary of its assertions, and BM25 counts that as
 evidence — correctly, by its own lights. Re-derived on the corpora as they
-ship, this is **9 of 175** questions across three rulers where a test at rank 1
-displaces an accepted answer at rank 2–3 — and **0 of 35** on the foreign
-ruler, where none of Flask's 1,094 test units reaches rank 1 at all. So it is a
-property of this repository's own two rulers, not a general one, and a path
-heuristic would fix the number while being wrong in principle, since sometimes
-the test *is* the answer.
+stand, this is **9 of 215** questions across all four positive rulers where a
+test at rank 1 displaces an accepted answer at rank 2–3 — and **zero on both
+foreign ones**, where none of Flask's 1,094 test units and none of cobra's 324
+reaches rank 1 at all. So it is a property of this repository's own two rulers,
+not a general one, and a path heuristic would fix the number while being wrong
+in principle, since sometimes the test *is* the answer.
 
 Identifier splitting was the obvious candidate fix and is measured *not* to
 work; the reasoning and the numbers are in

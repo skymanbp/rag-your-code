@@ -545,7 +545,7 @@ the weight table covers every field.
 
 The known limit is that a test declaration sometimes outranks real code: it
 repeats that code's vocabulary and adds assertions of its own. Over the three
-positive rulers that is 9 of 175 questions, and 0 of 35 on Flask.
+positive rulers that is 9 of 215 questions, and zero on either foreign one.
 
 Two candidate sets, with distinct jobs. Every unit reached by any query term is
 scored, so recall is complete. A *selective* subset — the units reached by a term
