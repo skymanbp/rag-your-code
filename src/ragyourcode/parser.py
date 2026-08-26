@@ -26,7 +26,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from .annotate import describe_python
+from .annotate import DOCUMENTED_MARKER, describe_python
 from .models import CodeUnit
 
 PARSER_VERSION = "3"
@@ -542,7 +542,7 @@ def _generic_units(path: Path, source: str, relative: str, language: str) -> lis
         if documented:
             # Phrased exactly as the Python path phrases a docstring, so the
             # two routes produce the same shape of text for the same thing.
-            description += f" Documented intent: {documented}"
+            description += f" {DOCUMENTED_MARKER} {documented}"
         parent = dotted.rsplit(".", 1)[0] if "." in dotted else None
         units.append(
             CodeUnit(

@@ -3,6 +3,64 @@
 Notable changes per release. Dates are the release date; measurements are from
 the development machine (Windows 11, CPython 3.13) and are directional.
 
+## 1.4.1 — 2026-08-26
+
+Found by installing 1.4.0 from PyPI into a clean environment and using it on an
+unfamiliar repository, which is the one thing no test in this project does.
+
+### A result printed the author's docstring twice
+
+A generated description ends with the author's own docstring, because that is
+how a docstring becomes searchable. The block then printed the source below it,
+which contains the same docstring. On Flask, **2,381 of 3,382 characters of
+prose header were a verbatim repeat of the code beneath it** — a fifth of
+everything a query returned, paid for twice.
+
+It never showed on this repository's own rulers: the descriptions here are
+agent-written and are *not* in the source, so there was nothing to duplicate.
+It took a corpus whose authors wrote docstrings, which arrived in 1.4.0.
+
+`_visible_description` drops the quoted half when the code below already shows
+it, and keeps it when it does not — an authored description is the one part of
+a block a reader cannot recover by reading the code. `searchable_text` is
+untouched, so the docstring stays exactly as findable and no ruler moved.
+
+The saving is not in characters, it is in answers. At the same 12,000-character
+budget:
+
+| | before | after |
+|---|---|---|
+| declarations delivered, Flask, 30 answered | 92 | **119** |
+| declarations delivered, this repo, 60 answered | 305 | **323** |
+
+The budget was already the binding constraint, so removing the duplicate does
+not make a reply smaller — it makes it carry a third more distinct code.
+
+### One marker, one home
+
+`"Documented intent:"` was spelled out as a literal in three modules that have
+to agree on it: `annotate` writes it for Python, `parser` writes it again for
+the other fourteen languages, and `document` looked for it to decide which
+declarations are undocumented. It now lives in `annotate` and the other two
+import it. A string three modules must agree on is a rename away from a silent
+disagreement, and the thing it decides — whether a declaration counts as
+documented — has been wrong before.
+
+### Also
+
+- The comparison is against whitespace-collapsed source, because the quoted
+  docstring is re-flowed onto one line where the code has it indented across
+  many. The first attempt matched nothing at all for a subtler reason: the
+  description's sentence joiner appends a period the source does not have.
+- Republished with fresh fingerprints: B 584 `fb1f841fa43a`, C 584
+  `c9df00350cbd`. Ruler A is untouched at `5fd51169eacc` — the vendored corpus
+  does not move when this repository does, which is the point of vendoring it.
+- Latency on a quiet machine: median 0.61 ms, p95 1.09 ms, refusal 0.017 ms.
+
+356 tests (from 354; **+2 added, 0 removed** by node-id set diff against
+v1.4.0). Both assert the rendering: that the docstring is printed once and by
+the code, and that a written description the source does not carry survives.
+
 ## 1.4.0 — 2026-08-26
 
 The foreign ruler graded a repository on one machine. It is now a copy of

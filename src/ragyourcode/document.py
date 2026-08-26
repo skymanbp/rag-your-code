@@ -26,6 +26,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from .annotate import DOCUMENTED_MARKER
 from .descriptions import DescriptionStore
 from .models import CodeUnit
 from .parser import EXTENSIONS, parse_file
@@ -59,7 +60,6 @@ WRAP_WIDTH = 76
 # rewritten read as undocumented. That mistake proposed a hundred and seven
 # insertions against a repository with seventeen genuinely undocumented
 # declarations.
-DOCUMENTED_MARKER = "Documented intent:"
 _CJK = re.compile(r"[一-鿿]")
 
 

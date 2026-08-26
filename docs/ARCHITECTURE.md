@@ -480,8 +480,8 @@ Cost is bounded by what a discriminating term *is*: concentration reads the
 posting list of every distinctive word, and a word stays distinctive only while
 it is under `COMMON_TERM` of the corpus, so the work is a few percent of the
 index per query word. Measured by `python -m benchmarks.query_latency`, refusing
-an unanswerable query takes 0.029 ms against about 1.0 ms to answer one — some
-thirty-five times cheaper. The README carries the spread and the fingerprint.
+an unanswerable query takes 0.017 ms against 0.61 ms to answer one — some
+thirty-six times cheaper. The README carries the spread and the fingerprint.
 
 The gate also makes the pure-cosine fallback structurally unreachable under
 the feature hash, which is where it did the most harm — a cosine over hashed

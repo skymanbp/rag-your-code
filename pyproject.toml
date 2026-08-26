@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rag-your-code"
-version = "1.4.0"
+version = "1.4.1"
 description = "A local, explainable RAG index for codebases and coding agents"
 readme = "README.md"
 requires-python = ">=3.10"

@@ -28,7 +28,7 @@ Everything the 1.0.0 roadmap listed as still open, and what happened to it.
 | item | outcome |
 |---|---|
 | Qualified names outside Python | **Fixed** in 1.1.0, all 15 languages, from the spans the closer already produced. |
-| Descriptions cover 297 of 524 units | **Decided.** Test-function descriptions cost five real answers and six false silences; the table is under 1.0.0 in [ROADMAP-history.md](ROADMAP-history.md). Now 304 of 581. |
+| Descriptions cover 297 of 524 units | **Decided.** Test-function descriptions cost five real answers and six false silences; the table is under 1.0.0 in [ROADMAP-history.md](ROADMAP-history.md). Now 304 of 584. |
 | No stemming | **Measured and rejected.** Helps both own-repository rulers, costs the foreign one 3 of 35 hit@3. |
 | A test declaration outranks the code it tests | **Misdiagnosed, and corrected.** See below. |
 | English questions answered from words used here in another sense | **Fixed** by the concentration bar, 0.53 → 0.93 English silence. One residual, below. |
@@ -171,14 +171,15 @@ rare word the question is about.
 
 | gate, varied alone on one corpus | A hit@1/3/MRR | B hit@1/3/MRR | C hit@1/3/MRR | silence own / foreign |
 |---|---|---|---|---|
-| neither bar | 0.200/0.286/0.238 | 0.314/0.486/0.391 | 0.486/0.700/0.567 | 0.000 / 0.000 |
-| coverage 0.40 only | 0.200/0.286/0.238 | 0.314/0.471/0.383 | 0.486/0.686/0.562 | 0.600 / 0.733 |
-| concentration 0.28 only | 0.200/0.286/0.238 | 0.314/0.471/0.383 | 0.443/0.614/0.507 | 0.967 / 0.800 |
-| **both, shipped** | 0.200/0.286/0.238 | 0.314/0.471/0.383 | 0.443/0.614/0.507 | **0.967 / 0.833** |
+| neither bar | 0.200/0.286/0.238 | 0.314/0.486/0.391 | 0.486/0.700/0.569 | 0.000 / 0.000 |
+| coverage 0.40 only | 0.200/0.286/0.238 | 0.314/0.471/0.383 | 0.486/0.686/0.564 | 0.567 / 0.733 |
+| concentration 0.28 only | 0.200/0.286/0.238 | 0.314/0.471/0.383 | 0.443/0.614/0.509 | 0.967 / 0.800 |
+| **both, shipped** | 0.200/0.286/0.238 | 0.314/0.471/0.383 | 0.443/0.614/0.509 | **0.967 / 0.833** |
 
 Corpora: A and the foreign silence column, Flask 3.1.3 at 1,572 units
-`5fd51169eacc`; B, 581 units `8e1e71942c1c`; C and the own silence column, 581
-units `978a1d48a82a`.
+`5fd51169eacc`; B, 584 units `fb1f841fa43a`; C and the own silence column, 584
+units `c9df00350cbd`. The model comparison below keeps the 581-unit stamps it
+was taken on, which is what a stamp is for.
 
 **Through 1.3.0 this section said concentration subsumes coverage. It does not
 on a corpus this project did not choose.** Both bars silence 0.833 of the

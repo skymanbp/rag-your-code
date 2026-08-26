@@ -8,6 +8,7 @@ from bisect import bisect_left
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 
+from .annotate import DOCUMENTED_MARKER
 from .config import BY_PATH
 from .embeddings import DEFAULT_DIMENSIONS, LocalEmbedder, tokenize
 from .models import CodeUnit, SearchResult
@@ -549,13 +550,47 @@ def search(
     ]
 
 
+def _visible_description(unit: CodeUnit) -> str:
+    """The description minus whatever the code printed under it already says.
+
+    A generated description ends with the author's own docstring, because that
+    is how a docstring becomes searchable -- and the source below the block
+    then prints it a second time. Measured on a repository whose author wrote
+    them, 2,381 of 3,382 characters of prose header were a verbatim repeat of
+    the code beneath it: a fifth of everything a query returned, paid for
+    twice. Retrieval is the half of RAG that has to fit in a context window,
+    so this is not a cosmetic saving.
+
+    Only the rendering drops it. ``searchable_text`` keeps the whole thing, so
+    no ruler moves and the docstring stays exactly as findable as it was.
+
+    The quoted docstring is re-flowed onto one line where the source has it
+    indented across many, so the test is against whitespace-collapsed source
+    rather than against the source itself. An authored description the source
+    does not carry is kept: it is the one part a reader cannot get from the
+    code.
+    """
+    head, marker, documented = unit.description.partition(DOCUMENTED_MARKER)
+    if not marker:
+        return unit.description
+    quoted = " ".join(documented.split())
+    # `describe_python` joins its pieces with ". " and closes with ".", so a
+    # docstring that already ended in one arrives here with two. Matching on
+    # the raw text found nothing at all on the first repository tried.
+    trimmed = quoted[:-1] if quoted.endswith(".") else quoted
+    body = " ".join(unit.source.split())
+    if quoted in body or trimmed in body:
+        return head.rstrip()
+    return unit.description
+
+
 def _block(result: SearchResult) -> str:
     """One result as an agent reads it: identifier, score, why it matched,
     what it is, and the code itself.
     """
     unit = result.unit
     evidence = "\nEvidence: " + " | ".join(result.evidence) if result.evidence else ""
-    return f"[{unit.id}] score={result.score:.3f}{evidence}\n{unit.description}\n```{unit.language}\n{unit.source}\n```"
+    return f"[{unit.id}] score={result.score:.3f}{evidence}\n{_visible_description(unit)}\n```{unit.language}\n{unit.source}\n```"
 
 
 def within_budget(results: list[SearchResult], max_chars: int) -> list[SearchResult]:

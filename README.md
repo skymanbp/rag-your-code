@@ -266,11 +266,11 @@ repository had grown by ninety units.
 |---|---|---|---|---|---|
 | **A** Flask 3.1.3, no descriptions | what a first-time user gets | 35 | 0.200 | 0.286 | 0.238 |
 | **B** this repo, generated descriptions only | a cold index of familiar code | 70 | 0.314 | 0.471 | 0.383 |
-| **C** this repo, agent-written descriptions | the warmest case supported | 70 | 0.443 | 0.614 | 0.507 |
+| **C** this repo, agent-written descriptions | the warmest case supported | 70 | 0.443 | 0.614 | 0.509 |
 
 The corpora, without which none of the above is reproducible — **A** 1,572
-units, `5fd51169eacc`; **B** 581 units, `8e1e71942c1c`; **C** 581 units,
-`978a1d48a82a`. Ruler A grades **a copy of Flask 3.1.3 carried in this
+units, `5fd51169eacc`; **B** 584 units, `fb1f841fa43a`; **C** 584 units,
+`c9df00350cbd`. Ruler A grades **a copy of Flask 3.1.3 carried in this
 repository**, at [`benchmarks/corpus/flask`](benchmarks/corpus/flask), pinned
 to commit `22d9247`. Through 1.3.0 it graded a checkout on one machine, and
 that cost three things: two questions pointed at a declaration the subject had
@@ -301,10 +301,10 @@ Flask does not implement get through on exactly that.
 
 | gate | A hit@1/3/MRR | B hit@1/3/MRR | C hit@1/3/MRR | silence own / foreign |
 |---|---|---|---|---|
-| neither (pre-1.0.0) | 0.200/0.286/0.238 | 0.314/0.486/0.391 | 0.486/0.700/0.567 | 0.000 / 0.000 |
-| coverage only (1.0.0) | 0.200/0.286/0.238 | 0.314/0.471/0.383 | 0.486/0.686/0.562 | 0.600 / 0.733 |
-| concentration only | 0.200/0.286/0.238 | 0.314/0.471/0.383 | 0.443/0.614/0.507 | 0.967 / 0.800 |
-| **both (1.1.0)** | **0.200/0.286/0.238** | **0.314/0.471/0.383** | 0.443/0.614/0.507 | **0.967 / 0.833** |
+| neither (pre-1.0.0) | 0.200/0.286/0.238 | 0.314/0.486/0.391 | 0.486/0.700/0.569 | 0.000 / 0.000 |
+| coverage only (1.0.0) | 0.200/0.286/0.238 | 0.314/0.471/0.383 | 0.486/0.686/0.564 | 0.567 / 0.733 |
+| concentration only | 0.200/0.286/0.238 | 0.314/0.471/0.383 | 0.443/0.614/0.509 | 0.967 / 0.800 |
+| **both (1.1.0)** | **0.200/0.286/0.238** | **0.314/0.471/0.383** | 0.443/0.614/0.509 | **0.967 / 0.833** |
 
 Ruler A is **unmoved by either bar**, and B by concentration. The whole cost is
 three questions of seventy at hit@1 on the warmest ruler, and six at hit@3.
@@ -323,20 +323,20 @@ from 0.314 and C to 0.329 from 0.443. **0.28 was chosen before this corpus
 existed and survived meeting it**, which is the only kind of evidence a default
 can have.
 
-**Latency** — warm corpus, 581 units `978a1d48a82a`, five consecutive
+**Latency** — warm corpus, 584 units `c9df00350cbd`, five consecutive
 invocations of `python -m benchmarks.query_latency --repeats 10` (420 samples
 each):
 
 | | | across the five |
 |---|---|---|
-| query, median | **1.0 ms** | 0.71 – 1.26 |
-| query, p95 | 1.7 ms | 1.2 – 3.7 |
-| refusing an unanswerable query | **0.029 ms** | 0.023 – 0.031 |
-| refusal cheaper than answering by | **~36×** | 31 – 44 |
+| query, median | **0.61 ms** | 0.60 – 0.64 |
+| query, p95 | 1.09 ms | 1.06 – 1.14 |
+| refusing an unanswerable query | **0.017 ms** | 0.015 – 0.019 |
+| refusal cheaper than answering by | **~36×** | 33 – 41 |
 
 Two significant figures and a spread, because that is the precision the
-measurement has. Across fifteen invocations over two releases on the same idle
-machine the median has landed anywhere from 0.62 to 1.44 ms and p95 from 1.09
+measurement has. Across twenty invocations over three releases on the same idle
+machine the median has landed anywhere from 0.51 to 1.44 ms and p95 from 0.85
 to 7.34 ms — a band wider than any change the code has ever made to this
 number. Releases before 1.3.0 published `0.83 ms / p95 1.68 ms` to three
 figures from a script that was never committed; both values sit inside that
@@ -391,17 +391,17 @@ framework reversed it. The honest claim is narrower than either table alone:
 | right file first | 22.9% | **37.1%** |
 | right file in top 3 | 45.7% | **57.1%** |
 | lines it hands back, all questions | 17,641 | — |
-| characters returned, all questions | 1,415,656 | **249,720** |
+| characters returned, all questions | 1,415,656 | **258,236** |
 | questions it answers | 30 | 30 |
 
 **Once the vocabulary exists, it is not close.**
 
-| this repository · 70 questions · 581 units `978a1d48a82a` · 304 described | Grep loop | rag-your-code |
+| this repository · 70 questions · 584 units `c9df00350cbd` · 304 described | Grep loop | rag-your-code |
 |---|---|---|
 | right file first | 22.9% | **58.6%** |
-| right file in top 3 | 54.3% | **75.7%** |
-| lines it hands back, all questions | 11,833 | — |
-| characters returned, all questions | 1,122,902 | **626,022** |
+| right file in top 3 | 54.3% | **77.1%** |
+| lines it hands back, all questions | 11,959 | — |
+| characters returned, all questions | 1,135,411 | **615,673** |
 | questions it answers | **61** | 60 |
 
 Those two tables are the whole argument of section 3.3, measured against a real
@@ -438,11 +438,17 @@ Four qualifications, because the table would otherwise flatter both sides:
   `the` gets every file back in no order. It is also why Grep declines nine of
   the seventy questions here — those had no word left that this corpus does not
   use everywhere.
-- **Payload is counted in characters on both sides.** On this repository Grep
-  hands back 18,400 characters per question it answers, unranked and without
-  spans, against 10,400 here, ranked and capped by `search.max_chars` — a
-  factor of 1.8. On Flask it is a factor of 5.7 — 47,200 characters against
-  8,300 — because a framework repeats its own vocabulary across many files and
+- **Payload is counted in characters on both sides**, and 1.4.1 changed what
+  fits in it. A generated description ends with the author's docstring so the
+  docstring is searchable, and the source printed below it said the same thing
+  again — 2,381 of 3,382 characters of prose header on Flask were a verbatim
+  repeat of the code beneath. The block no longer prints what the code shows,
+  and the same 12,000-character budget now carries **119 declarations instead
+  of 92** there, 323 instead of 305 here. Grep
+  hands back 18,600 characters per question it answers, unranked and without
+  spans, against 10,300 here, ranked and capped by `search.max_chars` — a
+  factor of 1.8. On Flask it is a factor of 5.5 — 47,200 characters against
+  8,600 — because a framework repeats its own vocabulary across many files and
   Grep has no way to rank what it finds. Both sides decline the same five of
   those 35 — and they are the five Chinese ones, all of them. A Chinese word is
   not a substring of English source and it is not a token in an index built

@@ -5,6 +5,14 @@ from __future__ import annotations
 import ast
 import re
 
+# Where a generated description stops describing the signature and starts
+# quoting what the author wrote. Three modules needed to recognise it and all
+# three spelled it out: this one writes it, the parser writes it again for the
+# other fourteen languages, and `document` looked for it. A string literal
+# duplicated across modules that must agree is a rename away from a silent
+# disagreement.
+DOCUMENTED_MARKER = "Documented intent:"
+
 
 def _humanize(name: str) -> str:
     """Turns a programmer identifier into ordinary words: splits camelCase
@@ -37,7 +45,7 @@ def describe_python(node: ast.AST, source: str, calls: list[str], imports: list[
         pieces.append("using " + ", ".join(imports[:8]))
     doc = ast.get_docstring(node)
     if doc:
-        pieces.append("Documented intent: " + " ".join(doc.split()))
+        pieces.append(f"{DOCUMENTED_MARKER} " + " ".join(doc.split()))
     return ". ".join(pieces) + "."
 
 

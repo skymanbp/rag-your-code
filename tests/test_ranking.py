@@ -18,6 +18,7 @@ present anywhere in the unit -- ranks the *wrong* answer first.
 
 from __future__ import annotations
 
+import dataclasses
 from pathlib import Path
 
 from ragyourcode.indexer import build_units
@@ -200,3 +201,56 @@ def test_a_field_every_unit_leaves_empty_does_not_divide_by_zero():
     )
     index = build_search_index([unit])
     assert search([unit], "nothing", limit=1, search_index=index)[0].unit.id == unit.id
+
+
+def test_a_block_does_not_reprint_the_docstring_the_code_below_it_shows(tmp_path: Path):
+    """The author's own words reached the block twice: once quoted into the
+    generated description so they are searchable, once in the source.
+
+    Measured on a repository whose author wrote them, 2,381 of 3,382
+    characters of prose header were a verbatim repeat of the code beneath it.
+    At a fixed budget that is answers crowded out by their own duplicate: the
+    same twelve thousand characters carried 92 declarations before this and
+    119 after.
+
+    Both halves are asserted. Dropping the quote must not drop what only the
+    header says, and it must not touch what the index can find -- the docstring
+    stays in `searchable_text`, which is why no ruler moves.
+    """
+    (tmp_path / "billing.py").write_text(
+        'def charge(amount):\n'
+        '    """Charge the amount against the stored card and return a receipt."""\n'
+        '    return amount\n',
+        encoding="utf-8",
+    )
+    unit = build_units(tmp_path)[0]
+    index = build_search_index([unit])
+    rendered = _block(search([unit], "charge the amount", search_index=index, limit=1)[0])
+
+    quoted = "Charge the amount against the stored card and return a receipt."
+    assert rendered.count(quoted) == 1, "the docstring is printed once, by the code"
+    assert rendered.index(quoted) > rendered.index("```"), "the surviving copy is the one in the source"
+    assert "This method charge" in rendered, "the generated half is not in the source and must stay"
+    assert quoted in unit.searchable_text, "dropping it from the block must not drop it from the index"
+
+
+def test_a_written_description_the_source_does_not_carry_survives(tmp_path: Path):
+    """The rule is "the code already shows it", not "it came after the marker".
+
+    An authored description is the one part of a block a reader cannot recover
+    by reading the code, so a rule that keyed on the marker alone would delete
+    exactly the text this project spends tokens to produce.
+    """
+    (tmp_path / "billing.py").write_text(
+        'def charge(amount):\n'
+        '    """Charge the card."""\n'
+        '    return amount\n',
+        encoding="utf-8",
+    )
+    unit = build_units(tmp_path)[0]
+    unit = dataclasses.replace(
+        unit, description="This method charge. Documented intent: retries a declined authorisation once."
+    )
+    index = build_search_index([unit])
+    rendered = _block(search([unit], "charge the amount", search_index=index, limit=1)[0])
+    assert "retries a declined authorisation once." in rendered
