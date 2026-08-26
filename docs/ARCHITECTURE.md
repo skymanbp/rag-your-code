@@ -428,7 +428,7 @@ evidence*. Only the first is a ranking problem, and until 1.0.0 only the first
 was asked. A ranking always has a least-bad candidate and returns it with a
 score and a rank that read exactly like an answer, so a repository answered
 all thirty questions in `benchmarks/absent_queries.json` — every one about a
-subject it does not contain, in both languages, on both graded repositories.
+subject it does not contain, in both languages, on both corpora graded then.
 
 `assess()` answers the second question before any embedding or scoring
 happens, and `search()` returns nothing when the answer is no. What it

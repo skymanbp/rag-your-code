@@ -411,8 +411,8 @@ ranking always has a winner.
 
 ### What was measured before choosing
 
-Measured on the four rulers as they ship — 98 answerable questions that are
-findable at all, and 60 unanswerable ones, half of each in English:
+Measured on the four rulers that existed then — 98 answerable questions that
+are findable at all, and 60 unanswerable ones, half of each in English:
 
 | rule | real answers kept | unanswerable silenced | English |
 |---|---|---|---|
@@ -600,8 +600,8 @@ Neither has been built, and the reasons are specific rather than general.
   to tell an improvement from a regression.
 - An ANN index replaces the full vector scan in `search.vector_recall`, which
   runs only under a semantic embedder. That path is affordable at the measured
-  envelope (10,000 units, 3.90 ms mean query), so the work would be justified
-  by a repository size nobody has brought yet.
+  envelope (10,000 units, 15.6 ms mean query as re-measured in 1.5.0), so the
+  work would be justified by a repository size nobody has brought yet.
 
 The default stays what it is: `dependencies = []`, no socket, no key, and
 output a human can read and correct rather than opaque floats.
