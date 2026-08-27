@@ -93,8 +93,8 @@ stopped existing the moment BM25F changed that scale.
 ### 3.2 · The vector was carrying nothing, and here is why
 
 The default embedder is a signed feature hash. Ablating it entirely moves the
-three positive rulers by **±1 question in either direction** while the vectors
-occupy **72.1%** of the index. That was known since 0.6.0 and left unexplained.
+four positive rulers by **at most two questions, and in both directions**, while
+the vectors occupy **72.1%** of the index. Known since 0.6.0 and unexplained.
 The explanation, measured here:
 
 - **Not saturation.** Median 56 distinct tokens per unit into 384 buckets, 0.4%
@@ -269,8 +269,8 @@ repository had grown by ninety units.
 | **C** this repo, agent-written descriptions | the warmest case supported | 70 | 0.429 | 0.600 | 0.498 |
 
 The corpora, without which none of the above is reproducible — **E** 602 units,
-`3eabaa705477`; **A** 1,572 units, `5fd51169eacc`; **B** 601 units,
-`566616fbe1e7`; **C** 601 units, `ac3ae43a33e7`. Both foreign subjects are
+`3eabaa705477`; **A** 1,572 units, `5fd51169eacc`; **B** 604 units,
+`81e47eb0a50c`; **C** 604 units, `f84556ba7881`. Both foreign subjects are
 carried in this repository at pinned tags, under
 [`benchmarks/corpus/`](benchmarks/corpus/), and CI runs both as ordinary jobs.
 
@@ -295,12 +295,12 @@ Silence is lower on both foreign corpora than on this one, and the cause is a
 limit of the design rather than a defect. A word counts as evidence unless it
 occurs in more than 5% of units — a stopword list derived from the corpus, so
 that it needs no list and works in any language. Here `how`, `when`, `does` and
-`are` are everywhere, because 314 units carry written English prose. Across a
+`are` are everywhere, because 317 units carry written English prose. Across a
 corpus of short, tersely documented declarations they occur in 1–5% of them and
 start counting as evidence: on cobra, three English questions get through on
 sets like `[a, is, the, how, after]`.
 
-**What each bar costs and buys** — every corpus, gate varied alone:
+**What each bar costs and buys** — corpora stamped above, gate varied alone:
 
 | gate | A | B | C | E | silence own / Flask / cobra |
 |---|---|---|---|---|---|
@@ -326,28 +326,28 @@ hit@1, B to 0.214 and C to 0.329. **0.28 was chosen before either foreign
 corpus existed and survived meeting both**, which is the only kind of evidence
 a default can have.
 
-**Latency** — warm corpus, 601 units `ac3ae43a33e7`, one
+**Latency** — warm corpus, 604 units `f84556ba7881`, one
 `python -m benchmarks.query_latency` (5 repeats × 420 samples), idle machine:
 
 | | | across the repeats |
 |---|---|---|
-| query, median | **0.49 ms** | 0.45 – 0.58 |
-| query, p95 | 0.85 ms | 0.72 – 1.07 |
-| refusing an unanswerable query | **0.016 ms** | 0.015 – 0.016 |
-| refusal cheaper than answering by | **~30×** | 29 – 37 |
+| query, median | **0.73 ms** | 0.70 – 0.78 |
+| query, p95 | 1.30 ms | 1.17 – 1.39 |
+| refusing an unanswerable query | **0.016 ms** | 0.015 – 0.018 |
+| refusal cheaper than answering by | **~44×** | 40 – 47 |
 
 *Idle* is load-bearing: the same corpus at the same commit measured 0.99 ms
 median while a coverage run was in progress and 0.49 ms once it finished.
+This row read 0.49 ms in 1.5.0 at 601 units; a corpus 0.5% larger cannot
+explain 40%, and a repeat run here read 0.69 ms — the machine moved, not the code.
 
-Two significant figures and a spread, because that is the precision the
-measurement has. Across twenty invocations over four releases on the same idle
-machine the median has landed anywhere from 0.49 to 1.44 ms and p95 from 0.85
-to 7.34 ms — a band wider than any change the code has made to this number.
-Releases before 1.3.0 published `0.83 ms / p95 1.68 ms` to three figures from a
-script that was never committed; both sit inside that band, which is the point:
-they were unfalsifiable rather than wrong. Refusal is cheap structurally rather
-than by tuning — an unanswerable query touches only the posting lists of its
-own distinctive words and never reaches ranking.
+Two significant figures and a spread, because that is the precision this has.
+Across five releases on the same idle machine the median has landed from 0.49
+to 1.44 ms and p95 from 0.85 to 7.34 ms — a band wider than any change the code
+has made to it. Releases before 1.3.0 published `0.83 ms / p95 1.68 ms` to
+three figures from an uncommitted script; both sit inside that band, which is
+the point — unfalsifiable rather than wrong. Refusal is cheap structurally: an
+unanswerable query touches only its distinctive words' posting lists, never ranking.
 
 **Scale**, synthetic 10,000-unit repository (500 files), re-measured in 1.5.0
 — the previous row of figures was optimistic by more than noise:
@@ -377,7 +377,7 @@ it again.
 Directional local measurements, not service levels — but each is a command
 rather than a memory, which two of them were not before. Each
 prints the corpus fingerprint beside its score; quote both or neither.
-[`benchmarks/README.md`](benchmarks/README.md) lists the six scripts and what
+[`benchmarks/README.md`](benchmarks/README.md) lists the seven scripts and what
 each is for, and the corpus one of them grades is now carried here too.
 
 ## 7 · `rag-your-code search` vs a Grep loop
@@ -406,12 +406,12 @@ payload: this side hands back a fifth to a half of the text, ranked and spanned.
 
 **Once the vocabulary exists, it is not close.**
 
-| this repository · 70 questions · 601 units `ac3ae43a33e7` · 314 described | Grep loop | rag-your-code |
+| this repository · 70 questions · 604 units `f84556ba7881` · 317 described | Grep loop | rag-your-code |
 |---|---|---|
 | right file first | 22.9% | **58.6%** |
-| right file in top 3 | 54.3% | **78.6%** |
-| lines it hands back, all questions | 12,421 | — |
-| characters returned, all questions | 1,179,431 | **617,305** |
+| right file in top 3 | 52.9% | **78.6%** |
+| lines it hands back, all questions | 12,540 | — |
+| characters returned, all questions | 1,190,816 | **611,859** |
 | questions it answers | **61** | 60 |
 
 That is section 3.3's argument measured rather than asserted, and it is the one
@@ -688,8 +688,8 @@ measured on every ruler that then existed: it improves both own-repository
 rulers and costs the foreign one 3 of 35 hit@3, so it was rejected.
 
 **A test declaration sometimes outranks real code** — 9 of 215 questions across
-all four positive rulers, a test at rank 1 displacing an accepted answer at
-rank 2–3, and **none of them on either foreign corpus**. The long-standing
+all four positive rulers (`benchmarks/displacement.py`), a test at rank 1
+displacing an accepted answer at rank 2–3, **none of them foreign**. The long-standing
 explanation, that a test outranks the code it *tests*, is wrong: five of the
 nine are unrelated tests winning on prose. A callee-before-caller rerank fires
 on zero questions, and the `name` field weight moves nothing because an
@@ -699,13 +699,13 @@ underscored test name is one token.
 authored description *replaces* the generated sentence, which is the only route
 by which the author's docstring reaches the weight-3 description field — so
 writing one demotes it to the weight-1 body. On `parser.py::_generic_units` a
-long description cost one graded question and a short one cost three; appending
-the docstring to all 314 instead cost 0.443 → 0.414 hit@1. `describe.skip`
-records the decision.
+long description cost one graded question and a short one cost three;
+appending the docstring to every description instead cost the 1.5.0 corpus
+0.443 → 0.414 hit@1. `describe.skip` records the decision.
 
-**The vectors are 72.1% of the index and earn ±1 question** under the default
-embedder — 74.8% on Flask, 79.7% on cobra. Kept: the same storage is what makes
-an optional model work.
+**The vectors are 72.1% of the index and earn at most two questions** under the
+default embedder — 74.8% Flask, 79.7% cobra. Ablating costs A one, gains B one
+and C two at hit@3, moves E none; that storage is what an optional model needs.
 
 **`search.vector_recall` scans every vector per query** — under a semantic
 embedder. The default hash never widens at all. Affordable at the measured

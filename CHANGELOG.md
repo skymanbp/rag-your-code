@@ -3,6 +3,94 @@
 Notable changes per release. Dates are the release date; measurements are from
 the development machine (Windows 11, CPython 3.13) and are directional.
 
+## 1.5.1 — 2026-08-27
+
+The README is what PyPI renders, and the copy frozen into the 1.5.0 sdist still
+carried a figure this repository had already corrected. Going back for it found
+that the correction was itself wrong.
+
+### One sentence, two definitions of "test unit"
+
+"A test declaration sometimes outranks real code" has been published since
+0.6.0 and has now been wrong twice, both times because it had no committed
+command and each re-derivation invented its own idea of what a test is.
+
+The second time is the instructive one. **"None of cobra's 324 test units
+reaches rank 1"** counted the 324 by file name, because Go writes
+`command_test.go` beside the code — and then asked "reaches rank 1" of a
+directory rule, which in a Go repository matches nothing. The claim was true
+only because the detector could not see one unit it was naming. One cobra test
+does take rank 1.
+
+**`benchmarks/displacement.py`** is the command, with the definition in one
+place and language-aware: a `test`/`tests`/`testdata` directory anywhere above
+the file, or `test_*.py`, `*_test.py`, `*_test.go`. It separates two numbers
+that are not the same number — a test being top result, and a test being top
+result *while an accepted answer sits at rank 2–3*. Only the second is a cost.
+
+| ruler | questions | test units | at rank 1 | displacing |
+|---|---|---|---|---|
+| C described | 70 | 390 | 8 | 6 |
+| B cold | 70 | 390 | 6 | 3 |
+| A Flask | 35 | 1,126 | 0 | 0 |
+| E cobra | 40 | 324 | 1 | **0** |
+
+**9 of 215 stands.** What was wrong: tests reach rank 1 on **15**, not 14, and
+Flask has 1,126 test units under one rule rather than the 1,094 that lie under
+`tests/`. What holds: none of the nine displacements is on a foreign ruler —
+cobra's single rank-1 test displaces nothing, its question having had no answer
+in the top three either way. ARCHITECTURE also said "over the three positive
+rulers" of a figure summed over four.
+
+### A benchmark that grades its own corpus changes it by landing
+
+Adding that script added three units to this repository, and two of the five
+rulers read the live working tree. So every own-repository stamp moves:
+**604 units**, C `f84556ba7881`, B `81e47eb0a50c`, 317 described, 287 declined
+by `describe.skip`. The two vendored corpora are untouched — A 1,572
+`5fd51169eacc`, E 602 `3eabaa705477`.
+
+Nothing else moved with them. Re-derived on the new corpus, every score is
+identical to 1.5.0's: A 0.200/0.286/0.238, B 0.314/0.471/0.381, C
+0.429/0.600/0.498, E 0.075/0.150/0.108, silence 0.967 own / 0.833 Flask / 0.900
+cobra, and all twelve gate-ablation cells. Describing the three new units
+changed no question either way, checked as a set difference rather than a
+matching total. The vectors are still 72.1% / 74.8% / 79.7% of the three
+indexes.
+
+One figure did move: the Grep head-to-head on this repository, where the
+baseline's top-3 goes **54.3% → 52.9%** and both payloads change size
+(1,190,816 characters against **611,859**). First place is unchanged at 22.9%
+against **58.6%**.
+
+### The latency row is slower and the code is not
+
+Re-measured at 604 units `f84556ba7881`: median **0.73 ms** [0.70–0.78], p95
+1.30 ms [1.17–1.39], refusal 0.016 ms, **44x** cheaper. 1.5.0 published 0.49 ms
+at 601 units. A corpus 0.5% larger cannot account for 40%, a repeat run here
+read 0.69 ms, and the figure sits inside the 0.49–1.44 ms band this README
+already documents across releases. The machine moved, not the code.
+
+This is the third release in which that row has been the least trustworthy
+number published, which is why it ships with its spread and its stamp instead
+of to three figures.
+
+### Also
+
+- **The vector ablation was quoted over three rulers, and there are four.**
+  Re-run on all of them: ablating the default embedder costs Flask one question
+  and cobra none, and *gains* the cold own-repository ruler one and the
+  described one two at hit@3. At most two, in both directions, where **±1** had
+  been published. The 72.1% / 74.8% / 79.7% storage shares are unchanged, and
+  so is the conclusion — the vector earns close to nothing and is kept because
+  the same storage is what an optional model needs.
+- The README's gate-ablation table named no corpus. It now points at the
+  stamps printed above it, and all twelve of its cells were re-measured.
+- `benchmarks/README.md` indexes seven scripts, not six.
+
+**387 tests**, unchanged. The only edit under `src/` is the version string:
+no behaviour changed in this release, only what the project says about itself.
+
 ## 1.5.0 — 2026-08-26
 
 Closing every item on the "could be done, has not been" list. One of them —

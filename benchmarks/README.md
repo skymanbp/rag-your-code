@@ -94,6 +94,30 @@ same commit measured 0.99 ms median while a coverage run was in progress and
 The figures the README used to carry came from a script that was never
 committed, on a corpus that no longer exists. That is what this file is for.
 
+## When a test takes rank 1
+
+```powershell
+python -m benchmarks.displacement
+```
+
+Grades all four positive rulers and separates two numbers that are not the
+same number: how often a test is the top result, and how often it is the top
+result *while an accepted answer sits at rank 2..k*. Only the second is a cost.
+
+It exists because this figure was published for nine releases with no command
+behind it and was wrong twice. The second time, one sentence carried two
+incompatible definitions: "none of cobra's 324 test units reaches rank 1"
+counted the 324 by file name, because Go writes `command_test.go` beside the
+code, and then asked "reaches rank 1" of a directory rule that matches nothing
+in a Go repository. It was true only because the detector could not see a
+single unit it was naming. The definition now lives in one place, in
+`is_test`, and covers `test/` `tests/` `testdata/` directories plus
+`test_*.py`, `*_test.py` and `*_test.go`.
+
+Adding this script moved this repository's own two rulers by three units, which
+is the hazard the stamps exist for: two of the four rulers read the live
+working tree, so a benchmark that grades its own corpus changes it by landing.
+
 ## Scale, and a cold process
 
 ```powershell

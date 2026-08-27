@@ -28,12 +28,12 @@ Everything the 1.0.0 roadmap listed as still open, and what happened to it.
 | item | outcome |
 |---|---|
 | Qualified names outside Python | **Fixed** in 1.1.0, all 15 languages, from the spans the closer already produced. |
-| Descriptions cover 297 of 524 units | **Closed in 1.5.0.** Everything the measurement says to describe is described: 314 of 601, with the remaining 287 withheld by `describe.skip` and counted as `declined`. |
+| Descriptions cover 297 of 524 units | **Closed in 1.5.0.** Everything the measurement says to describe is described: 317 of 604, with the remaining 287 withheld by `describe.skip` and counted as `declined`. |
 | No stemming | **Measured and rejected.** Helps both own-repository rulers, costs the foreign one 3 of 35 hit@3. |
 | A test declaration outranks the code it tests | **Misdiagnosed, and corrected.** See below. |
 | English questions answered from words used here in another sense | **Fixed** by the concentration bar, 0.53 → 0.93 English silence. One residual, below. |
 | Whether the skill fires unprompted in a fresh session | **Measurable after all, and not measured.** `claude plugin eval` exists for exactly it, and is gated behind an account-level early access this project does not have. Blocked on entitlement, not on method. |
-| Vectors are 55% of an index and earn nothing | **Diagnosed** (1.1.0) and **kept**: 72.1% here, 74.8% on Flask, 79.7% on cobra; ±1 question, and the same storage is what makes the optional model work. |
+| Vectors are 55% of an index and earn nothing | **Diagnosed** (1.1.0) and **kept**: 72.1% here, 74.8% on Flask, 79.7% on cobra; at most two questions on any of the four rulers, and the same storage is what makes the optional model work. |
 | Four constants fitted on two corpora | **Tested on a third** in 1.5.0 — cobra v1.9.1, Go, 602 units. None moved. |
 | Tree-sitter parsing | **Decided against as a default**, and the policy for it settled. See non-goals. |
 | SQLite / ANN storage layer | Same. |
@@ -86,13 +86,15 @@ bumping the tag invalidates every figure taken against the old one.
 since 0.6.0. Four measurements retired it:
 
 - Across all four positive rulers, **9 of 215** questions have a test at rank 1
-  with an accepted answer sitting at rank 2–3 — re-derived on the corpora as
-  they stand in 1.5.0, where 10 of 175 had been published against the retired
-  subject. Tests reach rank 1 on 14 of the 215; the rest are legitimate
-  answers. On **both** foreign rulers it is zero — none of Flask's 1,094 test
-  units and none of cobra's 324 reaches rank 1 — so the whole cost sits on this
-  repository's own two rulers, which is a fact about this corpus rather than
-  about testing.
+  with an accepted answer sitting at rank 2–3 — `python -m
+  benchmarks.displacement`, where 10 of 175 had been published against the
+  retired subject. Tests reach rank 1 on **15** of the 215; the rest are
+  legitimate answers, because sometimes the test *is* what was asked for.
+  **None of the nine is on a foreign ruler**: not one of Flask's 1,126 test
+  units takes rank 1, and the single cobra test that does displaces nothing,
+  its question having had no answer in the top three either way. So the whole
+  cost sits on this repository's own two rulers, which is a fact about this
+  corpus rather than about testing.
 - Of those nine, **five displace code the test has no relationship to** —
   `test_every_searchable_field_carries_a_weight` displacing `parser.py`'s
   generic scanner, `test_the_default_provider_opens_no_socket` displacing the
@@ -232,7 +234,7 @@ that docstring to the weight-1 body.
 
 **Measured and rejected:** keeping both, by appending the generated docstring
 after the authored text. It fixes the one declaration and costs the corpus —
-0.443 → 0.414 hit@1 — because it lengthens all 314 description fields and BM25F
+0.443 → 0.414 hit@1 — because it lengthens every description field, and BM25F
 normalises per field length. `describe.skip` now accepts `path::name` so a
 single declaration can be recorded as decided.
 

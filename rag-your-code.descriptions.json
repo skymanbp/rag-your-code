@@ -1,6 +1,27 @@
 {
   "schema": 1,
   "descriptions": {
+    "benchmarks/displacement.py:56:is_test": {
+      "hash": "ef953dd8b007559d",
+      "code_hash": "1fc19f812eaebf47",
+      "path": "benchmarks/displacement.py",
+      "name": "is_test",
+      "text": "Decides whether a source file is test code rather than production code, using one rule for every language so a count and a claim about it cannot disagree. Recognises a test directory (test, tests, testdata) anywhere above the file, and the naming conventions each language marks a test with: test_ prefixed Python, _test.py, and Go's _test.go written beside the code it exercises. Used to tell an honest top-ranked answer from a test that stole the place. 判断一个源文件是测试代码还是产品代码，全部语言共用一套规则；识别测试目录与各语言的测试文件命名约定（Python 的 test_ 前缀、_test.py，Go 的 _test.go）。"
+    },
+    "benchmarks/displacement.py:65:_units": {
+      "hash": "2655a6d61f73ab78",
+      "code_hash": "2655a6d61f73ab78",
+      "path": "benchmarks/displacement.py",
+      "name": "_units",
+      "text": "Loads the declarations one ruler grades, either from a repository's stored index on disk or, for the cold ruler, by parsing this repository fresh so no written description is in play. Exits with an instruction to build the index first when a corpus has none, rather than failing on a missing file. 取出某把尺子要评测的代码单元：或读磁盘上已有的索引，或对本仓库重新解析得到不含人工描述的冷启动语料；语料没有索引时给出先建索引的提示而不是报缺文件。"
+    },
+    "benchmarks/displacement.py:76:main": {
+      "hash": "0f98e53c8eb6eeef",
+      "code_hash": "0f98e53c8eb6eeef",
+      "path": "benchmarks/displacement.py",
+      "name": "main",
+      "text": "Runs the whole test-displacement measurement and prints the table it publishes: for every ruler, how many questions were asked, how many test units the corpus holds, how often a test took the top spot, and how often doing so pushed a real answer down to rank two or three. Separates those last two because only the second is a cost. Names each displaced question so the claim can be checked case by case, stamps every row with its corpus fingerprint, and can write the whole table as JSON. 跑完整的测试挤占度量并打印可发布的表格：每把尺子各问了多少问题、语料里有多少测试单元、测试拿到第一名多少次、其中多少次把真正答案挤到第二三位；逐条列出被挤占的问题并给每行盖上语料指纹。"
+    },
     "benchmarks/fixture/auth.py:4:issue_session_token": {
       "hash": "bdf596e468e9cf4f",
       "code_hash": "48c2da5948cca53e",
