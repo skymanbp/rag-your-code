@@ -215,21 +215,14 @@ had both gone stale.
 
 A test declaration sometimes outranks real code: it repeats that code's
 vocabulary and adds the vocabulary of its assertions, and BM25 counts that as
-evidence — correctly, by its own lights. `python -m benchmarks.displacement` re-derives it:
-**9 of 215** questions across all four positive rulers where a test at rank 1
-displaces an accepted answer at rank 2–3, and **none of the nine on either
-foreign ruler**. Not one of Flask's 1,126 test units takes rank 1; exactly one
-of cobra's 324 does, and it displaces nothing, its question having had no
-answer in the top three either way. So it is a property of this repository's
-own two rulers, not a general one, and a path heuristic would fix the number
-while being wrong in principle, since sometimes the test *is* the answer.
-
-That command exists because this figure was published for nine releases
-without one and was wrong twice. The second time, a single sentence carried two
-incompatible definitions of "test unit": cobra's 324 were counted by file name,
-since Go writes `command_test.go` beside the code, and then "reaches rank 1"
-was asked of a directory rule that matches nothing in a Go repository. The
-claim was true only because the detector could not see one unit it named.
+evidence — correctly, by its own lights. `python -m benchmarks.displacement`
+measures it, holding one language-aware definition of a test file so that a
+count and a claim about it cannot disagree: **9 of 215** questions across the
+four positive rulers put a test at rank 1 with an accepted answer at rank 2–3,
+and **none of the nine is on a foreign ruler**. So it is a property of this
+repository's own two rulers rather than a general one, and a path heuristic
+would fix the number while being wrong in principle, since sometimes the test
+*is* the answer.
 
 Identifier splitting was the obvious candidate fix and is measured *not* to
 work; the reasoning and the numbers are in

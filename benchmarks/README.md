@@ -86,10 +86,10 @@ python -m benchmarks.query_latency [--samples 420] [--repeats 5]
 Times one warm `search()` and one query the index refuses, over this
 repository's own index. It repeats the whole measurement and prints the
 spread, because a single run does not have the precision the earlier figures
-were quoted to — four consecutive runs on an idle machine put p95 at 1.01,
-1.02, 1.22 and 2.06 ms. Run it on an **idle** machine: the same corpus at the
-same commit measured 0.99 ms median while a coverage run was in progress and
-0.49 ms once it finished, and nothing in the report can see the difference.
+were quoted to. Run it on an **idle** machine: the same corpus at the same
+commit measures about twice its idle median while a coverage run is in
+progress, and nothing in the report can see the difference. Every published
+latency figure therefore carries its range and its corpus fingerprint.
 
 The figures the README used to carry came from a script that was never
 committed, on a corpus that no longer exists. That is what this file is for.
@@ -104,18 +104,15 @@ Grades all four positive rulers and separates two numbers that are not the
 same number: how often a test is the top result, and how often it is the top
 result *while an accepted answer sits at rank 2..k*. Only the second is a cost.
 
-It exists because this figure was published for nine releases with no command
-behind it and was wrong twice. The second time, one sentence carried two
-incompatible definitions: "none of cobra's 324 test units reaches rank 1"
-counted the 324 by file name, because Go writes `command_test.go` beside the
-code, and then asked "reaches rank 1" of a directory rule that matches nothing
-in a Go repository. It was true only because the detector could not see a
-single unit it was naming. The definition now lives in one place, in
-`is_test`, and covers `test/` `tests/` `testdata/` directories plus
-`test_*.py`, `*_test.py` and `*_test.go`.
+The definition of a test file lives in one place, `is_test`, and is
+language-aware: `test/` `tests/` `testdata/` directories plus `test_*.py`,
+`*_test.py` and `*_test.go`. It has to be. This figure was published for nine
+releases with no command behind it, and the last re-derivation counted cobra's
+324 test units by file name and then asked "reaches rank 1" of a directory
+rule, which in a Go repository matches nothing.
 
 Adding this script moved this repository's own two rulers by three units, which
-is the hazard the stamps exist for: two of the four rulers read the live
+is the hazard the stamps exist for: two of the five rulers read the live
 working tree, so a benchmark that grades its own corpus changes it by landing.
 
 ## Scale, and a cold process

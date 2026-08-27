@@ -336,18 +336,14 @@ a default can have.
 | refusing an unanswerable query | **0.016 ms** | 0.015 – 0.018 |
 | refusal cheaper than answering by | **~44×** | 40 – 47 |
 
-*Idle* is load-bearing: the same corpus at the same commit measured 0.99 ms
-median while a coverage run was in progress and 0.49 ms once it finished.
-This row read 0.49 ms in 1.5.0 at 601 units; a corpus 0.5% larger cannot
-explain 40%, and a repeat run here read 0.69 ms — the machine moved, not the code.
-
-Two significant figures and a spread, because that is the precision this has.
-Across five releases on the same idle machine the median has landed from 0.49
-to 1.44 ms and p95 from 0.85 to 7.34 ms — a band wider than any change the code
-has made to it. Releases before 1.3.0 published `0.83 ms / p95 1.68 ms` to
-three figures from an uncommitted script; both sit inside that band, which is
-the point — unfalsifiable rather than wrong. Refusal is cheap structurally: an
-unanswerable query touches only its distinctive words' posting lists, never ranking.
+*Idle* is load-bearing, and nothing in the report can see whether it was: the
+same corpus at the same commit measures about twice this median while another
+job is running. Two significant figures and a spread, because across releases
+that spread has been wider than any change the code has made to this number —
+which is why the row ships with its range and its corpus stamp rather than to
+three figures. Refusal is cheap structurally, not by tuning: an unanswerable
+query touches only its distinctive words' posting lists and never reaches
+ranking.
 
 **Scale**, synthetic 10,000-unit repository (500 files), re-measured in 1.5.0
 — the previous row of figures was optimistic by more than noise:
@@ -703,9 +699,9 @@ long description cost one graded question and a short one cost three;
 appending the docstring to every description instead cost the 1.5.0 corpus
 0.443 → 0.414 hit@1. `describe.skip` records the decision.
 
-**The vectors are 72.1% of the index and earn at most two questions** under the
-default embedder — 74.8% Flask, 79.7% cobra. Ablating costs A one, gains B one
-and C two at hit@3, moves E none; that storage is what an optional model needs.
+**The vectors are 72.1% of the index and earn at most two questions** on any
+ruler, in either direction, under the default embedder — 74.8% Flask, 79.7%
+cobra. Kept: that same storage is what an optional model needs.
 
 **`search.vector_recall` scans every vector per query** — under a semantic
 embedder. The default hash never widens at all. Affordable at the measured
