@@ -1,6 +1,6 @@
 {
   "name": "rag-your-code",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "Local explainable codebase RAG indexing and retrieval for coding agents",
   "author": {
     "name": "rag-your-code contributors"

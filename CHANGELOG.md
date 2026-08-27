@@ -3,6 +3,26 @@
 Notable changes per release. Dates are the release date; measurements are from
 the development machine (Windows 11, CPython 3.13) and are directional.
 
+## 1.5.2 — 2026-08-27
+
+Presentation only. No figure changed; several stopped being stated twice.
+
+The latency section put **six** millisecond figures in front of a reader for
+one measurement: the table's, a coverage-run anecdote, 1.5.0's value, a repeat
+run, and two band endpoints. The table is the figure, and a superseded number
+belongs in this file rather than beside its replacement.
+
+`docs/ARCHITECTURE.md` was a second source for that same measurement — 0.017
+against 0.61 ms, "thirty-six times cheaper" — while its own sentence said the
+README carries the figures. It now carries the mechanism and points there.
+`docs/TESTING.md` repeated `benchmarks/README.md`'s account of why the
+displacement command exists; that account now appears once, and shorter.
+
+One correction that is not presentational: `benchmarks/README.md` said two of
+*four* rulers read the live working tree. There are five.
+
+**387 tests**, and `src/` differs from 1.5.1 only by the version string.
+
 ## 1.5.1 — 2026-08-27
 
 The README is what PyPI renders, and the copy frozen into the 1.5.0 sdist still
