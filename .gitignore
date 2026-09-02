@@ -38,3 +38,5 @@ memory/
 .coverage.*
 htmlcov/
 coverage.xml
+# cc-enforcer index / cc-memory state: machine-local, never content
+.ccm/
