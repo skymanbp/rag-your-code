@@ -194,7 +194,7 @@ A question with no lexical shortcut, asked of this repository:
 
 ````console
 $ rag-your-code search "where does it decide whether to answer at all" --limit 1
-[src/ragyourcode/search.py:117:Evidence] score=0.447
+[src/ragyourcode/search.py:117:Evidence] score=0.446
 The verdict on whether a question reached this index at all, kept separate from
 how results rank. ... 中文：判定一个提问究竟有没有够到索引的结论。...
 ```python
@@ -207,7 +207,7 @@ There is no string here to grep for: *decide* occurs nowhere in that
 declaration and matched nothing. What ranked it first is ordinary words —
 *answer*, *whether*, *where* — rare enough in this corpus to tell declarations
 apart. What the agent-written description adds is the other language:
-「在哪里判定一个提问有没有答案」 returns the same declaration first, at 0.395,
+「在哪里判定一个提问有没有答案」 returns the same declaration first, at 0.396,
 sharing not one character with its source.
 
 Now the case that motivated 1.0.0 — a question with no answer here at all:
@@ -231,12 +231,12 @@ it happens to use elsewhere.
                "matched_terms": ["job","leave","print"],
                "ubiquitous_terms": ["a","does","the","why"],
                "coverage": 0.5,    "min_coverage": 0.4,
-               "concentration": 0.1691, "min_concentration": 0.28,
+               "concentration": 0.1693, "min_concentration": 0.28,
                "applied_min_coverage": 0.4, "applied_min_concentration": 0.28,
                "hint": "..."}}
 ```
 
-Read `coverage: 0.5` against `concentration: 0.1691`. Half the distinctive
+Read `coverage: 0.5` against `concentration: 0.1693`. Half the distinctive
 words are here — `job`, `leave`, `print` — and spread thin enough that no
 declaration holds a fifth of what was asked, against a bar of 0.28. Before
 1.1.0 it came back with a confident-looking result.
@@ -432,8 +432,8 @@ Qualifications, because the tables would otherwise flatter both sides:
   every file back in no order. It is also why Grep declines nine of the seventy
   questions here — no word was left that this corpus does not use everywhere.
 - **Payload is counted in characters on both sides.** Grep hands back roughly
-  19,300 characters per question it answers here, unranked and without spans,
-  against 10,300 ranked and capped by `search.max_chars` — a factor of 1.9,
+  19,500 characters per question it answers here, unranked and without spans,
+  against 10,200 ranked and capped by `search.max_chars` — a factor of 1.9,
   5.5 on Flask and 5.1 on cobra, where a framework repeats its vocabulary
   across files and Grep cannot rank what it finds. 1.4.1 changed what fits in
   that cap: the block had been reprinting the docstring the code below already
@@ -697,7 +697,7 @@ by which the author's docstring reaches the weight-3 description field — so
 writing one demotes it to the weight-1 body. On `parser.py::_generic_units` a
 long description cost one graded question and a short one cost three;
 appending the docstring to every description instead cost the 1.5.0 corpus
-0.443 → 0.414 hit@1. `describe.skip` records the decision.
+0.429 → 0.414 hit@1. `describe.skip` records the decision.
 
 **The vectors are 72.1% of the index and earn at most two questions** on any
 ruler, in either direction, under the default embedder — 74.8% Flask, 79.7%

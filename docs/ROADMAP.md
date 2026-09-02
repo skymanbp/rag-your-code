@@ -52,7 +52,7 @@ defects, all of one shape: **a published figure with no command behind it.**
 | "all 32 questions in `absent_queries.json`", "126 questions", "silences 47%" | 30, no set of that size, and 0.600. None had ever been re-derived. |
 
 The fix in every case was the same and is now the rule: **the command is the
-claim.** `benchmarks/README.md` lists all six, and every one prints the corpus
+claim.** `benchmarks/README.md` lists all seven, and every one prints the corpus
 fingerprint beside its score.
 
 ### The foreign ruler is reproducible now, and that changed three answers
@@ -234,7 +234,7 @@ that docstring to the weight-1 body.
 
 **Measured and rejected:** keeping both, by appending the generated docstring
 after the authored text. It fixes the one declaration and costs the corpus —
-0.443 → 0.414 hit@1 — because it lengthens every description field, and BM25F
+0.429 → 0.414 hit@1 — because it lengthens every description field, and BM25F
 normalises per field length. `describe.skip` now accepts `path::name` so a
 single declaration can be recorded as decided.
 

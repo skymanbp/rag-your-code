@@ -1,6 +1,6 @@
 # The rulers
 
-Six scripts. Five of them measure something the README publishes, and the
+Seven scripts. Six of them measure something the README publishes, and the
 rule for all of them is the same: **a score is meaningless without the corpus
 it was taken on.** Two runs of an unchanged `search.py` reported 0.257 and
 0.229 hit@1 on the foreign ruler, and both were right — that repository had

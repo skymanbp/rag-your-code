@@ -186,7 +186,7 @@ is the only route by which the author's own docstring reaches the weight-3
 says what a reader would search by demotes it to the weight-1 body.
 
 **Measured and rejected:** appending the docstring after the authored text.
-It fixes that declaration and costs the corpus, 0.443 → 0.414 hit@1, because it
+It fixes that declaration and costs the corpus, 0.429 → 0.414 hit@1, because it
 lengthens all 314 description fields and BM25F normalises per field length.
 `describe.skip` accepts `path::name` so one declaration can be recorded instead.
 
