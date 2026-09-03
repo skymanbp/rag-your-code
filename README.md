@@ -373,7 +373,7 @@ it again.
 Directional local measurements, not service levels — but each is a command
 rather than a memory, which two of them were not before. Each
 prints the corpus fingerprint beside its score; quote both or neither.
-[`benchmarks/README.md`](benchmarks/README.md) lists the seven scripts and what
+[`benchmarks/README.md`](benchmarks/README.md) lists the eight scripts and what
 each is for, and the corpus one of them grades is now carried here too.
 
 ## 7 · `rag-your-code search` vs a Grep loop
@@ -733,7 +733,8 @@ that rots. `pytest --cov=ragyourcode` is the command behind the coverage one.
 CI runs Python 3.10–3.13 on Linux and Windows, installs the built wheel into a
 clean environment and runs the documented CLI end to end — `bootstrap` through
 `describe promote` — plus the skill's own install line verbatim, and grades
-every ruler including both vendored corpora.
+rulers A, C, D and E across this repository and both vendored corpora. Ruler B,
+the cold parse of this repository, is a local command.
 
 - [docs/FLOW.md](docs/FLOW.md) — the whole thing in four diagrams
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — how each stage works and why

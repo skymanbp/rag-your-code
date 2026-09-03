@@ -345,7 +345,7 @@ def test_every_benchmark_script_is_listed_in_its_own_index():
     Both directions matter. A script absent from the index is one nobody knows
     to run; a command in the index naming a script that does not exist is the
     install-line defect this repository shipped twice. Discovery by glob is
-    what keeps the seventh script from being the one nothing checks.
+    what keeps the newest script from being the one nothing checks.
     """
     index = (ROOT / "benchmarks" / "README.md").read_text(encoding="utf-8")
     assert BENCHMARKS, "benchmarks/ holds no scripts; this guard would pass vacuously"

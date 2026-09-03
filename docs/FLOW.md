@@ -151,7 +151,7 @@ use one.
 
 [README §6](../README.md#6--benchmark-dashboard) publishes every figure with the
 fingerprint of the corpus it was taken on, and
-[benchmarks/README.md](../benchmarks/README.md) lists the seven commands that
+[benchmarks/README.md](../benchmarks/README.md) lists the eight commands that
 produce them. Nothing in this document is a figure you cannot re-derive — and
 since 1.5.0 the four diagrams above are parsed by `tests/test_diagrams.py`,
 because a mermaid block GitHub cannot render fails silently.

@@ -1,6 +1,6 @@
 # The rulers
 
-Seven scripts. Six of them measure something the README publishes, and the
+Eight scripts. Seven of them measure something the README publishes, and the
 rule for all of them is the same: **a score is meaningless without the corpus
 it was taken on.** Two runs of an unchanged `search.py` reported 0.257 and
 0.229 hit@1 on the foreign ruler, and both were right — that repository had
@@ -114,6 +114,32 @@ rule, which in a Go repository matches nothing.
 Adding this script moved this repository's own two rulers by three units, which
 is the hazard the stamps exist for: two of the five rulers read the live
 working tree, so a benchmark that grades its own corpus changes it by landing.
+
+## What the vectors cost
+
+```powershell
+python -m benchmarks.vector_share
+```
+
+Prints the share of each published index that is vector data, beside the
+fingerprint of the corpus it was measured on — this repository and both
+vendored corpora in one table.
+
+The unit is bytes of the index as written. The measurement is a difference
+rather than a pattern match: the payload is re-serialized with `write_index`'s
+own `json.dump(..., ensure_ascii=False, indent=2)`, then again with every
+`vector` field dropped, and the first of those is checked against the file on
+disk before either is reported — so the table carries the on-disk cost rather
+than an approximation of it.
+
+Bytes and characters are different measurements here. This repository's own
+index carries about 45,000 bytes of multi-byte UTF-8, which a character count
+discards, putting its share about 0.6 points higher; the vendored corpora are
+almost pure ASCII and agree to within 0.001 points on either basis, so they
+cannot tell the two apart. That is why the basis is stated here rather than
+inferred from them. Under `index.compact` the vectors are a float32 side file,
+the share compares that file against the pair the index occupies, and the
+report names the basis it used.
 
 ## Scale, and a cold process
 

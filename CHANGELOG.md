@@ -3,6 +3,39 @@
 Notable changes per release. Dates are the release date; measurements are from
 the development machine (Windows 11, CPython 3.13) and are directional.
 
+## Unreleased
+
+### The vector share is a command
+
+**72.1% here, 74.8% on Flask, 79.7% on cobra** comes out of `python -m
+benchmarks.vector_share`, printed beside the fingerprint of the corpus it was
+taken on, for all three corpora in one table. Every figure this project
+publishes is a command.
+
+The basis it fixes is load-bearing. The unit is bytes of the index as written,
+measured by re-serializing the payload with `write_index`'s own arguments and
+again with every `vector` field dropped; the first is checked against the file
+on disk before the difference is reported. A character count reads 72.7% on
+this repository, whose index carries 44,913 bytes of multi-byte UTF-8 that
+characters discard — and the two vendored corpora, almost pure ASCII, agree to
+within 0.001 points on either basis, so they cannot tell the two apart.
+
+**Eight benchmark scripts**, seven of which measure a figure the README
+publishes.
+
+### CI grades four of the five rulers
+
+README section 12 names them: A, C, D and E run in
+`.github/workflows/ci.yml`, across this repository and both vendored corpora.
+Ruler B, the cold parse of this repository, is a local command.
+
+### Also
+
+- `.ce/` and `.ccm/` are ignored: a cc-enforcer index and cc-memory state are
+  machine-local tooling, never repository content.
+- The 2026-09-02 documentation audit re-derived the published figures against
+  the code and corrected the ones that had moved.
+
 ## 1.5.2 — 2026-08-27
 
 Presentation only. No figure changed; several stopped being stated twice.
