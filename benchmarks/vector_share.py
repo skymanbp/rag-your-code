@@ -16,13 +16,13 @@ either is reported, so the difference is the on-disk cost and not an
 approximation of it.
 
 Bytes and characters are different measurements here. This repository's own
-index carries about 45,000 bytes of multi-byte UTF-8 -- its sources quote prose
-as well as code -- so a character count puts the share about 0.6 points above
-the byte figure. The two vendored corpora are almost pure ASCII and agree to
-within 0.001 points, which is why the basis has to be stated rather than
-inferred from them.
+index carries about 45,000 bytes of multi-byte UTF-8 that a character count
+discards -- its sources quote prose as well as code -- so counting characters
+puts the share about 0.6 points above the byte figure. The two vendored
+corpora are almost pure ASCII and agree to within 0.001 points, which is why
+the basis has to be stated rather than inferred from them.
 
-Under `index.compact` the vectors are a float32 side file instead of a span
+Under `index --compact` the vectors are a float32 side file instead of a span
 inside the JSON. The share then compares that file against the pair of files
 the index actually occupies, and the report says which basis produced it.
 

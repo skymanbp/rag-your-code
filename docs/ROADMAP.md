@@ -52,8 +52,8 @@ defects, all of one shape: **a published figure with no command behind it.**
 | "all 32 questions in `absent_queries.json`", "126 questions", "silences 47%" | 30, no set of that size, and 0.600. None had ever been re-derived. |
 
 The fix in every case was the same and is now the rule: **the command is the
-claim.** `benchmarks/README.md` lists all eight, and every one prints the corpus
-fingerprint beside its score.
+claim.** `benchmarks/README.md` lists all eight, five of which print the
+fingerprint of the corpus they measured beside the figure.
 
 ### The foreign ruler is reproducible now, and that changed three answers
 

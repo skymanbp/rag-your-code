@@ -137,9 +137,9 @@ index carries about 45,000 bytes of multi-byte UTF-8, which a character count
 discards, putting its share about 0.6 points higher; the vendored corpora are
 almost pure ASCII and agree to within 0.001 points on either basis, so they
 cannot tell the two apart. That is why the basis is stated here rather than
-inferred from them. Under `index.compact` the vectors are a float32 side file,
-the share compares that file against the pair the index occupies, and the
-report names the basis it used.
+inferred from them. Under `index --compact` the vectors are a float32 side
+file, the share compares that file against the pair the index occupies, and
+the report names the basis it used.
 
 ## Scale, and a cold process
 
