@@ -3,7 +3,7 @@
 Notable changes per release. Dates are the release date; measurements are from
 the development machine (Windows 11, CPython 3.13) and are directional.
 
-## Unreleased
+## 1.5.3 — 2026-09-03
 
 ### The vector share is a command
 
@@ -31,10 +31,17 @@ Ruler B, the cold parse of this repository, is a local command.
 
 ### Also
 
+- `index.compact` is not a setting. Compaction is the `--compact` flag on
+  `rag-your-code index`, and `benchmarks/README.md` and the `vector_share`
+  docstring name it that way. Five of the eight scripts print the fingerprint
+  of the corpus they measured, which is the form `docs/ROADMAP.md` now states
+  rather than quantifying over all eight.
 - `.ce/` and `.ccm/` are ignored: a cc-enforcer index and cc-memory state are
   machine-local tooling, never repository content.
 - The 2026-09-02 documentation audit re-derived the published figures against
   the code and corrected the ones that had moved.
+
+**387 tests**, and `src/` differs from 1.5.2 only by the version string.
 
 ## 1.5.2 — 2026-08-27
 
